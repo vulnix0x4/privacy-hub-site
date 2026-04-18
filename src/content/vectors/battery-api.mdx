@@ -11,30 +11,92 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** The Battery Status API exposed your battery's exact charge level (to four decimal places), discharge time, and charging state. Two sites that read it within seconds of each other could match you across origins because the precise level is unique.
+## also known as: `navigator.getBattery()`, Battery Status API, BatteryManager, charge-level fingerprint
 
-Most major browsers removed it after a 2016 paper made the abuse obvious. Chrome on Android still ships it gated.
+> **TL;DR** — The Battery Status API exposed battery charge level to four decimal places, discharge time, and charging state. Two sites that read it within seconds of each other could match you across origins because the precise level is momentarily unique. Most browsers removed it after a 2016 paper; Chrome on Android still ships it gated.
+> Severity: medium
+> Prevalence: rare
 
-## How it works
+## How it works (plain English)
 
-`navigator.getBattery().then(b =&gt; b.level)` returned `0.7892`. Reload the page, get `0.7891`. Open a different site within ten seconds, get the same value, and the cross-site link is made. Researchers Olejnik et al. demonstrated the technique on 1,500 origins in a Mozilla-funded study.
+Your laptop battery is not at a round percentage. It might be at 78.92% right now, dropping to 78.91% in a few seconds. That exact decimal-level reading is mundane to your OS but briefly becomes a cross-site fingerprint when a browser API exposes it to every website.
 
-Firefox removed the API in 2016. Safari never shipped it. Chrome desktop removed it from cross-origin contexts; Chrome Android still exposes it to top-level documents.
+In 2016, researchers Łukasz Olejnik, Gunes Acar, Claude Castelluccia, and Claudia Diaz published a Mozilla-funded paper showing that two websites reading `navigator.getBattery()` within ten seconds of each other could compute the same user ID based on the precise battery level. A user clears cookies, switches browser profiles, fires up incognito — the battery level is still 78.92%. Any site that reads the battery API and matches it against a recent tracker database could re-link the session.
 
-## What it leaks about you
+Browsers responded. Firefox removed the API entirely in late 2016. Safari never shipped it. Chrome on desktop removed it from cross-origin contexts. Chrome on Android still exposes it to top-level documents because of vertical-slice app dependencies (progressive web apps that want to warn users about low battery before a long form submission). The prevalence is "rare" because it is now mostly a legacy surface — but where it still ships, it is still a short-lived linkable ID.
 
-A short-lived but high-precision identifier. With charging state, indirectly whether you are at home or out.
+## How it works (technical)
+
+```js
+// Only works on Chrome (Android) and some Chromium forks
+const battery = await navigator.getBattery();
+console.log(battery.level);            // 0.7892 — four decimal precision
+console.log(battery.charging);         // true | false
+console.log(battery.chargingTime);     // seconds to full, Infinity if not charging
+console.log(battery.dischargingTime);  // seconds until empty
+
+battery.addEventListener('levelchange', () => {
+  // fires on any 1% change
+});
+```
+
+Olejnik et al.'s 2016 paper *The leaking battery* (WPES workshop and earlier) demonstrated the technique on 1,500 origins. Their key insight: most browsers exposed `level` to 4 decimal places and updated on a per-second cadence. A user at `0.7892` this second will be at `0.7891` next second. Two sites reading the API one second apart can match `0.7892 → 0.7891` as "the same user ID minus 0.0001" — trivially linkable.
+
+The charging state adds a coarse signal: "is the user plugged in right now?" Over a multi-hour session, a charging/discharging transition is a behavioural event shared across all origins reading the API.
+
+Firefox removed `BatteryManager` in 2016 (bug 1313580). Chrome for Android kept it because it is used by a few legitimate PWAs (airline apps, travel apps that warn before a form submit if battery is low). Brave disables it. Safari never implemented it.
+
+Laperdrix 2020 covers the vector as a case study in "rapid-response browser-spec deprecation." Olejnik's original paper remains the canonical reference.
+
+## Who uses this, and why
+
+Very few active users today. The removal from Firefox and cross-origin Chrome desktop killed most commercial consumption of the API. The remaining reads come from native-like PWAs that genuinely need battery state (airlines, field-service apps) and from legacy ad-tech code that was written pre-2016 and never updated — where the API is present, those scripts still execute the read, which is why it shows up in occasional Lighthouse audits.
+
+FingerprintJS removed battery-API reads from its public library in 2017. ThreatMetrix, Iovation, MaxMind minFraud all treat it as deprecated. The only defensible current use is bot detection on Android Chrome — headless instances return `charging=true, level=1` which is a flag when combined with other signals.
+
+Research: Olejnik et al. 2016 *The leaking battery* is the primary source. Olejnik's 2018 *The Price of Free* (NDSS) revisits the mitigation history. Acar 2018 commentary on mobile-specific API persistence.
+
+## What it reveals about you
+
+While the API is available: a short-lived but high-precision cross-session identifier, good for about 10-30 seconds of linkability. Charging state indirectly reveals whether you are at home/office (plugged in) or on the go (discharging). Over a session, discharge-rate differentials distinguish older laptops from newer ones.
 
 ## How to defend
 
-- 🟢 Use Firefox or Safari; the API is gone.
-- 🟢 In Chrome desktop, the surface is already minimal. On Android, use Brave.
-- 🟡 Disable third-party JavaScript on cross-origin frames.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox or Safari — the API is gone. The only users at risk are Chrome-Android users.
 
-A VPN. The signal is local-device state.
+### Level 2: Install a free tool 🟡
 
-## Try it
+On Chrome desktop, the surface is already minimal (cross-origin contexts removed). On Chrome Android, use Brave, which disables the Battery Status API outright.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Disable third-party JavaScript on cross-origin frames (uBlock Origin advanced mode). For Chrome-Android users, switch to Firefox Android or Brave Android — both ship without the API exposed.
+
+### What doesn't help
+
+A VPN. The battery signal is local-device state, not network state. Incognito mode in Chrome-Android — the battery level is the same across private and regular windows.
+
+## Tools that help
+
+- **Firefox** (any platform) — API removed in 2016.
+- **Safari** — API never shipped.
+- **Brave** — API disabled under shields.
+- **Tor Browser / Mullvad Browser** — API not available.
+- **Chrome desktop** — API already restricted to same-origin contexts.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- Olejnik et al., *The Leaking Battery: A Privacy Analysis of the HTML5 Battery Status API* (DPM/QASA 2015, reported widely 2016)
+- [Firefox bug 1313580: Remove BatteryManager](https://bugzilla.mozilla.org/show_bug.cgi?id=1313580)
+- [W3C Battery Status API spec — deprecation note](https://www.w3.org/TR/battery-status/)
+- Olejnik, *The Price of Free* (NDSS 2018)
+
+## Known limits
+
+The vector is mostly closed; the remaining attack surface is Chrome-Android. For users not on Chrome-Android the defence is simply "do nothing" — the API is unavailable. The battery-API case is a useful case study for spec-removal effectiveness, but it is not a current top-priority vector to fix.
