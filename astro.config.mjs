@@ -2,14 +2,14 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
-import cloudflare from '@astrojs/cloudflare';
+import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://privacy.whattheflip.lol',
-  output: 'static',
-  adapter: cloudflare({ imageService: 'passthrough' }),
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
   integrations: [react(), mdx(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
@@ -23,5 +23,9 @@ export default defineConfig({
   },
   prefetch: {
     prefetchAll: false,
+  },
+  server: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 4321,
   },
 });

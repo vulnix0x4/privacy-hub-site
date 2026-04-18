@@ -1,0 +1,104 @@
+# privacy-hub: full self-host stack
+#
+# What runs here:
+#   - web              : Astro Node server (the site)
+#   - scanner-ja4      : Go handler for raw-TLS JA4 fingerprint (Phase 3)
+#   - scanner-nsd      : NSD authoritative DNS for *.scan.privacy.whattheflip.lol (Phase 3)
+#   - scanner-nonce    : Go sidecar coordinating nonces + NSD zone rewrites (Phase 3)
+#
+# Only `web` is active in this first commit. Scanner services land in Phase 3.
+#
+# External access assumption:
+#   Internet -> your server (Caddy HTTPS) -> WireGuard -> this host -> exposed ports below.
+#
+# Ports exposed (default; override via .env):
+#   WEB_PORT (8421)    — Astro web server; your server's Caddy reverse-proxies to this
+#   JA4_PORT (8443)    — TLS passthrough endpoint; your server's Caddy must do
+#                        TCP passthrough (layer4 plugin) for ja4.scan.* → here
+#   DNS_PORT (5353)    — authoritative DNS; your server's public port 53 UDP+TCP
+#                        must DNAT-forward to here via WireGuard
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: privacy-hub-site:latest
+    container_name: privacy-hub-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8421}:4321"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4321
+      PUBLIC_SITE_URL: https://privacy.whattheflip.lol
+      SCAN_JA4_URL: ${SCAN_JA4_URL:-https://ja4.scan.privacy.whattheflip.lol}
+      SCAN_DNS_DOMAIN: ${SCAN_DNS_DOMAIN:-scan.privacy.whattheflip.lol}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /app/.astro-sessions:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4321/en/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Phase 3 services — defined here but commented out until implemented.
+  # Uncomment after Phase 3 Tasks 3.2–3.5 land.
+  #
+  # scanner-ja4:
+  #   build: ./scanner/ja4
+  #   container_name: privacy-hub-scanner-ja4
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${JA4_PORT:-8443}:8443"
+  #   read_only: true
+  #   tmpfs:
+  #     - /tmp:size=16m
+  #   cap_drop: [ALL]
+  #   security_opt: [no-new-privileges:true]
+  #
+  # scanner-nsd:
+  #   build: ./scanner/nsd
+  #   container_name: privacy-hub-scanner-nsd
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${DNS_PORT:-5353}:53/udp"
+  #     - "${DNS_PORT:-5353}:53/tcp"
+  #   volumes:
+  #     - ./scanner/nsd/zones:/etc/nsd/zones:ro
+  #   read_only: true
+  #   tmpfs:
+  #     - /var/db/nsd:size=8m
+  #     - /tmp:size=8m
+  #   cap_add: [NET_BIND_SERVICE]
+  #   cap_drop: [ALL]
+  #
+  # scanner-nonce:
+  #   build: ./scanner/nonce
+  #   container_name: privacy-hub-scanner-nonce
+  #   restart: unless-stopped
+  #   depends_on: [scanner-nsd]
+  #   volumes:
+  #     - ./scanner/nsd/zones:/etc/nsd/zones
+  #   read_only: true
+  #   tmpfs:
+  #     - /tmp:size=8m
+  #   cap_drop: [ALL]
+
+networks:
+  default:
+    name: privacy-hub
+    driver: bridge
