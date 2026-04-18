@@ -1,0 +1,68 @@
+---
+/**
+ * Changelog — single launch entry. Designed to accept more entries later
+ * as MDX becomes worth the schema. For now, a hand-written HTML list is
+ * enough: at launch there is one entry. Second entry gets added here
+ * until volume justifies a content collection.
+ *
+ * Every warrant-canary rotation, every legal-takedown notice, every audit
+ * report lands here with a date and a brief body. This is the honesty
+ * surface.
+ */
+import Layout from '../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+
+const entries = [
+  {
+    date: '2026-04-18',
+    title: 'Launch',
+    body: [
+      '22 encyclopedia entries across seven tracking-vector families.',
+      '22 category pages with hero picks and at least one non-affiliate alternative each.',
+      '11 scenario playlists covering threat models from "just want basics" to "journalist protecting a source."',
+      '1 guide (Harden Firefox in 15 minutes) with more to come.',
+      'Scanner live with 20 of 22 probes. JA4 and DNS-leak backend are pending Phase 3.',
+      'Warrant canary initialized. First rotation due on or before 2026-05-01.',
+    ],
+  },
+];
+---
+<Layout
+  title="Changelog — privacy.whattheflip.lol"
+  description="Dated log of everything that lands on this site. Warrant canary rotations, takedown notices, audit reports, and content changes all appear here with a timestamp."
+>
+  <article class="max-w-3xl py-6 space-y-8 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Changelog</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Changelog</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+      <p class="text-sm text-text leading-relaxed">
+        Every meaningful change to this site — content, policy, infra — is dated and listed here.
+        Warrant canary rotations, legal takedown attempts, and audit reports all land here, never
+        quietly.
+      </p>
+    </header>
+
+    <ol class="space-y-8 list-none pl-0">
+      {entries.map((entry) => (
+        <li class="border-l-2 border-accent/40 pl-5 space-y-3">
+          <p class="text-xs uppercase tracking-wider text-text-muted">
+            <time datetime={entry.date}>{entry.date}</time>
+          </p>
+          <h2 class="text-xl font-semibold text-text">{entry.title}</h2>
+          <ul class="list-disc pl-5 space-y-1 text-text">
+            {entry.body.map((line) => (
+              <li>{line}</li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ol>
+  </article>
+</Layout>
