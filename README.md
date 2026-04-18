@@ -22,6 +22,10 @@ Internet → your-server:443 (Caddy HTTPS) → WireGuard → this-host (mini PC)
 
 DNS records live on Cloudflare (grey-cloud only — CF never proxies traffic, just resolves names).
 
+See [`docs/ops/upstream-caddy.md`](docs/ops/upstream-caddy.md) for the exact
+upstream Caddyfile snippets (including the `layer4` plugin build) and the
+iptables DNAT rules needed to expose the DNS and JA4 endpoints.
+
 ## Local development
 
 ```bash
