@@ -2,6 +2,17 @@
 import Layout from '../../layouts/Layout.astro';
 import { ReducedMotionProvider } from '../../components/islands/ReducedMotionProvider';
 import { GhostDemo } from '../../components/ghost/GhostDemo';
+import { buildBreadcrumbJsonLd, buildWebSiteJsonLd } from '../../lib/seo/jsonLd';
+
+// WebSite schema + SearchAction target. The target URL is
+// https://privacy.whattheflip.lol/en/?q={search_term_string} — a
+// placeholder until Pagefind ships the dedicated /en/search route.
+// We keep the query parameter rooted at /en/ so Google's SearchAction
+// validator doesn't hit a 404; /en/ renders whether or not ?q= is
+// present, and a small "use Cmd-K" hint will live there until search
+// lands.
+const websiteLd = buildWebSiteJsonLd();
+const breadcrumbLd = buildBreadcrumbJsonLd([{ name: 'Home', url: '/en/' }]);
 
 // Design doc §4.2 item 3 — three equal-weight entry lanes below the
 // Ghost Demo hero. Static cards, not interactive — each lane links to
@@ -38,6 +49,10 @@ const lanes = [
   title="privacy.whattheflip.lol — the privacy hub"
   description="Opinionated privacy tools that just work. Live tracker scanner, full encyclopedia of tracking vectors, threat-model playlists, and step-by-step guides."
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(websiteLd)} is:inline></script>
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>
+  </Fragment>
   <div class="max-w-5xl py-8 space-y-12">
     <div class="max-w-3xl space-y-10">
       <ReducedMotionProvider client:load>
