@@ -1,0 +1,40 @@
+---
+title: Harden Firefox in 15 minutes
+description: FPP-first configuration for daily-driver Firefox. Defeats most fingerprinting without breaking the web.
+time_minutes: 15
+difficulty: intermediate
+prerequisites:
+  - Firefox 128 or newer
+last_verified: 2026-04-18
+related:
+  - canvas-fingerprinting
+  - vpn
+---
+
+> **TL;DR.** Switch ETP to Strict, leave Fingerprinting Protection (FPP) on, add uBlock Origin, turn on DNS-over-HTTPS with a resolver that is not your ISP. That's it. Do not reach for `privacy.resistFingerprinting` unless you have read why arkenfox flipped on it. That's covered at the end.
+
+## What you'll end up with
+
+A daily-driver Firefox that blocks most third-party trackers, farbles canvas and audio fingerprints per-session, encrypts DNS, and breaks no more than maybe three sites you visit regularly (which you will fix in one click per site).
+
+## Steps
+
+1. **Settings → Privacy & Security → Enhanced Tracking Protection → Strict.** This pulls in FPP automatically. Leave the "Tell websites not to sell or share my data" checkbox on.
+2. **Install uBlock Origin** from addons.mozilla.org. Do not install other ad blockers alongside it. They fight and lose.
+3. **DNS over HTTPS.** In Settings → Privacy & Security, scroll to the bottom. Set DNS to "Max Protection" and pick either NextDNS or Quad9. Mullvad DNS if you want one that does not log at all.
+4. **Containers.** Install Firefox Multi-Account Containers. Put Google services in one container, Meta in another, your bank in its own. Trackers cannot follow you across containers.
+5. **Disable Pocket and telemetry.** Settings → General → Browsing → uncheck "Recommend extensions as you browse." Settings → Privacy & Security → uncheck "Allow Firefox to send technical data."
+
+## Verify it worked
+
+Open the [scanner](/en/scan). Canvas should show "Farbled." Audio should show "Farbled." Third-party cookies should show "Blocked." DNS should show your picked resolver, not your ISP.
+
+## Why not RFP
+
+`privacy.resistFingerprinting` was arkenfox's top recommendation for years. As of v128, they reversed — RFP now *adds* entropy against fingerprinters who look for RFP-shaped behavior. FPP does the same job more subtly. Use FPP.
+
+## Common pitfalls
+
+- Stacking ad blockers. Pick one.
+- Changing your default font. It is a fingerprint.
+- Using a "privacy extension" that advertises on Product Hunt. Almost all of them sell your data.

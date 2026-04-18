@@ -1,0 +1,20 @@
+- id: e2ee
+  term: End-to-end encryption
+  definition: Messages encrypted on the sender's device and decryptable only on the recipient's. The service carrying the message (Signal, iMessage, WhatsApp) cannot read the content, only metadata about who talked to whom, and when.
+  see_also:
+    - signal
+    - metadata
+
+- id: doh
+  term: DNS over HTTPS
+  definition: Wraps DNS lookups in a TLS-encrypted HTTPS request to a resolver you pick, so your ISP or network operator cannot see which domains you visit. Does not hide the destination IP once the connection begins.
+  see_also:
+    - dns-leaks
+    - vpn
+
+- id: ja4
+  term: JA4 (TLS fingerprint)
+  definition: An open-source fingerprint of the TLS ClientHello a browser sends when opening an HTTPS connection. Derived from the cipher suite order, extensions, and version preferences. Unique enough that anti-bot CDNs use it to classify traffic before any cookies are set.
+  see_also:
+    - tls-fingerprinting
+    - cdn-bot-cookies

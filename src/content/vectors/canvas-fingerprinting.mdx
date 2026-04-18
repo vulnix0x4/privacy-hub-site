@@ -1,0 +1,30 @@
+---
+title: Canvas Fingerprinting
+description: How websites identify you by how your GPU draws text, and what actually stops it.
+family: fingerprint
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - webgl-fingerprinting
+  - audio-fingerprinting
+---
+
+> **TL;DR.** A website asks your browser to draw a short string to an invisible canvas, reads back the pixels, and hashes them. Your GPU, drivers, font rasterizer, and OS all leave their signature. The hash rarely collides with anyone else's.
+
+This is the single highest-entropy passive fingerprint a first-party site can collect without asking permission. Every major ad-tech and anti-fraud vendor reads it.
+
+## How it works
+
+The site creates a hidden `<canvas>`, fills it with text and shapes, then calls `toDataURL()` or `getImageData()`. The returned bytes depend on antialiasing, subpixel rendering, and which version of which font your OS decided to use. Two identical machines with identical browsers can still produce different hashes if one installed a new font this morning.
+
+## What defends
+
+Tor Browser and Mullvad Browser return a uniform blank image to everyone. Firefox's Fingerprinting Protection (FPP, on by default since v128) applies "farbling" — tiny per-session noise that defeats cross-session linking without breaking canvas for legit use. Brave uses the same approach with a different noise function.
+
+Chrome does nothing. Safari does partial mitigation on private browsing windows only.
+
+## What doesn't help
+
+A VPN. Incognito mode in Chrome. Clearing cookies. Canvas is computed from your hardware and software stack, none of which those touch.
