@@ -3,8 +3,11 @@
 //
 // Polling strategy: hit the web container's /api/scan/nonces-active endpoint
 // every 2 seconds and collect the currently-active nonces. If the set has
-// changed since last poll, rewrite /etc/nsd/zones/scan.zone and trigger
-// `nsd-control reload` via the UNIX socket shared with scanner-nsd.
+// changed since last poll, rewrite /etc/nsd/zones/scan.zone and let the NSD
+// container's own entrypoint watcher detect the mtime change and call
+// nsd-control reload locally. Cross-container nsd-control was considered
+// but UNIX-socket permissions make it brittle; a file-watch in the same
+// container is simpler and equally bounded.
 //
 // The brief originally called for reading the SQLite DB directly, but an HTTP
 // endpoint on the web container is a cleaner boundary: zero SQLite code in Go,
@@ -25,7 +28,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"sort"
 	"strings"
@@ -39,9 +41,6 @@ var (
 	zoneFile     = envDefault("ZONE_FILE", "/etc/nsd/zones/scan.zone")
 	templateFile = envDefault("ZONE_TEMPLATE", "/etc/nsd/zone-template.txt")
 	pollInterval = envDurationDefault("POLL_INTERVAL", 2*time.Second)
-	// nsdControlBin is the binary we exec to trigger reloads. nsd-control
-	// talks to the local socket; requires read access to the socket path.
-	nsdControlBin = envDefault("NSD_CONTROL", "nsd-control")
 )
 
 // nonceResponse matches the web container's /api/scan/nonces-active shape.
@@ -108,8 +107,8 @@ func runOnce(ctx context.Context, client *http.Client, template string, lastHash
 	if err := atomicWrite(zoneFile, zone); err != nil {
 		return
 	}
-	// Reload — errors are non-fatal; next tick will retry.
-	_ = reloadNSD(ctx)
+	// NSD container's own watcher picks up the mtime change and reloads.
+	// No cross-container nsd-control call needed from here.
 	*lastHash = hash
 }
 
@@ -212,15 +211,6 @@ func atomicWrite(path, data string) error {
 		return err
 	}
 	return os.Rename(dir, path)
-}
-
-// reloadNSD calls `nsd-control reload`. Errors are ignored by callers — NSD
-// will also pick up zone changes on its own periodic scan, just slower.
-func reloadNSD(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, nsdControlBin, "reload")
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-	return cmd.Run()
 }
 
 func envDefault(name, fallback string) string {

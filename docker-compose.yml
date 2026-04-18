@@ -24,9 +24,9 @@
 #                        clean and the sidecar dep-free.
 #   nsd-zones-vol      — zone file(s) written by scanner-nonce, read by
 #                        scanner-nsd. Lives on a named volume so both
-#                        containers see the same view.
-#   nsd-control-vol    — nsd-control UNIX socket shared between scanner-nsd
-#                        (owner) and scanner-nonce (client).
+#                        containers see the same view. scanner-nsd's own
+#                        entrypoint watches the zone file mtime and reloads
+#                        on change — no cross-container nsd-control needed.
 
 services:
   web:
@@ -109,10 +109,10 @@ services:
       - "${DNS_PORT:-5353}:53/tcp"
     volumes:
       - nsd-zones-vol:/etc/nsd/zones
-      - nsd-control-vol:/var/run/nsd
     read_only: true
     tmpfs:
       - /var/db/nsd:size=8m
+      - /var/run/nsd:size=4m
       - /tmp:size=8m
     # NSD does NOT need NET_BIND_SERVICE here — port 53 is bound inside the
     # container's own netns to :53, and Docker's port publishing forwards
@@ -143,13 +143,11 @@ services:
       POLL_INTERVAL: 2s
     volumes:
       - nsd-zones-vol:/etc/nsd/zones
-      - nsd-control-vol:/var/run/nsd
-      # The template ships in the nsd image; the sidecar needs its own copy.
-      # Bind-mount the source so both containers see the same file.
+      # Bind-mount the template so the sidecar reads the same file the nsd
+      # container ships (same source, two readers).
       - ./scanner/nsd/zone-template.txt:/etc/nsd/zone-template.txt:ro
+    # scratch image has no writable paths; no tmpfs needed.
     read_only: true
-    tmpfs:
-      - /tmp:size=8m
     cap_drop:
       - ALL
     security_opt:
@@ -162,8 +160,6 @@ services:
 
 volumes:
   nsd-zones-vol:
-    driver: local
-  nsd-control-vol:
     driver: local
 
 networks:
