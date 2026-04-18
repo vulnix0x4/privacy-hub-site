@@ -14,20 +14,51 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use Bluesky if you want a Twitter replacement that just works and lets you move your identity to a different server later. Use Mastodon or a Fediverse instance if you want the actual decentralized future.
+> **TL;DR.** Use Bluesky if you want a Twitter replacement that just works and lets you move your identity to a different server later. Use Mastodon or a Fediverse instance if you want the actual decentralized future. Neither has an algorithmic "For You" feed optimizing for rage; both let you leave with your handle and followers. No affiliate — everything in this category is FOSS or non-profit.
 
 ## What this category protects
 
-Your social graph from ad-targeting enrichment, and your posts from being training data for whoever buys the platform next. Federated or bring-your-own-host social media replaces platform lock-in with protocol portability.
+Your social graph from ad-targeting enrichment, and your posts from being training data for whoever buys the platform next. X (née Twitter) sells the firehose, has integrated Grok training on default-opt-in posts, and broke signed-out reading to push login. Instagram and Threads fold into Meta's cross-platform ad graph. TikTok's data handling is aggressive even by the standards of the industry. Federated or bring-your-own-host social media replaces platform lock-in with protocol portability — when the operator turns nasty, you migrate.
 
-## Hero pick: Bluesky or the Fediverse
+Social-media sites are also [federated-login probe](/en/vectors/referrer-federated-login) factories. "Log in with Twitter / Facebook / Google" buttons on every site confirm your presence on those services even if you don't click. The more non-correlated social identities you maintain, the fewer of those probes resolve into a single profile. Every social session also sprays [third-party cookies and storage](/en/vectors/third-party-cookies-storage) when you hit any embed — a YouTube embed, a Twitter embed, a Facebook share button.
 
-Bluesky uses the AT Protocol: you can move your handle to another provider later, take your followers, no rehosting required. Fediverse (ActivityPub) is older, larger, and more heterogeneous. Both beat staying on X, Instagram, or Threads. What you give up: smaller audiences for some communities, federation-lag quirks, and the mental tax of picking a home server on the Fediverse.
+## This just works: Bluesky or the Fediverse
+
+Bluesky uses the AT Protocol — you can move your handle (`@you.yourdomain.com` is supported and free) to another Personal Data Server later, take your followers, no rehosting required. Federated in the "protocol, not server" sense: one relay network today, but anybody can run their own PDS, and the labeling/moderation layer is pluggable. Fediverse (ActivityPub) is older, larger, heterogeneous — Mastodon, Misskey, Pleroma, Pixelfed, Lemmy, Bookwyrm all interoperate. Either beats staying on X, Instagram, or Threads.
+
+Pick Bluesky if you want Twitter-like feel, a real Following-only feed option, and low friction. Pick Mastodon or Pleroma if you want total control, your own instance, and don't mind the "pick a home server" onboarding step. What you give up on both: smaller audiences for some communities (the specific corner of X you care about may not have crossed over yet), federation-lag quirks, and — on the Fediverse — the mental tax of choosing an instance and trusting its admin.
 
 ## Alternatives
 
-**Mastodon** — The Fediverse flagship. Pick a well-run instance (mastodon.social is the default but larger ones have looser moderation). Works with Pleroma, Misskey, and other ActivityPub software.
+- **Mastodon** — the Fediverse flagship. Pick a well-moderated instance — `mastodon.social` is the default but smaller active-mod instances often work better. Interoperates with Pleroma, Misskey, Friendica, anything ActivityPub. Strictly chronological; conversation culture closer to early Twitter than X.
+- **Pixelfed** — federated Instagram replacement. Small but real. Photos, video, stories, federates with Mastodon (you can follow a Pixelfed account from a Mastodon instance). Good if you mostly share photos and want off Meta.
+- **Matrix** — not strictly social media, but a federated protocol for group chat that replaces Discord. Element is the flagship client. Good for communities that want to own their archive.
+- **Lemmy / kbin** — federated Reddit replacement. Smaller, different vibe, usable for niche communities.
 
-**Pixelfed** — Federated Instagram replacement. Small but real. Good if you mostly share photos.
+## Comparison matrix
 
-**Matrix** — Not strictly social media, but a federated protocol for group chat that competes with Discord. Good for communities that want to own their archive.
+| Platform | E2E DMs | Algorithm | Federation | Account portability | Moderation |
+|---|---|---|---|---|---|
+| **Bluesky** | Not yet (coming) | Opt-in; default is chronological | AT Protocol | Yes (change PDS, keep handle) | Composable labelers |
+| Mastodon | No (server admin sees DMs) | Chronological only | ActivityPub | Yes (migrate handle) | Per-instance |
+| Pixelfed | No | Chronological | ActivityPub | ~ (improving) | Per-instance |
+| Matrix (Element) | Yes | N/A (chat) | Matrix | Yes (key export) | Per-homeserver |
+| Lemmy | No | Sort by hot/new/top | ActivityPub | ~ | Per-instance |
+
+## Common mistakes
+
+- **Treating the Fediverse like Twitter.** Federation means your admin sees your DMs — they're not end-to-end encrypted. Sensitive conversations belong on Signal, not on Mastodon.
+- **Picking the biggest Mastodon instance by default.** `mastodon.social` has lax moderation because it's huge. Smaller curated instances often have a better experience — browse `instances.social` first.
+- **Leaving old platforms active "for now."** Cross-posting defeats the point. Announce the move, archive or delete the old account. Staying on X "for reach" is how the network effect calcifies.
+- **Reposting tracker-laden links from the old platforms.** A Twitter URL embedded on Mastodon still pulls Twitter's embed JS into the viewer's browser. Share as a screenshot plus plain-text citation.
+- **Ignoring block and mute lists.** The Fediverse and Bluesky lean on user-side moderation. Import a shared blocklist on day one.
+
+## Setup
+
+No dedicated guide yet. For the adjacent "log in with Twitter" leak path, the [Firefox containers guide](/en/guides/firefox-containers) is useful — it scopes social-platform sessions so their cookies don't leak into every site you visit.
+
+## Related categories
+
+- **[Encrypted messaging](/en/categories/messaging)** — Fediverse DMs are not E2EE; serious conversations belong in Signal.
+- **[Browser](/en/categories/browser)** — the browser controls whether Twitter embeds on random sites can still phone home about you.
+- **[Email](/en/categories/email)** — sign up for social accounts with an alias, not your real address.

@@ -14,24 +14,51 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use SMS-Pool for one-off verification codes. $0.10-$0.30 per code, pay in crypto or card, no account linked to your identity. For a longer-term number you actually answer on, use MySudo (US/CA) or Hushed.
+> **TL;DR.** Use SMS-Pool for one-off verification codes. $0.10-$0.30 per code, pay in crypto or card, no account linked to your identity. For a longer-term number you actually answer on, use MySudo (US/CA) or Hushed. We earn a commission when you sign up via our SMS-Pool links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your real phone number from service databases, data brokers, SIM-swap attempts, and leaks. A number given to Discord in 2017 can resurface in a 2024 breach. Every service wants SMS for "security"; most of them turn it into a tracking identifier.
+Your real phone number from service databases, data brokers, SIM-swap attempts, and breaches. A number given to Discord in 2017 resurfaces in a 2024 breach. Twitter, LinkedIn, Authy, every breach list on the internet — all include phone numbers because the service asked for them as "security" and never deleted them. Data brokers buy those breach lists, cross-reference against voter rolls, and now your number and home address sit next to each other on `truepeoplesearch.com`.
 
-## Hero pick: SMS-Pool
+Phone numbers are also a [federated-login probe](/en/vectors/referrer-federated-login) signal — some platforms let a relying party ask "does a user with this number have an account here?" as a login-attempt vector. And every SMS-confirmation flow feeds a [third-party cookie and storage](/en/vectors/third-party-cookies-storage) graph that pairs your number with the ad-network ID the site already had on you.
 
-Rental per-message. Choose country, service, receive code, done. No account with the service keeps your real number. What you give up: SMS-Pool numbers are shared pool numbers, so they do not work for services that fingerprint reused numbers (banks, Signal).
+## This just works: SMS-Pool
+
+Rental per-message. Pick country, pick the target service from a dropdown (SMS-Pool knows which numbers are trusted by which service — a Discord-eligible number is a different pool than a WhatsApp-eligible one), pay $0.10-$0.30 in crypto or card, receive the code in their web UI, done. No account with the target service ever touches your real number. Works for most services that send SMS codes: Discord, Telegram, Reddit, smaller ones, region-specific apps.
+
+What you give up: SMS-Pool numbers are shared pool numbers, which means the big services that fingerprint reused numbers (banks, PayPal, Signal, WhatsApp on the second attempt) will reject them. That's an intentional feature of the category — a "verification" number only works once. If you need a number the service treats as your actual line, you need MySudo or Hushed.
 
 ## Alternatives
 
-**MySudo** — Long-lived secondary numbers with voice and SMS. US and CA only. Subscription, privacy-focused company.
+- **MySudo** — long-lived secondary numbers with voice and SMS, US/CA only. $1-$15/month. Multiple "Sudos" per account — a dating number, a Craigslist number, and a side-gig number that never meet. Picks up the "I actually need to answer calls" case SMS-Pool can't.
+- **Hushed** — similar to MySudo, broader international coverage, per-number pricing (credit-based or monthly). Anonymous signup with prepaid cards works. Good choice if you live outside North America.
+- **Google Voice** — free in the US, ties to a Google account. Good for Craigslist-class use where you actually want to answer calls, not for anonymity — Google knows who you are, and the number is not reassignable. Pick only if the threat model is "Craigslist weirdos," not "Google."
+- **JMP.chat** — XMPP-based real phone number service. Works with SMS, needs an XMPP client. Privacy-preserving infrastructure; hard sell for normies.
 
-**Hushed** — Similar to MySudo, international coverage, per-number pricing.
+## Comparison matrix
 
-**Google Voice** — Free in the US, ties to a Google account. Good for Craigslist-class use where you actually need to answer calls, not for anonymity.
+| Service | Networks | Duration | SMS types | Anonymous pay | Pricing |
+|---|---|---|---|---|---|
+| **SMS-Pool** | 50+ countries | One-shot | Verification codes only | Yes (BTC, XMR, card) | $0.10-$0.30/code |
+| MySudo | US / CA | Long-lived | SMS + voice | No (App Store / Play) | $1-$15/month |
+| Hushed | 40+ countries | Long-lived | SMS + voice | Partial (prepaid card) | $2-$5/month or credit |
+| Google Voice | US only | Long-lived | SMS + voice | No (Google account) | Free |
+| JMP.chat | US / CA | Long-lived | SMS + voice (XMPP) | Yes (BTC) | $2.99/month |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for SMS-Pool through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Using a one-shot number for an account you care about.** The number gets recycled in the pool. The next renter can request a password reset to it. Use a one-shot number for accounts you'll never sign back into; use MySudo/Hushed for accounts you plan to keep.
+- **Giving the burner to a service that blocklists VOIP numbers.** Banks, PayPal, Stripe, and Signal's second attempt all check carrier type. A MySudo number is marked VOIP and will fail. Use an eSIM from a real carrier for those.
+- **Forwarding the burner to your real line.** Defeats the point — the call hits your real number's carrier CDR. Answer in the burner app instead.
+- **Using the same burner everywhere.** One-per-service is the point. A reused Hushed number becomes the correlator across databases.
+- **Assuming a VOIP number is "untraceable."** MySudo, Hushed, Google Voice all log IP and payment, and will produce under subpoena. The goal is protection from routine data-broker correlation, not from targeted investigation.
+
+## Setup
+
+No dedicated guide yet. Closest related content: [Proton migration guide](/en/guides/proton-migration) covers rotating SimpleLogin aliases, which is the email-side of the same pattern.
+
+## Related categories
+
+- **[Email](/en/categories/email)** — same pattern, different contact channel. Aliases for email, burners for SMS.
+- **[Payments](/en/categories/payments)** — pay the burner provider with a Privacy.com virtual card and the payment trail doesn't link to your real bank.
+- **[Two-factor auth](/en/categories/2fa)** — prefer TOTP or FIDO over SMS for anything that matters; burner numbers are for signup, not for account recovery.

@@ -14,20 +14,50 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** Use Signal. End-to-end encrypted by default, open-source, minimal metadata retention, and everyone already has it or will install it when you ask. Phone-number requirement is the one compromise; usernames are now available as a partial mitigation.
+> **TL;DR.** Use Signal. End-to-end encrypted by default, open-source clients and server, minimal metadata retention, and everyone you'd want to talk to already has it or will install it when you ask. Phone-number requirement is the one compromise; usernames are now available as a partial mitigation. No affiliate — Signal is a non-profit and we don't take anything for recommending it.
 
 ## What this category protects
 
-Message content from the platform operator, from lawful intercept, from data breaches. Sometimes metadata too: who talked to whom, when, and for how long. Different messengers make different tradeoffs here.
+Message content from the platform operator, from lawful-intercept requests, from data breaches. Sometimes metadata too: who talked to whom, when, and for how long. Different messengers make different tradeoffs here. WhatsApp uses the Signal Protocol under the hood, but its operator (Meta) sees your contact graph and enriches it against Facebook's shadow profile — the content is encrypted; the social graph isn't.
 
-## Hero pick: Signal
+Messengers also sit behind the [permissions bitmap](/en/vectors/permissions-bitmap) on mobile: notification tokens, microphone, camera, background location. A clean messenger asks for the minimum; a leaky one asks for contacts, storage, and "nearby devices" on install.
 
-Signal Protocol is the gold standard; every major "encrypted" messenger copied it. Encrypts content and a lot of metadata (sealed sender). Open-source clients and server. Funded by a non-profit foundation. What you give up: you need a phone number to sign up, even if you hide it afterward behind a username.
+## This just works: Signal
+
+Signal Protocol is the gold standard — every other "encrypted" messenger either uses it directly (WhatsApp, Messenger secret chats, Skype private, Google Messages RCS) or is trying to match it. Encrypts message content, group membership, typing indicators, call audio, and a lot of metadata via sealed sender. Run by Signal Foundation, a non-profit funded by donations and large grants (no advertising, no enterprise tier, no selling). Clients and server are open-source and reproducible.
+
+What you give up: you need a phone number to sign up. Usernames (released 2024) let you keep the number private from contacts after signup — hand out a `@yourhandle.01` instead of the digits — but the number itself still attaches to the account. Signal's workaround: get a burner SIM once, register, throw the SIM away. For most people the phone-number floor is the right price for "my entire family, my plumber, my editor, and Elon's lawyer can all reach me here." For a stricter threat model, jump to SimpleX.
 
 ## Alternatives
 
-**SimpleX Chat** — The only mainstream messenger with no user identifier at all; every conversation uses a unique queue ID. Signal-quality encryption. Smaller network, less polished UX.
+- **SimpleX Chat** — the only mainstream messenger with no user identifier at all. Every conversation is a unique pairwise queue; there's no "SimpleX username" the server can see. Signal-quality crypto (Double Ratchet + post-quantum KEM). Smaller network, rougher edges on group chats, but the best fit if your threat model is "adversary has subpoena power over message servers."
+- **Session** — fork of Signal, dropped the phone number, routes through an onion-style relay network (Lokinet). No phone, no email. Slower delivery, smaller network. Popular at the more paranoid end; some controversy around governance and the LOKI token, but the crypto holds up.
+- **Wire** — Swiss/German, email signup, designed for business with conferencing and shared spaces. Free personal tier works; paid tiers target teams. Good middle ground if you need corporate features and a non-Meta non-Microsoft backend.
 
-**Session** — No phone number, no email, decentralized onion-routed transport. Slower and smaller network than Signal. Popular with the more paranoid end of the spectrum.
+## Comparison matrix
 
-**Wire** — Swiss/German, supports email signup, designed for business with conference calls and shared spaces. Free personal tier is usable; paid tiers target companies.
+| Messenger | E2EE default | Metadata | Phone required | Groups | FOSS client + server |
+|---|---|---|---|---|---|
+| **Signal** | Yes | Sealed sender; contact graph minimal | Yes (usernames since 2024) | Up to 1,000 | Yes |
+| SimpleX Chat | Yes | None (no identifier) | No | Yes | Yes |
+| Session | Yes | Routed via Lokinet | No | Yes | Yes |
+| Wire | Yes | Server knows graph | Email only | Yes | Client yes; server partial |
+| WhatsApp | Yes | Meta knows graph + metadata | Yes | Yes | No |
+
+## Common mistakes
+
+- **Relying on SMS-fallback "encrypted" chat.** Signal used to do this; the fallback stripped encryption and looked visually identical. Default-SMS is gone from Signal as of 2024 but still a pattern in Google Messages (RCS/SMS downgrades).
+- **Trusting disappearing messages to disappear from screenshots.** The other end's screen still exists. Plan accordingly.
+- **Using desktop Signal without understanding the linked-device trust model.** The desktop client pulls the private keys from your phone at linking time. A stolen laptop that's already linked is a full message archive — disk-encrypt the laptop, same as any secret-bearing machine.
+- **Assuming WhatsApp E2EE extends to backups.** iCloud and Google Drive backups were plaintext by default until recently; they're opt-in encrypted now, and most users never flipped the switch. Turn on the end-to-end encrypted backup option explicitly.
+- **Posting the Signal username in public and expecting the account to stay low-friction.** Public usernames attract spam. Treat them like a hand-out email — rotate if noise gets too loud.
+
+## Setup
+
+[Signal first-run guide](/en/guides/signal-first-run) walks through install, PIN, registration lock, safety numbers, and the privacy settings that are off by default. [SimpleX first-run guide](/en/guides/simplex-first-run) for the stricter setup.
+
+## Related categories
+
+- **[Video conferencing](/en/categories/video-conferencing)** — Signal does small group calls; Jitsi does larger meetings.
+- **[Phone OS](/en/categories/phone-os)** — a hardened phone OS is where encrypted messaging actually pays off. A compromised phone defeats any messenger.
+- **[Social](/en/categories/social)** — encrypted DMs on Bluesky and Fediverse are still immature; plan to do sensitive conversations on Signal, not DMs.

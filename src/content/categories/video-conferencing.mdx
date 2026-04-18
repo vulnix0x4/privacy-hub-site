@@ -14,20 +14,51 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** Use Jitsi Meet. Zero account, free, hosted at meet.jit.si or self-hosted. Works in any browser. Fine for 1-10 person calls; quality drops off above that.
+> **TL;DR.** Use Jitsi Meet. Zero account, free, hosted at `meet.jit.si` or self-hosted. Works in any browser. Fine for 1-10 person calls; quality drops off above that. For 1:1 or small-group with people already on Signal, use Signal calls. No affiliate — Jitsi is 8x8's open-source project and we earn nothing for pointing at it.
 
 ## What this category protects
 
-Call content from third-party enterprise dashboards, AI-transcript pipelines, and ad-graph enrichment. Zoom "AI Companion" reads your call. Teams integrates with Microsoft Copilot. Meet integrates with Workspace. Each of those is a separate model being fed your words.
+Call content from third-party enterprise dashboards, AI-transcript pipelines, and ad-graph enrichment. Zoom's "AI Companion" reads your call by default on paid plans. Teams integrates with Microsoft Copilot and surfaces call transcripts in M365 search. Meet integrates with Workspace analytics. Each is a separate model being fed your spoken words, your participants, and the meeting metadata. Even "end-to-end encrypted" modes on commercial platforms usually turn off when you hit "record" or when a dial-in user joins.
 
-## Hero pick: Jitsi Meet
+Video conferencing also pokes at two scanner vectors on your side: [media device enumeration](/en/vectors/media-devices) (the page can count your cameras and mics before you grant permission) and the [permissions bitmap](/en/vectors/permissions-bitmap) (mic/camera/screen-share are all permission rows that distinguish you). A conferencing app that insists on a native client is a larger attack surface than one that runs in a tab.
 
-Open-source, free, browser-based (no app install). Self-host for serious use (it's a docker-compose away). Quality is excellent up to ~10 participants. What you give up: no gallery of 50 faces, no built-in recording, and the free public instance sometimes has capacity issues during business hours.
+## This just works: Jitsi Meet
+
+Open-source, free, browser-based — no app install for guests, just a URL. Self-host in a docker-compose for serious or recurring use. Quality is excellent up to ~10 participants; above that, the SFU (selective forwarding unit) sharing model starts to strain on typical residential upstream bandwidth. The public instance at `meet.jit.si` is operated by 8x8 and is fine for one-off calls. For anything recurring or regulated, self-host — it's a 30-minute setup on any VPS with a domain pointed at it.
+
+End-to-end encryption is available via Insertable Streams (E2EE toggle in the settings) when all participants use the same browser family. Without E2EE, it's transport-encrypted (DTLS-SRTP) to the SFU, which is the same trust model as Zoom's default. With E2EE, the SFU cannot decrypt media even in principle. What you give up: no gallery-of-50-faces, no built-in recording (you can screen-record locally if you must), and the free public instance sometimes has capacity issues during US/EU business hours.
 
 ## Alternatives
 
-**Signal calls** — 1:1 or small group, end-to-end encrypted via Signal Protocol. Up to 40 participants on a call. Best for groups that are already on Signal.
+- **Signal calls** — up to 40 participants, end-to-end encrypted via Signal Protocol, same contact graph as your messaging app. Best for groups that are already on Signal. No dial-in, no recording, no screen-share until recently. The link-join feature (Signal Group Calls) is stable as of the 2024 release.
+- **Whereby** — Norwegian, persistent meeting rooms with short URLs (`whereby.com/you`), free tier for 1:1. Good for recurring meetings without scheduling friction. Commercial, but GDPR-native and doesn't feed Microsoft or Google analytics pipes.
+- **Proton Meet** — released 2024, end-to-end encrypted, integrates with Proton Mail/Calendar. Currently free for Proton Mail Plus users and up. Rough edges on screen sharing and large rooms; pick if you already pay Proton.
+- **Jami** — peer-to-peer, GNU project, no server at all. Genuinely decentralized, works offline on LAN. Quality is inferior to Jitsi on real calls; useful as a concept demonstrator or for intra-LAN use.
 
-**Whereby** — Norwegian, persistent meeting rooms with short URLs, free tier for 1:1. Good for recurring meetings without scheduling friction.
+## Comparison matrix
 
-**Proton Meet** — Newer (released 2024), integrates with Proton Mail and Calendar. End-to-end encrypted. Pick if you already pay Proton.
+| Platform | E2EE | FOSS | Max participants | Recording | Account required |
+|---|---|---|---|---|---|
+| **Jitsi Meet** | Opt-in (same-engine) | Yes | ~10 self-hosted comfortable | Client-side only | No |
+| Signal calls | Yes | Client yes; server partial | 40 | No | Yes (Signal account) |
+| Whereby | ~ (transport only) | No | 4 free / 25 paid | Yes (paid) | Yes (organizer) |
+| Proton Meet | Yes | Clients partial | 100 (business plan) | Not yet | Yes (Proton) |
+| Jami | Yes | Yes | Small | No | No |
+| Zoom | ~ (opt-in, fragile) | No | 1000+ | Default on | Yes |
+
+## Common mistakes
+
+- **Turning on "recording" and losing E2EE without noticing.** On every major commercial platform, starting a recording downgrades the call's crypto posture. The Jitsi approach of "recording is your local problem" is honest.
+- **Letting the browser remember media permissions for Zoom/Meet.** Camera and mic grants persist across sessions. Revoke per-origin in the browser's site settings when you don't actively need them.
+- **Installing the native desktop client when a browser would work.** Zoom and Teams desktop clients have a decade of CVEs. Use the web client wherever the organizer allows it.
+- **Pasting the meeting URL into public channels.** "Anyone with the link can join" is the default on most platforms; a public URL is an open call. Require a lobby or a password.
+- **Assuming a locked meeting is private.** The SFU still sees plaintext unless E2EE is explicitly on. "End-to-end" copy on marketing pages is often "transport encrypted" in practice.
+
+## Setup
+
+No dedicated guide yet for Jitsi self-hosting; the closest related guide is the [Signal first-run](/en/guides/signal-first-run) for small-group Signal calls.
+
+## Related categories
+
+- **[Encrypted messaging](/en/categories/messaging)** — Signal is the same app; calls are just the voice/video surface.
+- **[Browser](/en/categories/browser)** — conferencing runs in a tab; the browser's permission posture decides what the page can probe before you join.

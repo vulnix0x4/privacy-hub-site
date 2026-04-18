@@ -14,24 +14,49 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use Proton Mail. It encrypts messages at rest, does not scan your inbox for ad targeting, and supports aliases out of the box through SimpleLogin. Free tier is enough for a primary inbox; the paid plan adds custom domains.
+> **TL;DR.** Use Proton Mail. Zero-access encryption, Switzerland jurisdiction, works with SimpleLogin for aliases so your real address never reaches any service you sign up for. Free tier fits a primary inbox; paid plans add custom domains and more storage. We earn a commission when you sign up via our Proton links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your identity across every account you have ever created. Email is the reset-password master key for your entire digital life. A breach at your provider cascades; so does a policy of selling ad-targeting metadata based on the subject lines.
+Your identity across every account you have ever created. Email is the reset-password master key for your entire digital life, the default username on most services, and the key every data broker uses to correlate records across sources. A breach at your provider cascades; a policy of scanning your inbox for ad targeting turns every newsletter into profile data.
 
-## Hero pick: Proton Mail
+Your email address is also a [federated-login probe target](/en/vectors/referrer-federated-login) — sites can passively confirm that you're logged into Gmail or Outlook by checking a few endpoints. And because every newsletter and receipt sets [third-party cookies and storage](/en/vectors/third-party-cookies-storage) when you open it, your inbox is a tracking surface the moment you open a message with remote content loading.
 
-Zero-access encryption (Proton cannot read the body of your messages). Based in Switzerland, under Swiss data protection law, audited annually. Bundles with Proton Drive, Proton VPN, and SimpleLogin if you want one vendor for everything. What you give up: some IMAP clients need a bridge app, and the free tier limits storage more than Gmail does.
+## This just works: Proton Mail
+
+Zero-access encryption — Proton cannot read the body of your messages. Swiss jurisdiction under federal data protection law, independent audit reports (Securitum) published annually, onion service at `protonmailrmez3lotccipshtkleegetolb73fuirgj7r4o4vfu7ozyd.onion` for people whose threat model needs it. Ships with SimpleLogin integrated: generate a new alias per signup, forward to Proton, receive in one inbox. Breaches leak the alias, you burn the alias, your primary address stays clean.
+
+Use the web client or install the Proton Bridge (a local IMAP/SMTP shim) if you want Thunderbird, Apple Mail, or Outlook. What you give up: Bridge adds one install step, free tier caps storage at 1 GB, and subject lines are encrypted at rest but not end-to-end between providers (only Proton-to-Proton messages are E2EE subject-and-body; Tuta encrypts subjects too).
 
 ## Alternatives
 
-**Tutanota** — German provider, full end-to-end encryption including subject lines (Proton leaves subjects in the clear). Downside: no IMAP, so you live in their app.
+- **Tutanota** — German provider, full end-to-end encryption including subject lines when sending Tuta-to-Tuta. Downside: no IMAP and no Bridge, so you live in their app. Good if maximum subject-line secrecy between Tuta users matters more than client flexibility.
+- **Mailbox.org** — €1/month, German, open-standards-first. Full IMAP, CalDAV, CardDAV, a minimalist web UI, PGP supported but not zero-access by default. Pick this if you already run Thunderbird and want a cheap, reliable provider that doesn't try to be a walled garden.
+- **Posteo** — €1/month, German, runs entirely on renewable energy. No custom domains on the cheap tier; add-on available. Strong on civil-liberties record — they've gone to court to defend user data multiple times.
 
-**Mailbox.org** — €1/month, German, open-standards-first. You get IMAP, CalDAV, CardDAV, and a minimal web UI. Pick this if you prefer to self-integrate with Thunderbird.
+## Comparison matrix
 
-**Posteo** — €1/month, German, powered entirely by renewable energy if that matters to you. No custom domains on the cheapest tier.
+| Provider | E2EE at rest | Jurisdiction | Custom domain | Aliases | Price/mo |
+|---|---|---|---|---|---|
+| **Proton Mail** | Yes (zero-access) | Switzerland | Paid tiers | Via SimpleLogin (10 free) | €0 / €4.99 / €9.99 |
+| Tutanota | Yes (incl. subjects) | Germany | Paid tiers | Up to 5 on paid | €0 / €3 / €8 |
+| Mailbox.org | ~ (PGP opt-in, not zero-access) | Germany | Yes (all paid tiers) | Via external forwarder | €1 / €3 / €9 |
+| Posteo | ~ (inbound encryption opt-in) | Germany | No | Up to 2 per account | €1 flat |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Proton through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Migrating the address, not the identity.** Your new Proton inbox is only as private as the services still pointed at the Gmail address. Do a password-manager audit and update each account's primary email. The [Proton migration guide](/en/guides/proton-migration) runs through it.
+- **Using the real address as the signup address.** Every signup is a future breach entry. Use a SimpleLogin, addy.io, or Proton-built-in alias per service. When the alias ends up on Have I Been Pwned, burn it and move on.
+- **Expecting E2EE between providers.** Proton-to-Gmail is encrypted at rest on Proton's side; the moment Gmail receives it, Google has plaintext. End-to-end between providers needs PGP on both ends or Proton-to-Proton.
+- **Forgetting the phone-number recovery option.** If you set SMS recovery, a SIM swap unlocks the inbox. Use a recovery file or a second account address instead.
+- **Leaving remote image loading on.** Every tracking pixel in every newsletter reports back that you read it, with IP and timestamp. Set the client to block remote content by default.
+
+## Setup
+
+[Proton migration guide](/en/guides/proton-migration) covers moving from Gmail end-to-end: import, update services, set up SimpleLogin, handle the trailing year of stragglers.
+
+## Related categories
+
+- **[Password manager](/en/categories/password-manager)** — your email address is the username on most accounts; your manager stores the unique password per alias.
+- **[Two-factor auth](/en/categories/2fa)** — lock the inbox with TOTP and a hardware key. Email compromise is the single biggest amplifier of any other breach.
+- **[Temp numbers](/en/categories/temp-numbers)** — burn numbers for services that insist on SMS verification instead of email.
