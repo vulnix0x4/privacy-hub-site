@@ -10,7 +10,17 @@
  * NSD hands the resolver-IP observation to the nonceStore via the sidecar
  * (design doc §12.5). This endpoint looks up the nonce in the store and
  * returns the resolver IP we observed for it, alongside the observed client
- * IP for the current HTTP request. The probe compares the two: if the
+ * IP for the current HTTP request.
+ *
+ * IMPORTANT — Phase 3 limitation: resolver-IP observation requires dnstap
+ * or equivalent query-stream output from NSD, which we have NOT wired yet
+ * because design §13.1 #5 chose NSD specifically for its lack of a query
+ * log. Until dnstap (or a comparable non-persistent observation mechanism)
+ * is wired in scanner/nsd/, `resolverIp` will always be null and this
+ * endpoint will return `{ status: 'pending' }`. The dnsLeaks probe's
+ * pending-fallback path renders that state correctly; no user-visible
+ * breakage, just no leak verdict until the observer ships.
+ * See docs/plans/ and scanner/nsd/nsd.conf for the design note. The probe compares the two: if the
  * resolver IP differs from the client's egress IP, that's a DNS leak
  * (or, more charitably, a non-colocated recursive resolver).
  *
