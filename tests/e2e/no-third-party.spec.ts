@@ -41,6 +41,16 @@ const OWN_HOSTS = new Set([
   'privacy.whattheflip.lol',
 ]);
 
+/**
+ * Suffix allowlist: scanner backend subdomains (Phase 3) live on
+ * *.scan.privacy.whattheflip.lol. They're still part of the same registered
+ * domain we control, so they aren't "third-party" in the tracking sense —
+ * but they are a separate hostname, so we match by suffix.
+ */
+const OWN_HOST_SUFFIXES = [
+  '.scan.privacy.whattheflip.lol',
+];
+
 const SAFE_SCHEMES = new Set(['data:', 'blob:', 'about:', 'chrome:', 'chrome-extension:']);
 
 /** Classify a request URL as "own origin / safe scheme" or "third-party". */
@@ -52,6 +62,9 @@ function isThirdParty(url: string): { thirdParty: boolean; host: string | null }
   try {
     const u = new URL(url);
     if (OWN_HOSTS.has(u.hostname)) return { thirdParty: false, host: u.hostname };
+    for (const suf of OWN_HOST_SUFFIXES) {
+      if (u.hostname.endsWith(suf)) return { thirdParty: false, host: u.hostname };
+    }
     return { thirdParty: true, host: u.hostname };
   } catch {
     // Malformed URLs are suspicious — treat as third-party so we surface them.
