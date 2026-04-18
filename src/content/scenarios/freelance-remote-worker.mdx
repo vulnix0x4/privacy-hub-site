@@ -1,0 +1,49 @@
+---
+title: Remote freelancer protecting client data
+description: You hold keys to client systems. Goal is to run a clean one-person security program so a laptop loss is not a breach.
+difficulty: intermediate
+last_verified: 2026-04-18
+related:
+  - journalist-source-protection
+  - just-want-basics
+playlist:
+  - type: category
+    slug: disk-encryption
+    why: Client credentials live on an encrypted volume. A stolen laptop is an insurance claim, not a data-breach disclosure.
+  - type: category
+    slug: password-manager
+    why: Bitwarden with unique generated passwords per client, organizational vaults per account.
+  - type: category
+    slug: 2fa
+    why: YubiKey on anything that lets you, TOTP on the rest. SMS is not a second factor for production access.
+  - type: category
+    slug: vpn-router
+    why: Every client connection from your home office goes through a trusted VPN. Public WiFi is never an exception.
+  - type: category
+    slug: file-storage
+    why: Zero-knowledge cloud storage so a subpoena to your provider cannot hand over client files.
+  - type: category
+    slug: email
+    why: Custom-domain business email on a provider (Proton, Fastmail) that does not scan attachments for AI training.
+  - type: category
+    slug: disk-encryption
+    why: Encrypted travel drive for client deliverables you cannot ship over the network.
+---
+
+> **TL;DR.** Your clients handed you access. A client-data leak ends your business faster than a missed deadline. A tiny one-person security program — encrypted disk, password manager, hardware 2FA, audited VPN, zero-knowledge file storage — covers the 95th percentile of bad outcomes for the cost of one afternoon setup.
+
+## Threat picture
+
+The realistic threats: a lost laptop at a coffee shop, a phishing email that steals a client SSH key, a backup drive thrown in the trash by a roommate, and a subpoena to a cloud provider who had your client files in plaintext. Less realistic but possible: a targeted attack on you specifically because a client is high-profile.
+
+## What you get from this playlist
+
+A defensible one-person shop. You can fill out a vendor-security questionnaire honestly: encrypted disk, unique credentials per client, hardware 2FA, encrypted backups, provider-inaccessible file storage. Nothing exotic; all of it meaningful if something goes wrong.
+
+## Notes from real people
+
+Freelancers who take this seriously say the single biggest mistake is using personal accounts (personal Dropbox, personal Gmail) for client files. Buy a business email, use a business password manager organization, separate the bookkeeping. When a client asks for your security posture, you have real answers.
+
+## What we don't cover here
+
+Formal compliance programs (SOC 2, ISO 27001, HIPAA). Those require auditors, documented policies, and a tax bill. If your clients start asking for certifications, you have outgrown a one-person ops model; Vanta and Drata are the usual starting points.

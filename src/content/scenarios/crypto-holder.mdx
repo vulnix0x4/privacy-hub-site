@@ -1,0 +1,49 @@
+---
+title: Crypto holder & self-custody user
+description: You hold real money in a wallet. Goal is to not become the clearnet-identifiable target of a wrench attack.
+difficulty: intermediate
+last_verified: 2026-04-18
+related:
+  - journalist-source-protection
+  - whistleblower
+playlist:
+  - type: category
+    slug: disk-encryption
+    why: Your seed backup and wallet files live on an encrypted volume. Full stop.
+  - type: category
+    slug: password-manager
+    why: Exchange and signer passwords plus TOTP seeds go in Bitwarden, not in Apple Notes.
+  - type: category
+    slug: 2fa
+    why: Hardware FIDO2 keys (YubiKey) on every exchange that supports them. SMS 2FA is disqualifying.
+  - type: vector
+    slug: ip-geolocation
+    why: Public mempool watchers plus your IP on a wallet interface link a persistent ID to your home.
+  - type: category
+    slug: vpn-router
+    why: All wallet traffic goes through a VPN. Always. The router layer catches the SDKs that ignore your app-layer VPN.
+  - type: category
+    slug: messaging
+    why: Co-signer and OTC-trade coordination happens on Signal, not Telegram.
+  - type: category
+    slug: email
+    why: A dedicated non-associated email for crypto exchanges alone, in an alias-per-exchange pattern.
+---
+
+> **TL;DR.** The attackers come in three tiers: phishers, exchange-breach re-users, and physical-attack (wrench) operators. Your priority is to make the wrench-attack operator's OSINT cost too high to justify targeting you specifically. That means scrubbing the public-records layer, separating crypto-identity from real-name identity, and keeping the size of your holdings out of search-indexable space.
+
+## Threat picture
+
+The wrench attack is not a meme. There have been dozens of on-record cases of people being held at gunpoint or kidnapped after identifying themselves as crypto-rich online. The prerequisite for this attack is that the attacker can find you. Your goal: ensure that finding you requires more investigation than your holdings justify.
+
+## What you get from this playlist
+
+Identity compartmentalization: your real name nowhere near your wallet addresses, your home address scrubbed from data brokers, your seed phrase on an encrypted volume, your exchange accounts behind hardware 2FA. Not invisibility. Just enough friction.
+
+## Notes from real people
+
+Every long-term self-custodian will tell you the same thing: do not tell people IRL what you hold. The wrench attack almost always starts with a conversation at a bar or a Twitter reply. Speak in ranges or not at all.
+
+## What we don't cover here
+
+On-chain privacy tools (mixers, privacy chains, coinjoin). Those are both jurisdictionally fraught and change monthly. Consult a tax professional in your jurisdiction before using any of them; some US services (Tornado Cash) carry OFAC sanctions exposure.
