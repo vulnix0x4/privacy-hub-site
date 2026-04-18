@@ -11,31 +11,120 @@ related:
   - referrer-federated-login
 ---
 
-> **TL;DR.** Every content script an extension injects leaves a trace. Every web-accessible resource has a predictable URL. A site that checks 40 common extensions narrows you to a small population: "uBlock + Bitwarden + Grammarly + Dark Reader + React DevTools" is rarely the same combination twice.
+## also known as: extension enumeration, web-accessible-resources probing, content-script detection, ad-blocker detection, extension fingerprint
 
-Extensions are high-entropy precisely because they reflect what you cared enough to install.
+> **TL;DR** — Every content script an extension injects leaves a trace. Every web-accessible resource has a predictable URL. A site that checks 40 common extensions narrows you to a small population: "uBlock + Bitwarden + Grammarly + Dark Reader + React DevTools" is rarely the same combination twice. Extensions are high-entropy precisely because they reflect what you cared enough to install.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-Three common techniques. First, web-accessible resources: many extensions declare images or scripts at fixed `chrome-extension://<id>/file.png` URLs that any page can try to fetch; a 200 means installed. Second, DOM mutations: extensions like Grammarly and LastPass inject specific elements a script can observe. Third, behavior probes: ad-blockers silently block certain bait scripts, so a script that checks "did my bait get fetched?" detects ad-blocker presence without naming it.
+Browser extensions are more personal than they look. Most people install 5-15 over a year — an ad-blocker because a news site got invasive, a password manager because a colleague said to, Grammarly, Dark Reader, React DevTools because you wrote some React at work. That list reflects profession, politics, health, ad tolerance, and workflow.
 
-Firefox randomizes extension IDs per user, which kills the web-accessible-resource probe. Chromium does not.
+Any extension you have installed gets a chance to inject code into every page you load. That injected code leaves fingerprints: a CSS class on a password field (LastPass does `data-lastpass-icon-root`), a DOM mutation after a text field loads (Grammarly adds a `grammarly-extension` div), a function on `window` (React DevTools sets `__REACT_DEVTOOLS_GLOBAL_HOOK__`).
 
-## What it leaks about you
+A fingerprinting script checks dozens of markers silently — no permission, no prompt, fractions of a millisecond. A user running uBlock Origin + Bitwarden + Grammarly + Dark Reader + React DevTools produces a tuple rarely matched by anyone else: 15-25 bits of entropy that carries across sessions, IP changes, and cookie clears because the extension list itself is stable.
 
-Which extensions you have installed, and from that your political profile (ad-blocker, specific accessibility tools), your profession (React DevTools, Postman), and your privacy posture.
+Firefox randomizes extension IDs per user (since Firefox 57, 2017), which kills URL-based probes. Chromium does not — every user's uBlock Origin is at the same `chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm` URL.
+
+## How it works (technical)
+
+Three common techniques, each of which any site can run silently.
+
+**Web-accessible resources.** An extension's `manifest.json` declares files that web pages can fetch:
+
+```js
+// Detect uBlock Origin (Chrome extension ID cjpalhdlnbpafiamejdnhcphjbkeiagm)
+fetch('chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/web_accessible_resources/1x1.gif')
+  .then(() => setInstalled('ublock-origin'))
+  .catch(() => setNotInstalled('ublock-origin'));
+```
+
+Chrome extensions historically had predictable IDs. [Starov & Nikiforakis 2017 *XHOUND*](https://dl.acm.org/doi/10.1145/3133956.3133990) (CCS) enumerated ~10,000 Chrome extensions and demonstrated a drive-by-fingerprinting script reading 53% of them with a single probe per ID. Firefox 57+ randomizes IDs per user, so this attack does not generalize on Firefox.
+
+**DOM observation.** Extensions that inject UI leave fingerprints in the DOM. Grammarly adds an invisible `grammarly-desktop-integration` div when loaded. LastPass adds `data-lastpass-icon-root` attributes to password fields. `MutationObserver` on `document.body` captures all such additions without visible activity.
+
+**Behavior probes.** Ad-blockers are detected by bait elements:
+
+```js
+const bait = document.createElement('div');
+bait.className = 'adsbox ad-banner advertisement';
+bait.style.height = '10px';
+document.body.appendChild(bait);
+await new Promise(r => setTimeout(r, 50));
+if (bait.offsetHeight === 0) setInstalled('ad-blocker');
+```
+
+Any ad-blocker (uBlock Origin, AdGuard, Brave Shields, Ghostery) silently zeroes the height of elements matching common ad classes. Timing and height-probes together reach >99% ad-blocker detection accuracy ([Nithyanand et al. 2016 *Adblocking and Counter-Blocking*](https://arxiv.org/abs/1605.05077)).
+
+Entropy: Starov 2017 measured ~5.8 bits per Chromium user from extension enumeration alone; outliers (developers running 20+ extensions) reach 20+ bits. Firefox is harder to fingerprint via URL probes (randomized IDs) but still detectable via DOM observation.
+
+Research: Starov & Nikiforakis 2017 *XHOUND* is canonical. Sanchez-Rola et al. 2017 *Extension Breakdown* (USENIX Security) extended it. Laperdrix 2020 survey treats extension detection as one of the highest-entropy vectors available to a live page.
+
+## Who uses this, and why
+
+Ad-tech: ad-blocker detection specifically. Forbes, Wired, CNN, Business Insider, and most paywalled news sites run bait-element probes and either lock content, show a nag, or degrade the experience. PageFair 2023 put US ad-blocker adoption at 34%.
+
+Fingerprinting libraries: FingerprintJS v3+, Iovation, and ThreatMetrix include extension enumeration as a high-entropy signal. Commercial anti-detect browsers (Multilogin, Kameleo) specifically target extension-enumeration defence.
+
+Anti-fraud: a React DevTools + Vue DevTools + Redux DevTools combination is likely a developer (positive signal for legitimate account creation). Grey-market extensions (auto-clickers, bot helpers) are a negative signal.
+
+State actors: Citizen Lab reports document extension enumeration in targeted surveillance — cheap to add to a compromised site and can confirm activists or journalists running specific secure-messaging extensions.
+
+## What it reveals about you
+
+Which extensions you have installed, and from that inference chain: your political profile (ad-blocker choice; activism-related extensions), your profession (React DevTools, Postman, Docker integration), your health and accessibility needs (Dark Reader, BeeLine Reader, magnifier extensions), your finances (specific crypto wallet extensions), and your privacy posture (Privacy Badger, uMatrix, NoScript).
+
+A five-extension tuple is typically 15-20 bits of entropy. Combined with navigator properties and WebGL, reaches >30 bits — near-unique identification across the global web population.
 
 ## How to defend
 
-- 🟢 Use Firefox; randomized extension IDs defeat URL-based probes.
-- 🟡 Install fewer extensions. Each one adds bits.
-- 🟡 Use a dedicated browser profile for one-off logins, with no extensions installed.
-- 🔴 In Chrome, set up a "clean" Chromium channel for sensitive browsing.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox. Randomized extension IDs defeat URL-based web-accessible-resource probes. Other probe classes still work, but the dominant attack path is closed.
 
-Incognito mode in Chrome. Most extensions are still active in incognito if you allowed them, and the bait-probe technique works there too.
+Install fewer extensions. Audit what you actually use quarterly.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Use a dedicated browser profile for sensitive logins with no extensions installed. Firefox multi-account containers and Arc spaces make this lower-friction.
+
+In Chrome, run a "clean" Chromium channel (Chromium Canary or Ungoogled Chromium fork) with zero extensions; keep your extension-heavy profile for daily use.
+
+### Level 3: Advanced / paid 🔴
+
+Tor Browser and Mullvad Browser ship with a fixed, small extension set (Tor-branded NoScript in Tor, none in Mullvad) and block web-accessible-resource access from content. The extension surface is effectively zero.
+
+For scripted automation, commercial anti-detect browsers (Multilogin, Kameleo, GoLogin) spoof enumeration responses per profile. No affiliation here; listed for completeness.
+
+### What doesn't help
+
+Incognito mode (Chrome). Most extensions are still active in incognito if you allowed them once, and the bait-probe technique works in incognito too.
+
+Disabling extensions temporarily. The fingerprint recomputes on next re-enable, and a script that runs once during disabled state still captures "no extensions visible" — which is itself a narrow identifier.
+
+A VPN. Extension detection is local to the page; the network layer is irrelevant.
+
+## Tools that help
+
+- **Firefox** — randomized extension IDs, defeats URL-based probes.
+- **Tor Browser / Mullvad Browser** — minimal extension surface, content-script probes blocked.
+- **Separate browser profile for sensitive browsing** — zero-extension baseline.
+- **Ungoogled Chromium** — Chromium fork, clean profile option.
+- **Anti-detect browsers** (Multilogin, Kameleo) — commercial spoofing for scripted automation.
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- Starov & Nikiforakis, *XHOUND: Quantifying the Fingerprintability of Browser Extensions* (CCS 2017)
+- Sanchez-Rola et al., *Extension Breakdown: Security Analysis of Browsers Extension Resources Control Policies* (USENIX Security 2017)
+- Nithyanand et al., *Adblocking and Counter-Blocking: A Slice of the Arms Race* (FOCI 2016)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+- [Firefox 57 release notes: randomized extension IDs](https://bugzilla.mozilla.org/show_bug.cgi?id=1372288)
+
+## Known limits
+
+Even with zero extensions, the *absence* itself is a signal in some populations — a Chromium browser with literally no extensions among normal-user signals may flag as a fresh-install automation. The clean defence is uniformity (Tor/Mullvad population baseline), not minimization within a standard profile. Reducing extensions lowers entropy monotonically but does not zero it until you reach Tor-level uniformity.

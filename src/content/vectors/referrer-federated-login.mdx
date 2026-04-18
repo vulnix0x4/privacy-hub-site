@@ -11,31 +11,113 @@ related:
   - cdn-bot-cookies
 ---
 
-> **TL;DR.** Every request your browser makes carries a `Referer` header telling the destination site the page you came from. Separately, any "Continue with Google" or "Continue with Facebook" button can probe whether you are logged in there without you clicking anything.
+## also known as: `Referer` header leakage, Referrer-Policy, federated-login probing, SSO membership leak, account-probe via iframe timing
 
-The referrer chain is ancient and still leaky. The login-probe trick is newer and almost nobody guards against it.
+> **TL;DR** — Every request your browser makes carries a `Referer` header telling the destination site the page you came from. Separately, any "Continue with Google" or "Continue with Facebook" button can probe whether you are logged in there without you clicking anything. The referrer chain is ancient and still leaky; the login-probe trick is newer and almost nobody guards against it.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-The `Referer` header was added in 1996 so webmasters could see inbound traffic. Modern browsers have tightened it with a default `Referrer-Policy: strict-origin-when-cross-origin`, but plenty of sites override that back to the full URL. The leak is specific: the path you came from, including query strings, goes to every asset server the next page loads.
+Two leaks travel together, both widely deployed, both invisible.
 
-Federated-login probes use hidden iframes pointing at `accounts.google.com`, `facebook.com`, `apple.com`, `github.com`. The iframe's load event fires either immediately (logged in) or after an auth flow (not logged in). Timing the difference reveals membership.
+The Referer header (spelled wrong — a typo baked into HTTP since 1996). When your browser fetches a resource for a page, it tells the server what page requested the fetch. Click a link on `hackernews.com`: the destination sees `Referer: https://hackernews.com/item?id=123`. Every asset request carries the URL of the page that loaded it — including search queries, session tokens embedded in URLs, and tracking parameters.
 
-## What it leaks about you
+Browsers tightened this over time. Chrome 85+ defaults to `Referrer-Policy: strict-origin-when-cross-origin`, which sends the origin but not the full URL to cross-origin destinations. Firefox ships the same default. But sites can override back to `unsafe-url` to keep referrer-based affiliate attribution working, and many do.
 
-Your referrer chain, often with session or search tokens. Separately, which identity providers you hold accounts with. Combined, a strong cross-site linkage.
+The federated-login probe is more subtle. Every major identity provider (Google, Facebook, Apple, GitHub, Microsoft, LinkedIn) has a persistent-login endpoint. A page embeds a hidden iframe pointing at `accounts.google.com/ServiceLogin?...` and measures how long it takes to load. If you are already logged in to Google, the iframe loads almost instantly via a redirect; if not, it takes longer and the login screen briefly renders. Timing the difference reveals whether you hold an account with each provider — no click, no UI.
+
+## How it works (technical)
+
+**Referer.** Added in HTTP/1.0 (1996). Current default is `Referrer-Policy: strict-origin-when-cross-origin` ([W3C spec](https://www.w3.org/TR/referrer-policy/)): full URL same-origin, origin-only cross-origin over HTTPS, nothing on downgrade. Sites can override per-request with `<meta name="referrer">` or the `Referrer-Policy` response header; `Referrer-Policy: unsafe-url` sends full URL to every cross-origin asset and is still used by sites running affiliate-tracking in the referrer.
+
+Asset chains are where it goes wrong: land on `https://health-site.com/search?q=hiv+testing`, the page loads a tracker iframe from `analytics.example`, and with a permissive policy the tracker gets your full query string.
+
+**Federated-login probing.** Each major IdP exposes a login-status endpoint: Google's `/ServiceLogin`, Facebook's `/dialog/oauth`, GitHub's `/login`, Microsoft's `/oauth2/authorize`. All redirect immediately on logged-in sessions and render a login UI on logged-out ones.
+
+```js
+async function probe(provider) {
+  const start = performance.now();
+  await new Promise(resolve => {
+    const img = new Image();
+    img.onload = img.onerror = resolve;
+    img.src = PROVIDERS[provider];
+    setTimeout(resolve, 5000);
+  });
+  return performance.now() - start; // <200ms = logged in, >500ms = logged out
+}
+```
+
+Typical implementations use hidden iframes; `onload` timing gives reliable signal. The basic attack still works on most configurations because logged-in-vs-out latency is inherent.
+
+Research: Lee et al. 2020 *Identity Inference on the Web* (IMC) measured cross-site login-status inference accuracy at >85% across top-10 IdPs. Jackson et al. 2006 *Protecting Browser State from Web Privacy Attacks* (WWW) is foundational.
+
+## Who uses this, and why
+
+Ad-tech reads `Referer` for campaign attribution and cross-site user-journey modeling. Google Analytics, Adobe, and Mixpanel all include it in standard ingest. Retargeting networks (Criteo, The Trade Desk) use referrer chains to reconstruct funnels across publisher sites.
+
+Analytics platforms leak `Referer` to their own backend for session reconstruction. Sensitive queries in the referring URL (health-site searches, internal-tool session tokens, email-preview links) routinely end up in analytics logs without the originating site's intent.
+
+Federated-login probes power "social warm-up" flows: "Sign in with Facebook (you are already logged in)". More opaquely, ad-tech scores users by IdP memberships as behavioral segments. Anti-fraud cross-references claimed logins against which IdPs the browser is actually signed into.
+
+State-level: federated-login probes can confirm organizational memberships (government employee into Okta/Azure AD SSO). Citizen Lab has documented similar timing attacks in targeted-surveillance contexts.
+
+## What it reveals about you
+
+**Via Referer:** your browsing journey URL by URL, often with sensitive path and query-string data. Search queries, session identifiers embedded in URLs, email-preview signatures — all exposed to the next-hop server and its asset pipeline.
+
+**Via federated-login probing:** which identity providers you hold accounts with. The full set of providers you are signed into right now is a second-order identifier ("this user is logged into Google + GitHub + LinkedIn" is a narrow demographic). Longitudinally, which IdPs you signed out of and re-authenticated into maps your work-device habits.
+
+Combined with IP and timezone, the two vectors give a durable session-level identity even across cookie clears.
 
 ## How to defend
 
-- 🟢 Use Firefox or Brave; both ship strict referrer policies and partition third-party iframes.
-- 🟢 Enable Firefox's "Strict Enhanced Tracking Protection".
-- 🟡 Install uBlock Origin's "Prevent long third-party Referer" filter.
-- 🔴 Run Tor Browser, which strips Referer cross-origin.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox or Brave — both ship strict referrer policies and partition third-party iframes. Enable Firefox's "Strict" ETP mode for additional iframe partitioning.
 
-A VPN. Both probes are purely HTTP/JavaScript level; the IP layer is irrelevant.
+### Level 2: Install a free tool 🟡
 
-## Try it
+uBlock Origin: enable "Prevent long third-party Referer" under Filter Lists → Privacy. Neuters query-string leaks from cross-origin assets.
 
-[See your own value -&gt;](/en/scan)
+Privacy Badger — blocks many federated-login probe iframes heuristically.
+
+Sign out of identity providers when not actively using them. A signed-out state returns the same timing regardless of whether you hold an account.
+
+### Level 3: Advanced / paid 🔴
+
+Tor Browser strips `Referer` cross-origin and partitions iframe network state per top-level site. Federated-login probes return uniform "logged out."
+
+Run separate browser profiles per IdP context: one for Google, one for work Microsoft SSO, one for personal GitHub. Cross-profile login-status inference is impossible.
+
+### What doesn't help
+
+A VPN. Both probes operate at HTTP/JavaScript; IP is irrelevant.
+
+Clearing cookies. The referrer leak happens at request time based on the current page URL — cookies are uninvolved. Federated probes depend on IdP session cookies, and the signal returns within minutes of re-login.
+
+Chrome incognito. Still sends `Referer` cross-origin per policy; still permits federated-login iframe probes.
+
+## Tools that help
+
+- **Firefox + Strict ETP / Brave** — partitioned iframes, strict default referrer policy.
+- **Tor Browser** — `Referer` stripped cross-origin; uniform federated-login response.
+- **uBlock Origin "Prevent long third-party Referer"** — defeats query-string leaks.
+- **Privacy Badger** — blocks many federated-login probe iframes heuristically.
+- **Separate browser profiles per IdP context** — defeats cross-profile login-status inference.
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- [W3C Referrer Policy spec](https://www.w3.org/TR/referrer-policy/)
+- Lee et al., *Identity Inference on the Web: The Cross-Site Identity Manager Probe* (IMC 2020)
+- Jackson et al., *Protecting Browser State from Web Privacy Attacks* (WWW 2006)
+- [MDN: Referrer-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020) — referrer-policy leakage section
+
+## Known limits
+
+Sign-out discipline is brittle — most users stay signed into at least one major IdP continuously. Cross-IdP profile separation works but adds significant friction for password-manager fill and everyday login. Tor defeats both vectors but at the usual Tor usability cost. Fixing referrer leakage at the source (sites setting `Referrer-Policy: strict-origin`) is the systemic fix, and most sites have moved to strict defaults, but the long tail of permissive sites is large.

@@ -11,31 +11,104 @@ related:
   - tls-ja4
 ---
 
-> **TL;DR.** `__cf_bm`, `_abck`, `_px*`, `__cfduid` (legacy), `ak_bmsc`. These are bot-management cookies from Cloudflare, Akamai, and PerimeterX. Because those CDNs sit in front of millions of sites, the cookie set on one site is readable on every other site that uses the same CDN.
+## also known as: `__cf_bm`, `_abck`, `_px*`, `__cfduid`, `ak_bmsc`, edge-layer bot-scoring cookies, CDN first-party trackers
 
-The vendors call these "first-party" because they ride the host origin. Structurally they function as a cross-site tracker with extra steps.
+> **TL;DR** — `__cf_bm`, `_abck`, `_px*`, `__cfduid` (legacy), `ak_bmsc`. These are bot-management cookies from Cloudflare, Akamai, and PerimeterX/HUMAN. Because those CDNs sit in front of millions of sites, the cookie set on one site is readable on every other site using the same CDN. The vendors call these "first-party" because they ride the host origin; structurally they function as cross-site trackers with extra steps.
+> Severity: medium
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-A site fronted by Cloudflare serves its own `example.com` pages, but the edge layer sets `Set-Cookie: __cf_bm=...; Path=/; Secure; HttpOnly` on the `example.com` origin. The same edge layer does the same on `other-site.com` using the same bot-scoring machinery. The cookie is technically first-party per site, but the fingerprint it encodes (browser, JA4, behavior) is computed from the same Cloudflare model for both sites, and both sites feed telemetry back to Cloudflare.
+You visit ~20 sites a day that use Cloudflare in front — Reddit, Discord, Medium, Stack Overflow, hundreds of shops and publishers. Cloudflare sits between you and the origin, scores the request for bot-likelihood, and if it decides you are human, lets it through.
 
-You cannot read the cookie value cross-site, but Cloudflare can. Same for Akamai (`_abck`, `ak_bmsc`) and PerimeterX (`_px*`).
+To avoid re-scoring every page-load, Cloudflare sets a cookie: `__cf_bm=<opaque-token>; Domain=example.com; HttpOnly`. Future requests to `example.com` carry the cookie, Cloudflare reads it, confirms the score, and lets you through without re-scoring.
 
-## What it leaks about you
+Cloudflare does the same thing on `other-site.com`. Cookie name identical, scoring infrastructure identical, bot-management model identical. Each cookie is technically scoped to one origin, so other sites cannot *read* Cloudflare's cookies for `example.com`. But Cloudflare itself can — Cloudflare is processing requests for both. The bot-management service sees the same browser at both sites and links them server-side using the same behavioral and fingerprint signals the cookies merely accelerate.
 
-A bot-score identity from the CDN vendor's perspective. Plus a behavioral model: your cursor motion, scroll cadence, and key-press intervals feed back to the bot-management API.
+Akamai does this with `_abck` and `ak_bmsc`. PerimeterX (rebranded HUMAN Security) uses cookies starting `_px`. Vendors call these "first-party" because the `Domain` is the host; structurally they are cross-site because the processing is central.
+
+## How it works (technical)
+
+When you land on `example.com` behind Cloudflare, the edge (not the origin) runs the bot-scoring pass and responds with:
+
+```http
+set-cookie: __cf_bm=aZ8xK2vN9...; path=/; domain=.example.com;
+  HttpOnly; Secure; SameSite=None
+server: cloudflare
+```
+
+The `__cf_bm` value is an opaque signed token tied to the bot-scoring decision for *this user*. When the same user hits `other-site.com`, a fresh scoring pass runs but Cloudflare's side-channel data (JA4, IP reputation, timing, behavioral telemetry) reaches the same conclusion. Cloudflare does not need to read the `example.com` cookie from `other-site.com` to link them — it owns the processing at both sites.
+
+Akamai's `_abck` uses the same pattern; Akamai also collects behavioral telemetry via `ak_bmsc`. PerimeterX/HUMAN's `_px*` cookies store bot-scoring state in a vendor-hosted format.
+
+Research: Laperdrix 2020 survey covers bot-management as an emerging cross-site tracking mechanism. Cloudflare's own bot-management [public documentation](https://developers.cloudflare.com/bots/concepts/bot-score/) describes the scoring signals openly — JA4, IP reputation, ML classifier on behavioral features.
+
+## Who uses this, and why
+
+CDN bot-management is protective in intent: Cloudflare, Akamai, Fastly, CloudFront, and HUMAN/PerimeterX exist to prevent credential-stuffing, scraping, and DDoS. The tracking capability is a byproduct — to score a request, the system has to see it, and once it has seen the request, it has also seen the user.
+
+The scoring model uses TLS JA4 fingerprint, IP reputation, behavioral signals (cursor motion, scroll cadence, key-press intervals sampled via a small JS probe), and browser signals (UA parse quality, common-property reads). Those signals get stored in vendor-side device graphs that persist much longer than any cookie.
+
+Ad-tech does not directly consume these cookies (values are opaque and scoped to vendors), but the device graphs behind them are sold or licensed. HUMAN Security ships ad-tech-fraud-verification products; Akamai's Bot Manager Premier integrates with ad-tech quality-scoring; Cloudflare's Bot Management feeds Radar and threat-intelligence partners.
+
+Anti-fraud platforms (ThreatMetrix, Sift, Kount, SEON, Forter) cross-reference their own signals against CDN bot-scores via partnerships — a user flagged high-risk by Cloudflare on one site shows up high-risk on unrelated anti-fraud platforms via shared threat feeds.
+
+## What it reveals about you
+
+A bot-score identity from the CDN vendor's perspective — whether you look like automation, a VPN user, a Tor user, or a clean residential browser. Cross-site consistency: the vendor sees you at every site it fronts, and tracks behavioral consistency across them. A behavioral model of your cursor motion, scroll cadence, and key-press intervals.
+
+The cookies themselves are opaque to you and to other sites. The tracking that matters happens vendor-side, in the device graph Cloudflare/Akamai/HUMAN maintains for you. That graph lives for months.
 
 ## How to defend
 
-- 🟢 Clear all cookies on exit, or use containers to isolate sites per-purpose.
-- 🟢 Firefox Total Cookie Protection partitions these per top-level site.
-- 🟡 Tor Browser; the Cloudflare CAPTCHA is the price.
-- 🔴 Self-host the few sites you care about enough to escape the CDN layer (not possible for most).
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Clear all cookies on browser exit (Firefox Settings → Privacy → Delete cookies when Firefox closes). Reduces within-vendor cookie persistence. Does not defeat vendor-side device graphs built from JA4, IP, and behavior — see `tls-ja4` and `ip-geolocation` for those.
 
-A VPN alone. The cookie is set on your real identity once you log in, and the CDN links your VPN IP back to that identity via behavioral sampling.
+Use Firefox Total Cookie Protection or Safari ITP — both partition CDN cookies per top-level site so a tracker inside a CDN cannot cross-link sessions without re-scoring.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Firefox Multi-Account Containers — isolate sites per purpose; Cloudflare sees different cookie-jar identities per container.
+
+Brave shields partition CDN cookies per origin; the bot-score state does not carry across.
+
+Librewolf — Firefox fork with TCP and stricter defaults.
+
+### Level 3: Advanced / paid 🔴
+
+Tor Browser. Cloudflare commonly challenges Tor users with a CAPTCHA; the price of uniform first-party isolation is interaction friction.
+
+Self-host the few sites you care enough about to escape the CDN layer entirely (rarely viable — hosting Reddit or Discord yourself is not a thing).
+
+### What doesn't help
+
+A VPN alone. The cookie is set on your real identity once you log in to any site fronted by the CDN, and the CDN links your VPN IP back via behavioral sampling across multiple sites over time.
+
+Clearing only `__cf_bm` and `_abck` manually. The vendor-side device graph persists independently of the cookie; a fresh cookie issuance will attach to the same graph via JA4 and behavioral signals within seconds.
+
+Incognito mode. Cloudflare's bot-score for a device persists across incognito and regular-session in most configurations because the scoring uses JA4 and IP, which do not change.
+
+## Tools that help
+
+- **Firefox + TCP / Safari ITP** — partition CDN cookies per top-level site.
+- **Firefox Multi-Account Containers** — per-context cookie isolation within Firefox.
+- **Brave** — shields partition CDN cookies per origin.
+- **Tor Browser** — first-party isolation; CAPTCHA tax on Cloudflare-fronted sites.
+- **Librewolf** — Firefox fork with TCP on.
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- [Cloudflare: Bot score documentation](https://developers.cloudflare.com/bots/concepts/bot-score/)
+- [Akamai: Bot Manager](https://www.akamai.com/products/bot-manager)
+- [HUMAN Security (formerly PerimeterX)](https://www.humansecurity.com/)
+- [FoxIO: JA4+ suite](https://github.com/FoxIO-LLC/ja4) — the TLS fingerprint behind modern bot scoring
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Cookie-level defences (partitioning, clearing) address the cookie surface but not the vendor-side device graph. The graph is reconstructed from TLS JA4, IP, and behavioral signals, all of which are out of reach of any per-cookie mitigation. The only comprehensive defence is Tor-level uniformity, and Cloudflare's CAPTCHA friction makes Tor unusable for most tasks. For routine browsing the pragmatic stance is accepting bot-management telemetry as a cost of modern web infrastructure and minimizing cross-CDN persistence via multi-account-container workflows.
