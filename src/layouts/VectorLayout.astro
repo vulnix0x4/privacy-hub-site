@@ -21,6 +21,7 @@ const { entry } = Astro.props;
 const { data } = entry;
 
 const canonicalPath = `/en/vectors/${entry.id}`;
+const ogImage = `/og/vectors--${entry.id}.png`;
 const articleLd = buildArticleJsonLd({
   title: data.title,
   description: data.description,
@@ -50,7 +51,7 @@ const prevalenceLabel: Record<typeof data.prevalence, string> = {
 const familyPill = FAMILY_PILL_CLASS[data.family] ?? '';
 const lastVerified = data.last_verified.toISOString().slice(0, 10);
 ---
-<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
+<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description} ogImage={ogImage}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(articleLd)} is:inline></script>
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>

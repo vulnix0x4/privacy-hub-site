@@ -22,6 +22,7 @@ const { data } = entry;
 const lastVerified = data.last_verified.toISOString().slice(0, 10);
 
 const canonicalPath = `/en/categories/${entry.id}`;
+const ogImage = `/og/categories--${entry.id}.png`;
 const articleLd = buildArticleJsonLd({
   title: data.title,
   description: data.description,
@@ -55,7 +56,7 @@ const affiliateCopy: Record<typeof data.affiliate, string | null> = {
 const affiliateNote = affiliateCopy[data.affiliate];
 const categoryDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : null;
 ---
-<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
+<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description} ogImage={ogImage}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(articleLd)} is:inline></script>
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>

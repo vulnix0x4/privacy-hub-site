@@ -22,6 +22,7 @@ const { data } = entry;
 const lastVerified = data.last_verified.toISOString().slice(0, 10);
 
 const canonicalPath = `/en/scenarios/${entry.id}`;
+const ogImage = `/og/scenarios--${entry.id}.png`;
 const articleLd = buildArticleJsonLd({
   title: data.title,
   description: data.description,
@@ -49,7 +50,7 @@ const difficultyLabel: Record<string, { glyph: string; label: string }> = {
 
 const scenarioDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : null;
 ---
-<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
+<Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description} ogImage={ogImage}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(articleLd)} is:inline></script>
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>
