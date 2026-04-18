@@ -1,0 +1,33 @@
+---
+title: Two-factor auth
+description: SMS 2FA is worse than none in many cases. Use a real TOTP app, and for high-value accounts, a hardware key.
+hero_pick: aegis
+alternatives:
+  - 2fas
+  - ente-auth
+  - yubikey
+affiliate: none
+difficulty: easy
+last_verified: 2026-04-18
+related:
+  - referrer-federated-login
+  - permissions-bitmap
+---
+
+> **TL;DR.** Use Aegis for TOTP codes on Android, 2FAS on iOS, or Ente Auth cross-platform. Add a YubiKey (or two) for your email, password manager, and exchange accounts. Avoid SMS 2FA on anything that matters.
+
+## What this category protects
+
+Account takeover when a password leaks. Reusing passwords is still common, breaches are routine, and a second factor closes almost all of the damage when one happens. SMS is weak because SIM-swap attacks are cheap and real.
+
+## Hero pick: Aegis Authenticator
+
+Android, fully open-source, encrypted local vault, export to plain JSON for backups. No cloud, no account, no lock-in. What you give up: Android only. On iOS, Raivo is abandoned; use 2FAS or Ente Auth instead.
+
+## Alternatives
+
+**2FAS** — iOS and Android, optional encrypted iCloud/Google-Drive backup. Good for people who want cross-device sync without setting up their own backup strategy.
+
+**Ente Auth** — Same company as Ente Photos. Cross-platform, end-to-end encrypted sync, free. Clean app on every OS.
+
+**YubiKey (or Nitrokey)** — Hardware FIDO2 key. Buy two (one primary, one in a safe). Use them for irreversible accounts: email, password manager, exchange, domain registrar.

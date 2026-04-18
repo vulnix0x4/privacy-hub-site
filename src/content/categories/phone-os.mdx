@@ -1,0 +1,33 @@
+---
+title: Phone OS
+description: Stock Android talks to Google constantly. iOS talks to Apple constantly. GrapheneOS talks to neither without explicit permission.
+hero_pick: grapheneos
+alternatives:
+  - calyxos
+  - ios-hardened
+  - lineageos
+affiliate: none
+difficulty: advanced
+last_verified: 2026-04-18
+related:
+  - permissions-bitmap
+  - ip-geolocation
+---
+
+> **TL;DR.** Use GrapheneOS on a Pixel. Best-in-class Android security hardening, strictly opt-in Google Play services in a sandbox, and no relationship with Google as the OS vendor. Requires a Pixel 8 or newer.
+
+## What this category protects
+
+The thousand ambient telemetry streams your phone OS produces. Android pings Google every few minutes with location, device info, and behavioral signals unless you disable it — and a lot of it cannot be disabled. iOS does the same with Apple, though the flavor is different.
+
+## Hero pick: GrapheneOS
+
+Hardened fork of AOSP. Sandboxes Google Play services as a regular app with no special permissions (most apps still work). Hardware-enforced verified boot, hardened memory allocator, strict permission model. What you give up: Pixel hardware only, one-time 20-minute install, and some banking apps that block GrapheneOS's attestation (use their web app or a separate profile).
+
+## Alternatives
+
+**CalyxOS** — Sister project, similar threat model, slightly different tradeoffs (includes MicroG by default). Pick if you want Google-API compatibility without GrapheneOS's strict sandbox approach.
+
+**Hardened iOS** — Stock iOS with Lockdown Mode, Advanced Data Protection, and private relay turned on. Convenience floor is high; ceiling is lower than GrapheneOS.
+
+**LineageOS** — More device coverage than Graphene or Calyx, less security hardening. Pick if your phone is not a recent Pixel and you cannot upgrade.

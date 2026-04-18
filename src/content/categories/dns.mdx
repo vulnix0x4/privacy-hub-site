@@ -1,0 +1,33 @@
+---
+title: DNS resolver
+description: Your resolver sees every domain you visit. Pick one that does not log, or run your own on the network.
+hero_pick: quad9
+alternatives:
+  - cloudflare-1-1-1-1
+  - nextdns
+  - adguard-home-self-hosted
+affiliate: none
+difficulty: easy
+last_verified: 2026-04-18
+related:
+  - dns-leaks
+  - ip-geolocation
+---
+
+> **TL;DR.** Point your devices at Quad9 (9.9.9.9) over DNS-over-HTTPS. Swiss non-profit, no commercial logging, blocks known-malicious domains by default. One toggle, nothing to pay, immediate upgrade over whatever your ISP gives you.
+
+## What this category protects
+
+The real-time log of every domain you visit. Your ISP's default DNS sees that. Your VPN's DNS sees it if you have a VPN. Picking a specific resolver and encrypting the queries closes the biggest outstanding network-level leak.
+
+## Hero pick: Quad9
+
+9.9.9.9 and 2620:fe::fe. Operated by a Swiss non-profit funded by grants (not ad revenue). No query logging beyond real-time abuse detection. Malware-domain filter on by default. DNS-over-HTTPS and DNS-over-TLS endpoints published on their site. What you give up: nothing meaningful for home use. Pro users may prefer a resolver with policy customization.
+
+## Alternatives
+
+**Cloudflare 1.1.1.1** — Fastest DNS on the planet in most benchmarks. Audited no-logging policy. The worry is that Cloudflare is also a CDN giant with plenty of other signals on you.
+
+**NextDNS** — DNS-as-a-service with a dashboard. Free tier gets 300k queries/month, plenty for a phone; paid tiers for a family LAN. Custom block lists, per-device profiles.
+
+**AdGuard Home (self-hosted)** — Run your own resolver on a Raspberry Pi. No third party sees your queries at all. Requires upkeep and a basic Linux footprint.

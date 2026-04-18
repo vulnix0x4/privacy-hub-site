@@ -1,0 +1,33 @@
+---
+title: Disk encryption
+description: A stolen laptop without disk encryption is a full data dump. Turn it on, once, and forget about it.
+hero_pick: veracrypt
+alternatives:
+  - bitlocker
+  - filevault
+  - luks
+affiliate: none
+difficulty: intermediate
+last_verified: 2026-04-18
+related:
+  - supercookies-hsts-etag-favicon
+  - permissions-bitmap
+---
+
+> **TL;DR.** Use VeraCrypt if you want cross-platform, open-source full-disk encryption for a data drive or a removable volume. For your OS volume, use whatever ships with the OS (FileVault on macOS, BitLocker on Windows Pro, LUKS on most Linux distros) — it is convenient, properly integrated, and adequate for anything short of a nation-state adversary.
+
+## What this category protects
+
+Your data against physical theft, sloppy pawnshop disposal, and border crossings with sleeping devices. Without disk encryption, anyone who boots from a USB stick reads your drive.
+
+## Hero pick: VeraCrypt
+
+Open-source, audited (OSTIF sponsored the 2016 audit), runs on every desktop OS. Encrypts whole volumes or creates encrypted containers that look like ordinary files. Supports plausible-deniability hidden volumes if your threat model genuinely needs them. What you give up: no mobile clients (use the OS tools there), and it does not integrate with secure-boot as cleanly as BitLocker.
+
+## Alternatives
+
+**BitLocker** — Ships with Windows Pro, uses the TPM so no password required at boot. Good default on Windows; just confirm your recovery key is saved somewhere other than the drive itself.
+
+**FileVault** — macOS default. On by default on Apple Silicon. Tied to your iCloud account unless you deliberately choose a local recovery key.
+
+**LUKS** — Linux standard. Most distros offer it at install time. No reason not to tick the box.

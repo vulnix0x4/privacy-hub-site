@@ -1,0 +1,33 @@
+---
+title: Router-level VPN
+description: Running a VPN on the router covers every device on your network, including the ones that cannot run a VPN client themselves.
+hero_pick: mullvad-on-router
+alternatives:
+  - proton-vpn-on-router
+  - gl-inet-prebuilt
+  - pfsense-self-hosted
+affiliate: none
+difficulty: intermediate
+last_verified: 2026-04-18
+related:
+  - ip-geolocation
+  - dns-leaks
+---
+
+> **TL;DR.** Run Mullvad (or any audited flat-fee VPN) on your router instead of on every device. One config, every phone and laptop and smart-TV on the LAN gets covered, including the guest devices that never would have run a client.
+
+## What this category protects
+
+Background leakage. Steam updaters, Spotify telemetry, the smart-TV that phones home every minute, the Roomba, the kids' switch — any device you forgot about ships DNS and traffic straight to your ISP otherwise.
+
+## Hero pick: Mullvad on a compatible router
+
+Any router that supports OpenWRT or a WireGuard config. Load Mullvad's WireGuard config (their website generates it for you), force every outbound connection through the tunnel. What you give up: 10-20 percent of your LAN throughput in most setups, a full weekend if you have never touched router firmware.
+
+## Alternatives
+
+**Proton VPN on router** — Same approach with Proton. Worth it if you already pay Proton for everything else and want one vendor.
+
+**GL.iNet pre-built routers** — Ship with a WireGuard client UI and a pre-cut onboarding flow. The "Slate AX" and "Flint 2" boxes are popular. You pay for the convenience; the unit is yours.
+
+**pfSense or OPNsense self-hosted** — For homelabbers. Full firewall, per-client routing rules, kill switch. Runs on any old x86 machine. Steepest learning curve.
