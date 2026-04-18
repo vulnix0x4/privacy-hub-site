@@ -1,0 +1,25 @@
+; BIND-format zone template for scan.privacy.whattheflip.lol, rewritten
+; on-demand by scanner-nonce when nonces are issued/expired. Markers with
+; `{{ ... }}` are replaced by the sidecar — the template itself is NOT a
+; valid zone until interpolation completes.
+;
+; TTLs are short (5s) because TXT records for nonces are ephemeral.
+; The SOA serial is {{SERIAL}} — the sidecar sets it to a unix timestamp on
+; each rewrite so NSD's reload notices the change.
+$ORIGIN scan.privacy.whattheflip.lol.
+$TTL 5
+
+@       IN  SOA ns1.scan.privacy.whattheflip.lol. hostmaster.privacy.whattheflip.lol. (
+                  {{SERIAL}}   ; serial (unix timestamp)
+                  60           ; refresh
+                  30           ; retry
+                  3600         ; expire
+                  5 )          ; minimum / negative-cache TTL
+
+        IN  NS  ns1.scan.privacy.whattheflip.lol.
+
+ns1     IN  A   127.0.0.1
+@       IN  A   127.0.0.1
+
+; Per-nonce TXT + A records injected below by scanner-nonce.
+{{NONCE_RECORDS}}

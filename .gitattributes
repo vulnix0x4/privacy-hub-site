@@ -1,0 +1,29 @@
+# Default: let Git auto-detect text and normalize to LF in the repo.
+* text=auto eol=lf
+
+# Shell scripts and Dockerfiles MUST be LF — they run inside Linux
+# containers where CRLF breaks execution. Force LF on checkout regardless
+# of core.autocrlf.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+
+# Go source. LF is the Go convention and gofmt will enforce it anyway.
+*.go text eol=lf
+
+# Zone files and nsd.conf are fed to Linux daemons.
+*.conf text eol=lf
+*.zone text eol=lf
+
+# Binaries — never attempt text normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
