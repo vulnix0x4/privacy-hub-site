@@ -13,7 +13,8 @@
     "check": "astro check",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "size": "size-limit"
+    "size": "size-limit",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -43,7 +44,9 @@
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "happy-dom": "^20.9.0",
     "pagefind": "^1.5.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
   }
 }
