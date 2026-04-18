@@ -1,0 +1,15 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { ScannerApp } from '../../components/scanner/ScannerApp';
+import { ReducedMotionProvider } from '../../components/islands/ReducedMotionProvider';
+
+export const prerender = true;
+---
+<Layout
+  title="Live tracker scan — privacy.whattheflip.lol"
+  description="See what every site sees about your browser. Defense Mode Profile, per-vector verdicts, fix links."
+>
+  <ReducedMotionProvider client:load>
+    <ScannerApp client:load />
+  </ReducedMotionProvider>
+</Layout>
