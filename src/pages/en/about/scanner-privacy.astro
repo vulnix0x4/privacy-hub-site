@@ -1,0 +1,177 @@
+---
+/**
+ * Long-form scanner + infra transparency. This is the page security
+ * researchers and journalists will read before trusting the scanner. It
+ * names the two backend endpoints, the TTL on every data point, the DNS
+ * posture, and the audit commitments (6-month infra, 24-month deep,
+ * quarterly asciinema). Design doc §13.
+ *
+ * Scanner-backend repo URL is a placeholder until Phase 3 publishes the
+ * actual Docker services. Flag with TODO(phase-3) badge so the canary is
+ * clear.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+---
+<Layout
+  title="Scanner privacy and infra — privacy.whattheflip.lol"
+  description="Long-form transparency for the scanner and the servers behind it. What endpoints the browser hits, what leaves the browser, how long any piece of state lives, and our audit commitments."
+>
+  <article class="max-w-3xl py-6 space-y-6 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <a href="/en/about" class="hover:text-text">About</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Scanner privacy and infra</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Scanner privacy and infra</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What the scanner does in your browser</h2>
+      <p>
+        The scanner is client-side JavaScript. It reads your browser's fingerprintable surface —
+        canvas, audio, WebGL, WebGPU, fonts, client hints, timezone, navigator properties, sensor
+        APIs, media devices — and runs each probe to a verdict (Private / Leaking / Farbled /
+        Spoofed / Unchanged) locally. Probe output stays in-tab. Fingerprint values are never
+        transmitted to our server.
+      </p>
+      <p>
+        You can watch this happen. Open DevTools <kbd>Network</kbd>, run a scan, see that no probe
+        posts a fingerprint value anywhere. The only outbound requests during a scan are to the two
+        endpoints below.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What leaves the browser</h2>
+      <h3 class="text-lg font-semibold text-text"><code>GET /api/scan/nonce</code></h3>
+      <p>
+        Returns a 16-byte random token. The token's only job is to let the <code>/headers</code>
+        endpoint below confirm the request originated from a scanner session that loaded this page.
+        Storage: SQLite on tmpfs (RAM-backed, wiped on process restart). TTL: 60 seconds. Not
+        indexed by IP, user-agent, or anything else. After TTL, deleted.
+      </p>
+      <h3 class="text-lg font-semibold text-text"><code>GET /api/scan/headers</code></h3>
+      <p>
+        Echoes the HTTP request headers your browser sent on the request, so the in-page JavaScript
+        can compare JS-reported values (<code>navigator.userAgent</code>, <code>navigator.userAgentData</code>,
+        language) against what the network actually saw. Response is computed from the incoming
+        request; no state is stored server-side. The nonce is validated and burned; request logs
+        do not retain headers.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Lifetime of each data point</h2>
+      <table class="w-full border-collapse text-sm">
+        <thead class="text-left text-text-muted">
+          <tr class="border-b border-white/10">
+            <th class="py-2 pr-4 font-semibold">Data point</th>
+            <th class="py-2 pr-4 font-semibold">Where</th>
+            <th class="py-2 font-semibold">Lifetime</th>
+          </tr>
+        </thead>
+        <tbody class="text-text">
+          <tr class="border-b border-white/10">
+            <td class="py-2 pr-4">Probe fingerprint value</td>
+            <td class="py-2 pr-4">Your browser tab (memory)</td>
+            <td class="py-2">Until tab closes</td>
+          </tr>
+          <tr class="border-b border-white/10">
+            <td class="py-2 pr-4">Nonce</td>
+            <td class="py-2 pr-4">Scanner backend (tmpfs SQLite)</td>
+            <td class="py-2">60 s</td>
+          </tr>
+          <tr class="border-b border-white/10">
+            <td class="py-2 pr-4">Request access log</td>
+            <td class="py-2 pr-4">Origin server /var/log</td>
+            <td class="py-2">7-day ring</td>
+          </tr>
+          <tr class="border-b border-white/10">
+            <td class="py-2 pr-4">CDN DNS query</td>
+            <td class="py-2 pr-4">Cloudflare (DNS-only)</td>
+            <td class="py-2">Per Cloudflare policy</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">DNS posture</h2>
+      <p>
+        Cloudflare sits in front of us as an <strong>authoritative DNS provider only</strong>. We do
+        not use Cloudflare as a reverse proxy. No requests are proxied through Cloudflare's network.
+        No Cloudflare analytics, no Cloudflare Bot Management, no Workers in the request path. The
+        orange cloud is off.
+      </p>
+      <p>
+        This means Cloudflare sees DNS lookups for our domain. They do not see your browser's HTTPS
+        traffic. If you are concerned about the DNS-level metadata, use a privacy-respecting DNS
+        resolver (Quad9, NextDNS, Mullvad) and the information Cloudflare sees about you
+        individually is close to zero.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Source code</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>
+          Site: <a href="https://github.com/vulnix0x4/privacy-hub-site" class="underline">github.com/vulnix0x4/privacy-hub-site</a> — AGPL-3.0-or-later.
+        </li>
+        <li>
+          Scanner backend:{' '}
+          <span
+            class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged"
+          >TODO(phase-3)</span>{' '}
+          Docker service repository will be published here when Phase 3 lands. Nonce + headers
+          endpoints are implemented in that service.
+        </li>
+      </ul>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Audit commitments</h2>
+      <ul class="list-disc pl-5 space-y-2">
+        <li>
+          <strong>6-month infra audit.</strong> Before <time datetime="2026-10-18">2026-10-18</time>,
+          we will publish an infra posture report: hosts, daemons, config deltas since launch,
+          access-log samples, and a fresh TLS + JA3/JA4 scan of our own endpoints. The report lands
+          in the changelog and is signed with the PGP key.
+        </li>
+        <li>
+          <strong>24-month deep audit.</strong> Before <time datetime="2028-04-18">2028-04-18</time>,
+          an independent third-party security review of the scanner backend, with the report
+          published verbatim. We pay; the auditor reports to the public.
+        </li>
+        <li>
+          <strong>Quarterly asciinema attestation.</strong>{' '}
+          <span
+            class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged"
+          >TODO(phase-3)</span>{' '}
+          Once per quarter we record a terminal session (via{' '}
+          <a href="https://asciinema.org" class="underline">asciinema</a>) showing the scanner
+          backend's runtime state: no persistent storage, tmpfs mount, process tree, open ports.
+          First attestation lands with Phase 3 when the backend goes live. Published in the
+          changelog.
+        </li>
+      </ul>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What would trigger a breach disclosure</h2>
+      <p>
+        Anything that contradicts the table above. If the nonce store ever holds data beyond 60
+        seconds by design, that is a disclosure. If the access log ever crosses into analytics
+        territory, that is a disclosure. If Cloudflare is ever promoted to proxying, that is a
+        disclosure. Disclosures land at the top of <a href="/en/changelog" class="underline">the
+        changelog</a>, never quietly.
+      </p>
+    </section>
+  </article>
+</Layout>

@@ -1,0 +1,123 @@
+---
+/**
+ * Founder note + warrant canary + PGP fingerprint. Pseudonym is
+ * vulnix0x4 per design doc §13.5 publisher-identity lock. The warrant
+ * canary rotates monthly; today's stake is 2026-04-18, subsequent
+ * rotations are captured in the changelog.
+ *
+ * PGP fingerprint placeholder is flagged TODO(pre-launch) — the owner
+ * fills in the 40-char fingerprint before launch. Putting a garbage
+ * fingerprint here would be worse than none.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+const canaryDate = '2026-04-18';
+---
+<Layout
+  title="About — privacy.whattheflip.lol"
+  description="Founder note under the pseudonym vulnix0x4. Warrant canary, PGP contact instructions, and links to the legal framework we operate under."
+>
+  <article class="max-w-3xl py-6 space-y-8 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">About</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">About</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Founder note</h2>
+      <p>
+        I run this site under the handle <strong>vulnix0x4</strong>. The pseudonym is deliberate. I
+        want the writing and the recommendations here to stand on their own, not on my resume. It
+        also keeps me from being a pressure point: if a company I criticize wants me silenced, the
+        easy move is to go after the person. The pseudonym is a small friction on that. It is not
+        unbreakable, and I am not under any illusion that it is — but it changes the calculus
+        enough to matter.
+      </p>
+      <p>
+        I do not run analytics. I do not set cookies. I do not sell data. I earn money when a
+        reader clicks an affiliate link (Proton, Bitwarden, Kagi, Obsidian, Ente, and a few
+        others — all named on the <a href="/en/legal/affiliate" class="underline">affiliate
+        disclosure</a>) and decides the paid tier is worth it. Commissions do not change the
+        ranking: every category leads with a free or open-source option. If an affiliate product is
+        not the best pick, it is not the hero pick.
+      </p>
+      <p>
+        The scanner was the heart of the original idea. It runs in your browser. The backend holds
+        a 60-second nonce; nothing else persists. The code for both the site and the scanner
+        backend is public — see <a href="/en/about/scanner-privacy" class="underline">Scanner privacy</a>
+        for the infrastructure long-form.
+      </p>
+      <p>— vulnix0x4</p>
+    </section>
+
+    <section aria-labelledby="canary" class="rounded border border-accent/30 bg-accent/5 p-5 space-y-3">
+      <h2 id="canary" class="text-xl font-semibold text-text">Warrant canary</h2>
+      <p class="text-text leading-relaxed">
+        <strong>
+          As of <time datetime={canaryDate}>{canaryDate}</time>, we have not received any legal
+          requests to suppress content or identify users.
+        </strong>
+      </p>
+      <p class="text-sm text-text-muted">
+        This line is rotated on or before the first of each month. If it goes stale by more than 30
+        days, treat its absence as the signal. Rotation history is part of{' '}
+        <a href="/en/changelog" class="underline">the changelog</a>.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">PGP contact</h2>
+      <p>
+        For anything sensitive — especially security reports and journalism sourcing — use PGP.
+      </p>
+      <dl class="space-y-2 text-sm">
+        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
+          <dt class="w-40 shrink-0 text-text-muted">Key fingerprint</dt>
+          <dd class="font-mono text-text">
+            <span
+              class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged"
+            >TODO(pre-launch)</span>{' '}
+            <code>XXXX XXXX XXXX XXXX XXXX  XXXX XXXX XXXX XXXX XXXX</code>
+          </dd>
+        </div>
+        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
+          <dt class="w-40 shrink-0 text-text-muted">Key download</dt>
+          <dd class="text-text">
+            To be published at <code>/pgp.asc</code> before launch; also uploaded to{' '}
+            <code>keys.openpgp.org</code> and searchable by the email below once the key is
+            generated.
+          </dd>
+        </div>
+        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
+          <dt class="w-40 shrink-0 text-text-muted">Email</dt>
+          <dd class="text-text">
+            <a href="mailto:claude.aiactuallall.disregard729@passmail.com" class="underline">claude.aiactuallall.disregard729@passmail.com</a>
+          </dd>
+        </div>
+      </dl>
+      <p class="text-sm text-text-muted">
+        Verify the fingerprint against at least two independent sources (this page, the key
+        server, and a Tor hidden service copy once published). Do not skip this step.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Legal and transparency</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><a href="/en/legal/privacy" class="underline">Privacy policy</a></li>
+        <li><a href="/en/legal/affiliate" class="underline">Affiliate disclosure</a></li>
+        <li><a href="/en/legal/accessibility" class="underline">Accessibility statement</a></li>
+        <li><a href="/en/legal/dmca" class="underline">DMCA policy</a></li>
+        <li><a href="/en/about/scanner-privacy" class="underline">Scanner privacy and infra transparency</a></li>
+        <li><a href="/en/changelog" class="underline">Changelog</a></li>
+      </ul>
+    </section>
+  </article>
+</Layout>
