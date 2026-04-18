@@ -1,0 +1,81 @@
+---
+title: "SimpleX Chat, first run"
+description: Install SimpleX, understand why it has no user identifiers, and send your first message without handing over a phone number.
+last_verified: 2026-04-18
+related:
+  - messaging
+  - permissions-bitmap
+difficulty: intermediate
+time_minutes: 15
+prerequisites:
+  - Android, iOS, or a desktop
+  - A contact willing to also install SimpleX
+---
+
+> **TL;DR.** SimpleX has no accounts, no phone numbers, no usernames. You exchange one-time connection links with contacts. Messages route through relays that see neither side. It is the strongest metadata story in consumer messaging right now. It is also rough around the edges.
+
+## Why this matters
+
+Signal is great at content. Metadata — who talked to whom, when — is a harder problem. Signal knows who you are (by phone number) and leans on its own server for delivery. SimpleX was built specifically to not know. There are no user IDs. You do not "add a contact by username." You share a one-time link, the other side accepts, and now a pairwise connection exists that SimpleX servers see only as random queue IDs.
+
+It is currently the best tool for "I do not want the service to know that person A talked to person B."
+
+## What you need before starting
+
+- A device. SimpleX has Android, iOS, macOS, Windows, and Linux apps.
+- A contact willing to install it too.
+- An out-of-band channel to send the first invite (Signal, email, even paper — the link has to get there somehow).
+
+## Steps
+
+1. **Install SimpleX.** From F-Droid (Android, preferred for privacy — no Play Services), the Play Store, the App Store, or `simplex.chat` for desktop. Publisher: "SimpleX Chat Ltd."
+
+   {/* SCREENSHOT(step-1): SimpleX on F-Droid */}
+
+2. **Pick a display name.** On first run you pick a name. This is local — it is what other people see in the chat list when they add you. It is not a username; it has no global uniqueness, and changing it does not break any existing conversation.
+
+   {/* SCREENSHOT(step-2): SimpleX display name onboarding */}
+
+3. **Skip the migration flow if offered.** You are starting fresh. Do not try to import from Signal — different protocols.
+
+4. **Understand what you are looking at.** No phone number prompt. No OTP. That is correct. Your "identity" in SimpleX is a local private key stored on the device. If you uninstall, the identity is gone. If you want backup, use SimpleX's encrypted chat database export (Settings → Database → Export).
+
+5. **Make your first connection.** From the main screen, tap "+" → "Add contact." You get two options:
+   - **One-time invitation link**: single-use, expires in 24h by default. Best default.
+   - **SimpleX contact address**: a reusable link you can paste on a website or business card. Lower anonymity — anyone with the link can connect.
+
+   Start with a one-time link.
+
+   {/* SCREENSHOT(step-5): SimpleX add-contact screen */}
+
+6. **Send the link to your contact.** Copy the link, send it via whatever channel you already trust with that contact (Signal, email, a PGP encrypted message, a piece of paper). They open it in SimpleX, tap "Accept."
+
+7. **Confirm identity once you connect.** Chat opens. Both sides should verify the "Security code" the first time — Settings (on the chat) → "Verify security code." You read a 44-digit code to each other out loud, or scan a QR. Protects against a MITM on the initial link exchange.
+
+   {/* SCREENSHOT(step-7): security code verification screen */}
+
+8. **Send a message.** Works like any messenger. Text, voice, images, files. Disappearing messages are per-chat — Settings → Disappearing messages.
+
+9. **Turn on encrypted database.** Settings → Database passphrase → Change passphrase. Pick something strong. SimpleX's local chat database is encrypted at rest and this is the passphrase. Without it, a stolen phone is a full chat-history exposure (SimpleX does not lean on OS keystore by default).
+
+   {/* SCREENSHOT(step-9): database passphrase setting */}
+
+10. **Set Incognito mode for new contacts.** The toggle on the new-connection screen. With Incognito on, SimpleX generates a random profile for that contact — they see a different display name, and the link has no ties to your other conversations. Use this for any contact who should not know your other identities.
+
+## Verify it worked
+
+- Exchange a message with your first contact. The chat should show two-way delivery.
+- Look at the chat settings. There is no "phone number." There is no "username." That is correct and is the whole point.
+- Run a test: uninstall SimpleX, reinstall. Your contact list is gone unless you exported the DB. That is also correct — SimpleX has nothing to sync from.
+
+## Common pitfalls
+
+- Sharing a one-time invitation link on a public channel. Anyone who grabs it first connects to you. Treat links like SMS OTPs — single recipient, expiring.
+- Forgetting the database passphrase. No recovery. Zero. Write it in your password manager.
+- Relying on SimpleX's default relays for maximum anonymity. Default is fine but the relays are public and you can self-host. For sensitive groups, run your own.
+- Using the reusable contact address and then being surprised when a stranger connects. Use one-time links unless you truly want a public contact point.
+- Confusing SimpleX's small team and volatile UI for production maturity. Features change rapidly. Check the changelog before trusting a new feature with a critical use case.
+
+## Known limits
+
+SimpleX's anonymity guarantee rests on: no user identifier, per-queue random IDs, and the attacker not being able to correlate traffic across multiple relays. It does not hide your network traffic to the relay itself (use it over Tor or a VPN if that matters). It does not verify your contact's identity — the security code is pairwise, not anchored in a wider identity system. And it is still a 1.x-era tool; expect occasional rough edges, slower feature velocity than Signal, and smaller contact networks.

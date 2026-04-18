@@ -1,0 +1,93 @@
+---
+title: "Opt out of data brokers (the DIY path)"
+description: Remove your name from the big US data brokers yourself. It is tedious, it works, and it saves you $200/year on a removal service.
+last_verified: 2026-04-18
+related:
+  - data-broker-removal
+  - breach-monitoring
+difficulty: intermediate
+time_minutes: 90
+prerequisites:
+  - A US address (most of these are US-focused)
+  - Your legal name and any common variants
+---
+
+> **TL;DR.** Hit the big six brokers (Spokeo, Whitepages, Radaris, BeenVerified, PeopleFinders, Intelius) first. Each takes 5-10 minutes. Then work through the long tail. Re-check quarterly. Expect some listings to come back.
+
+## Why this matters
+
+Data brokers aggregate your name, address, phone, relatives, employer, estimated income, and about 40 other fields into profiles that anyone with $3 can buy. Stalkers, debt collectors, recruiters, and marketers all use them. Most brokers offer a free opt-out because they are compelled to by state laws (California, Texas, Vermont) — but they bury it, and they repopulate whenever they re-ingest a new source.
+
+A paid service like DeleteMe or Privacy Bee runs $130-250/year to do this on your behalf. The DIY path takes about 90 minutes for the first round and 30 minutes a quarter for re-checks.
+
+## What you need before starting
+
+- A US address. Most of these brokers only have rich data on US residents.
+- Your legal name and common variants (nicknames, maiden name, middle initial vs no middle initial).
+- A throwaway email. Many brokers require email verification for opt-out, and will spam that address.
+- 90 minutes.
+
+## Steps
+
+1. **Search yourself first.** Google `"yourname" "yourcity"`. Then do the same on DuckDuckGo. Note which sites surface. This is your hit list. Start here.
+
+2. **Set up a throwaway email.** Use a Proton alias or Simplelogin alias pointed at your real inbox. Data brokers require email verification for opt-out; they will also resell the verified email.
+
+3. **Make a tracking spreadsheet.** Columns: broker name, opt-out URL, date submitted, confirmation received (y/n), re-check date, notes. Sounds like overkill, it is not. You will lose track otherwise.
+
+   {/* SCREENSHOT(step-3): a simple opt-out tracking spreadsheet */}
+
+4. **Start with the big six.** These are the biggest and they syndicate to others. Clearing them often clears the smaller ones automatically.
+
+   - **Spokeo** — `spokeo.com/optout`. Paste your profile URL, email, captcha. Confirmation within 24h.
+   - **Whitepages** — `whitepages.com/suppression-requests`. They require phone verification. Annoying.
+   - **Radaris** — `radaris.com/page/how-to-remove`. Two-step, they make you claim the profile first, then opt out.
+   - **BeenVerified** — `beenverified.com/app/optout/search`. Easy.
+   - **PeopleFinders** — `peoplefinders.com/manage/optout`. Find your profile first.
+   - **Intelius** — `intelius.com/opt-out/submit/`. Also covers Classmates and iSearch.
+
+   {/* SCREENSHOT(step-4): a generic broker opt-out form */}
+
+5. **Hit the next tier.**
+   - **TruePeopleSearch** — `truepeoplesearch.com/removal`.
+   - **FastPeopleSearch** — `fastpeoplesearch.com/removal`.
+   - **USPhoneBook** — `usphonebook.com/opt-out`.
+   - **PeopleWhiz** — opt-out via email to their support.
+   - **ThatsThem** — `thatsthem.com/optout`.
+   - **MyLife** — phone-only opt-out. Call the number, give them your record ID. They will try to sell you a paid cleanup; refuse.
+   - **Radaris**, **BeenVerified**, **Spokeo** all have shell sites. Search the record on each, submit opt-outs for the variants.
+
+6. **Google yourself again.** New brokers surface that you did not see the first time, plus some confirmation of removals. Add them to the spreadsheet and opt out.
+
+7. **Submit the state law opt-outs.** If you are in California, Virginia, Colorado, Connecticut, or Utah, every broker has a CCPA/CPRA/etc. portal. Use the CCPA "Right to Delete" specifically — it has stronger force than the general opt-out. California AG publishes a list of registered data brokers at `oag.ca.gov/data-brokers` — 500+ entries.
+
+   {/* SCREENSHOT(step-7): California AG data broker registry */}
+
+8. **Do the "people search" aggregators.** Less known but broad:
+   - **InfoTracer** — shady, but removes.
+   - **Pipl** — professional investigator tool, opt-out at `pipl.com/personal-information-removal-request`.
+   - **CheckPeople** — requires email verification.
+
+9. **Check for your address on property/court records aggregators.** These are tougher — public records are often out of scope for CCPA. BlackBookOnline, Recordsfinder, Persopo, etc. Submit opt-outs where allowed. Accept that some public records (voter rolls, property tax, court cases) cannot be removed from the public sphere.
+
+10. **Set calendar reminders for quarterly re-checks.** Your profiles will repopulate within 3-12 months as brokers re-ingest new data sources. Quarterly is the right cadence. Run the same Google searches, hit opt-out on anything that reappeared.
+
+11. **Consider whether DIY is worth it for you.** At the 10-hour/year mark, many people decide that $150/year for DeleteMe is fine. Valid choice. DIY is for people who either have the time, are at high risk (stalker / abuser), or just do not want to trust a third-party with an already-sensitive task.
+
+## Verify it worked
+
+- Wait 48-72 hours. Re-search your name on Google / DuckDuckGo. Big-six sites should return either "no record" or a scrubbed listing.
+- Sign up for a data broker checking tool — Onerep, Kanary, Privacy Bee all have free tiers that scan weekly and email you. Use it for monitoring, not removal.
+- Set up Google Alerts for `"yourname" "yourcity"`. When a new broker indexes you, you will find out.
+
+## Common pitfalls
+
+- Using your real email for opt-outs. Brokers resell the verified address.
+- Opting out once and assuming it is permanent. Repopulation is a feature, not a bug, of data brokers.
+- Targeting only the top three brokers. The long tail is where stalkers look.
+- Confusing "remove my listing" with "delete my data from your database." Some brokers will hide the public listing but keep selling the data to API buyers. CCPA "Right to Delete" requests are the stronger lever — use them in states that have the law.
+- Giving up after the 25th opt-out form. Normal. Take a break, come back next week.
+
+## Known limits
+
+DIY opt-outs remove the public-facing profiles on broker sites. They do not remove the underlying data from broker databases unless you invoke a state-law Right to Delete, and even then enforcement is uneven. Your data is still on brokerage B2B feeds that never show you a search result. The legal position is only fully enforceable in CA, VA, CO, CT, UT (at time of writing) — elsewhere it is voluntary compliance. This is why paying for a service is reasonable if your time is worth more than $15/hour.

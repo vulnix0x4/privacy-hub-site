@@ -1,0 +1,115 @@
+---
+title: "Pi-hole in an afternoon"
+description: Block ads and trackers at the DNS layer for every device on your network. A Raspberry Pi, an SD card, and an hour.
+last_verified: 2026-04-18
+related:
+  - dns
+  - vpn-router
+difficulty: intermediate
+time_minutes: 60
+prerequisites:
+  - A Raspberry Pi (3, 4, or 5) with power supply
+  - An 8+ GB SD card
+  - An ethernet port on your router
+---
+
+> **TL;DR.** Flash Raspberry Pi OS Lite. Install Pi-hole with one command. Point your router's DHCP at the Pi. Add blocklists. Get a quiet network. If it breaks streaming, add exceptions.
+
+## Why this matters
+
+Ad-blocking in the browser stops ads in the browser. Pi-hole stops them at the DNS layer for every device on your network — smart TV, game console, phone, IoT junk that you cannot install uBlock on. It also gives you a dashboard with the unsettling truth of how many DNS queries your "idle" smart TV makes per minute.
+
+This is an afternoon project that pays off for years. A Pi 3B+ is enough.
+
+## What you need before starting
+
+- Any Pi from 3B onward. Even a Zero 2 W works.
+- 8+ GB SD card, ideally a Samsung Evo or Endurance. Pi-hole is write-light so card wear is minimal, but cheap cards die fast.
+- Ethernet (ideally) or Wi-Fi. Ethernet is more stable — DNS outages when your Pi's Wi-Fi flakes are infuriating.
+- Access to your router's admin UI.
+
+## Steps
+
+1. **Flash Raspberry Pi OS Lite (64-bit) to the SD card.** Download Raspberry Pi Imager from `raspberrypi.com`. Pick "Raspberry Pi OS Lite (64-bit)." Click the gear icon before flashing: set hostname to `pihole`, enable SSH with a password, set Wi-Fi credentials if needed, locale.
+
+   {/* SCREENSHOT(step-1): Raspberry Pi Imager with OS Lite selection */}
+
+2. **Boot the Pi. SSH in.** `ssh pi@pihole.local` (or whatever hostname you set). If `.local` does not resolve, find the Pi's IP from your router's DHCP table and SSH in with that.
+
+3. **Update.**
+   ```
+   sudo apt update && sudo apt upgrade -y
+   ```
+
+4. **Set a static IP.** Pi-hole needs a stable address. Either set it in the Pi itself:
+   ```
+   sudo nano /etc/dhcpcd.conf
+   ```
+   Add:
+   ```
+   interface eth0
+   static ip_address=192.168.1.53/24
+   static routers=192.168.1.1
+   static domain_name_servers=1.1.1.1 9.9.9.9
+   ```
+   Reboot. Or, preferred, reserve a DHCP lease for the Pi in your router.
+
+5. **Install Pi-hole.**
+   ```
+   curl -sSL https://install.pi-hole.net | bash
+   ```
+   The installer walks through a ncurses menu: upstream DNS server (pick Quad9 or Cloudflare), which blocklists to start with (default is fine), web admin UI (yes), logging (on, privacy level "Show everything").
+
+   {/* SCREENSHOT(step-5): Pi-hole installer menu */}
+
+6. **Record the admin password.** Last thing the installer prints. Note it. You can change it later with `pihole -a -p`.
+
+7. **Test from the Pi.**
+   ```
+   dig @localhost doubleclick.net
+   ```
+   Should resolve to 0.0.0.0 (blocked). Plain queries should work: `dig @localhost example.com`.
+
+8. **Point your network at Pi-hole.** Two options:
+   - **Router-level (preferred)**: Admin UI → DHCP or WAN settings → DNS servers → change primary to `192.168.1.53` (your Pi), secondary to a public DoH like `9.9.9.9`. Every device on the network now uses Pi-hole.
+   - **Per-device**: set each device's DNS manually. More fragile, fine for testing.
+
+   {/* SCREENSHOT(step-8): router admin UI with Pi as DNS */}
+
+9. **Log into the web admin at `http://192.168.1.53/admin`.** Pull up the dashboard. Within an hour of normal browsing you should see query volume, percent blocked, top blocked clients. This is the "holy cow" moment where you discover your smart TV does 10,000 DNS queries a day.
+
+10. **Add more blocklists.** Admin → Group Management → Adlists. Good additions beyond the default:
+    - `https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts` (unified hosts file)
+    - `https://big.oisd.nl/` (oisd, conservative, very little breakage)
+    - `https://v.firebog.net/hosts/static/w3kbl.txt` (tracking)
+
+    After adding, run `pihole -g` to update the gravity database.
+
+11. **Set up recursive DNS with Unbound (optional, recommended).** Without Unbound, Pi-hole queries to upstream (Cloudflare, Quad9) see your combined query stream — a minor privacy issue. Unbound makes the Pi itself a recursive resolver.
+    ```
+    sudo apt install unbound
+    ```
+    Follow Pi-hole's Unbound guide (`docs.pi-hole.net/guides/dns/unbound/`). Then in Pi-hole: Settings → DNS → unset the public upstreams, set `127.0.0.1#5335` (Unbound).
+
+12. **Set up a second DNS resolver for failover.** If the Pi goes down, your network dies unless you have a backup. Options:
+    - Run Pi-hole on a second Pi and use both as primary/secondary.
+    - Point secondary at a public DoH (Quad9, Mullvad). Your router-level setting of two DNS servers handles failover; not perfect (some devices pin to first working), but acceptable.
+
+## Verify it worked
+
+- Phone on Wi-Fi, visit a known-ad-heavy site. Ads should be blank frames or gone.
+- Pi-hole dashboard: clients section should list everything on your network making DNS queries. Spot-check that the most active is something sensible (your phone, your laptop), not "Samsung TV making 600 req/min."
+- Run `dig @192.168.1.53 google-analytics.com`. Should return `0.0.0.0`.
+- Check the [scanner](/en/scan) on a device inside your network. DNS leak test should report your configured upstream, not your ISP.
+
+## Common pitfalls
+
+- Forgetting the static IP. Pi-hole on a DHCP-cycled IP is a disaster waiting to happen.
+- Blocklist over-enthusiasm. Adding 14 overlapping lists adds 10x the memory footprint and breaks random SaaS apps. Start with default + oisd; add only when you find a specific tracker class that's through.
+- No failover. When the Pi's SD card dies on a Friday night, Netflix stops working and your partner is unhappy. Have a backup DNS.
+- Running Pi-hole on a VM on your always-sleeping laptop. When the laptop lids the network's DNS goes down. Use a Pi.
+- Blocking Apple CDNs or Google's root domains. Breaks more than you think. If a game or device just stopped working right after you added a list, check the query log on the Pi-hole admin and whitelist.
+
+## Known limits
+
+Pi-hole blocks at the DNS layer, which means apps and services that hardcode DNS (increasingly common — Android's private DNS, iOS, some smart TVs, YouTube when using DoH natively) bypass it. DNSSEC-validated DoH on the device will skip Pi-hole entirely. For those, you need router-level DNS interception, a Pi-hole VPN setup (Pi-hole + WireGuard), or a router firmware with built-in filtering. Pi-hole also does not do HTTPS-inspection; in-page trackers loaded from the same domain as the site content get through.

@@ -1,0 +1,76 @@
+---
+title: "You were in a breach — what to do, in order"
+description: A calm 30-minute playbook for when HIBP or a leak notice lands in your inbox. Skip the panic, do the right things first.
+last_verified: 2026-04-18
+related:
+  - breach-monitoring
+  - password-manager
+  - 2fa
+difficulty: intermediate
+time_minutes: 30
+prerequisites:
+  - A password manager
+  - Access to your email
+---
+
+> **TL;DR.** Confirm the breach is real. Change the password on the affected site. Change it on any site where you reused it. Rotate 2FA if needed. Enable breach monitoring for the future. Sleep.
+
+## Why this matters
+
+The average person now shows up on HaveIBeenPwned or a data broker leak roughly every 18 months. Most of it is low-stakes (an email in a scraped list). Some of it is real (hashed passwords, session tokens, partial card numbers). The right response is situationally aware, not universal.
+
+This guide is the 30-minute playbook, in order. Work the list top to bottom. Do not jump ahead.
+
+## What you need before starting
+
+- Your password manager, unlocked.
+- Your email, open.
+- A coffee. It will be fine.
+
+## Steps
+
+1. **Verify the breach is real.** Search the breach name on `haveibeenpwned.com` or `breachdirectory.org`. Real breaches show up in HIBP's catalog within days of being public. If the notice came in an email claiming "your account was breached, click here to reset," and you cannot find it in HIBP, treat that email as phishing. Do not click.
+
+   {/* SCREENSHOT(step-1): HaveIBeenPwned showing a confirmed breach */}
+
+2. **Read what was exposed.** HIBP lists the fields per breach. Is it just email addresses? Hashed passwords? Plaintext passwords? Partial credit card numbers? Session tokens? The response changes based on what leaked.
+
+3. **Change the password on the affected site first.** Go to the site directly (type the URL, do not click from email). Settings → Change password. Use your password manager to generate a new 20-character random password. Save.
+
+4. **Rotate the password on any site where you reused it.** This is the critical step. If you used the breached password anywhere else, those accounts are vulnerable to credential stuffing. Search your password manager for the old password — Bitwarden: Reports → Exposed Passwords. 1Password: Watchtower → Vulnerable Passwords. Proton Pass: Security → Password Health. Change every match.
+
+   {/* SCREENSHOT(step-4): Bitwarden's exposed passwords report */}
+
+5. **Re-enable 2FA if the breach exposed TOTP seeds.** Some breaches dump the TOTP secrets stored server-side (rare but not unheard of — e.g., if the site stores them in plaintext for convenience). If so, disable and re-enable 2FA on the affected site, and re-enroll in your authenticator app.
+
+6. **Rotate session tokens.** If the breach included session cookies or access tokens, the password change is not enough — existing sessions are still valid. Look for a "Sign out of all other devices" button. Most big services have one buried in account security.
+
+7. **If payment data leaked:** call the card issuer, request a new card number. Yes, even if only the last four digits were exposed — in a targeted attack, last four + name + address is enough for some fraud flows. Privacy.com virtual cards shine here; if you used one, just pause the card.
+
+8. **If SSN/national ID leaked:** freeze credit (in the US: freeze with Equifax, Experian, and TransUnion; free, online, 15 minutes total). Consider fraud alerts on the credit file. This is a "once and leave it frozen" move — unfreezing is a single click when you actually need a credit pull.
+
+   {/* SCREENSHOT(step-8): credit freeze form on one of the three bureaus */}
+
+9. **Document what leaked.** One-line note per field: "email, phone, DOB, password hash (bcrypt), address." Save to a "breach notes" file in your password manager. Next time a scammer has pieces of info that feel personal, you can check which breach they came from.
+
+10. **Set up monitoring for the future.** Sign up for HIBP notify (`haveibeenpwned.com/NotifyMe`). If you are on Firefox, Firefox Monitor does this too. If you are on Proton, Dark Web Monitor ships with paid plans. This is what you want running in the background so next time you hear in an hour, not six months.
+
+11. **If it was a big, legally significant breach** (Equifax, Marriott, LastPass, Evolve Bank), check if there is a class action settlement. Sign up — it is low-effort and sometimes pays out. Your share will be small. Do not use sites that offer to "file on your behalf" for a fee; the real settlement portal is free.
+
+## Verify it worked
+
+- Try to log into the breached site with the old password. It should fail.
+- Browse your password manager's password-health report. The exposed count should be zero (or trending down if you had a lot of reuse).
+- Check HIBP's notify page — you should see a confirmation subscription.
+- For credit freezes: try to open a new credit card. Application should fail with "credit frozen." Unfreeze it only when you actually need a credit pull.
+
+## Common pitfalls
+
+- Panicking and clicking the "reset password" link in the breach email. Phishing bait. Go to the site directly.
+- Changing only the affected password and moving on. Credential stuffing is 90% of the fallout; reused passwords are what get you.
+- Forgetting that "last four of SSN" combined with name + DOB + address is a decent identity-theft starter pack. Treat identity data cumulatively, not per-field.
+- Signing up for a "breach remediation service" that charges monthly and mostly just checks HIBP for you. You can do that yourself.
+
+## Known limits
+
+This playbook handles the reactive side. It does not undo the fact that your data was leaked — in most jurisdictions, there is no legal mechanism to force the breached company or the dark-web sellers to destroy their copy. It also does not protect against the next breach, only this one. The best defense against breach fallout is not reusing passwords, turning on 2FA, and using virtual cards / aliases so the leaked data is scoped to one context.

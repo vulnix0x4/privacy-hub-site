@@ -1,0 +1,87 @@
+---
+title: "Migrate to Proton Mail"
+description: Move your email life off Gmail or iCloud onto Proton without losing messages, contacts, or logins tied to the old address.
+last_verified: 2026-04-18
+related:
+  - email
+  - password-manager
+difficulty: intermediate
+time_minutes: 45
+prerequisites:
+  - A Proton account (paid tier recommended for custom domain)
+  - Your old email still accessible
+---
+
+> **TL;DR.** Create the Proton account. Set up a custom domain (really). Use Easy Switch to import messages and contacts. Forward old mail to Proton. Rotate logins one at a time over weeks. Delete the old inbox only when you are sure nothing still depends on it.
+
+## Why this matters
+
+Switching email providers is the hardest "just move" task in personal tech because your email address is the primary key for every account you have. Rush this and you will spend the next two years hunting down sites that still send a critical password reset to the inbox you thought you retired.
+
+Done right, Proton is a real upgrade: encrypted at rest, the company is a Swiss nonprofit, there is no ad surveillance, and hide-my-email aliases are first-class. But the migration is the part where most people screw up. Hence 45 minutes and a plan.
+
+## What you need before starting
+
+- A Proton account. Free tier works for casual use (1 GB storage, no custom domain). For a real migration, Mail Plus or Proton Unlimited ($4-10/mo) gives you custom domain support, which is the one feature that makes this whole move sustainable long-term.
+- Access to your current email.
+- Ideally a domain you own (`yourname.com`). Even $10/year is worth it because you never have to migrate again — you just change the MX records.
+
+## Steps
+
+1. **Sign up at `proton.me`.** Pick a `yourname@proton.me` address. This is your Proton login; you do not have to use it as your public address.
+
+2. **If you own a domain, add it.** Settings → Proton Mail → Domains → Add domain. Proton gives you DNS records (MX, SPF, DKIM, DMARC). Paste them into your DNS provider (Cloudflare, Namecheap, wherever). Wait 15-60 minutes for propagation. Verify in Proton's dashboard — each record turns green.
+
+   {/* SCREENSHOT(step-2): Proton custom domain DNS records */}
+
+3. **Create a catch-all address on the custom domain.** This means any `*@yourdomain.com` lands in your inbox. Huge for future flexibility — you can give out `newsletter@yourdomain.com` to one service, `bank@yourdomain.com` to another, rotate when leaks happen. Settings → Proton Mail → Domains → your domain → Catch-all.
+
+4. **Set your default send-from address to the custom domain.** Settings → Proton Mail → Identity & addresses → pick the custom domain as default. You still keep the `@proton.me` address for login and backup.
+
+5. **Run Easy Switch.** Settings → Import/export → Easy Switch → Import from → pick Gmail / iCloud / Outlook / IMAP. Proton walks through OAuth, pulls messages, contacts, calendar. This takes hours to days depending on mailbox size. Run it and come back tomorrow.
+
+   {/* SCREENSHOT(step-5): Easy Switch import wizard */}
+
+6. **Set forwarding on the old account.** Go back to Gmail / iCloud / wherever. Set up forwarding to your new Proton address. This catches messages people still send to your old address while you rotate.
+   - Gmail: Settings → Forwarding and POP/IMAP → Add forwarding address.
+   - iCloud: Settings → Rules → forward to Proton.
+   - Outlook: Settings → Mail → Forwarding.
+
+   Turn on "Keep a copy in inbox" while you are testing, then switch to "Mark as read and archive" once you trust the forwarding.
+
+7. **Pick 5-10 "critical accounts" and rotate the email on those first.** Bank, primary password manager, cloud storage, main social, anything with money or identity. For each:
+   - Log in.
+   - Change the email address to the new Proton one.
+   - Verify the confirmation email arrives at Proton.
+   - Sign out and sign back in via the new address.
+
+8. **Update your password manager's email field.** Bitwarden: Tools → Reports → Identities. 1Password: Watchtower → reused emails. Swap to the new address on each entry you touch.
+
+9. **Rotate the rest gradually.** Every time you log into an account over the next few weeks, update the email. Do not try to do all of them in a weekend — you will miss some, and it is better to hit them in the order you actually use them.
+
+   {/* SCREENSHOT(step-9): Proton inbox showing the "Forwarded from Gmail" label */}
+
+10. **Install the Proton Mail Bridge if you use a desktop client** (Thunderbird, Apple Mail, Outlook). Bridge is a local daemon that exposes Proton as IMAP/SMTP on `127.0.0.1`. Settings → Bridge → download.
+
+11. **Set up 2FA on Proton.** Settings → Authentication & Security → 2FA → TOTP with Aegis, plus enroll a YubiKey. Download recovery codes to your password manager. Yes, do this before migrating more accounts.
+
+12. **After 3-4 weeks of forwarding, audit what is still arriving at the old address.** For each one, either rotate (real account) or let die (mailing list you forgot about, notification you do not need). Give yourself a date to stop forwarding — say, 90 days from start.
+
+## Verify it worked
+
+- Send a test message from your new custom-domain address. The recipient's headers should show Proton as the sender, with DKIM passing.
+- Log into one of your critical accounts, trigger a password reset. The email should land in Proton, not the old inbox.
+- Check Proton → Settings → Import history. The import should show ~all expected messages.
+- Run your own email through `mail-tester.com`. Target score 9/10+ once DKIM / SPF / DMARC are green.
+
+## Common pitfalls
+
+- Using `yourname@proton.me` as the migration target instead of a custom domain. Two years later you decide to leave Proton and now you have the same problem all over again. Custom domain = portability.
+- Turning off forwarding from the old inbox before confirming nothing important still lands there. Give it 90 days minimum.
+- Migrating the password manager last. Migrate it first — if anything ever goes sideways with your email reset flow, you need the manager's login working.
+- Forgetting about the mailing lists. Each newsletter you signed up for has a separate "update email" flow, and many do not let you change and require unsub + re-sub.
+- Trusting Proton's "import complete" without checking the folder tree. Labels from Gmail become folders in Proton, and nested labels sometimes collapse weirdly. Check.
+
+## Known limits
+
+Proton is encrypted at rest, but email received from non-Proton senders is only encrypted at rest on Proton's side — it was in transit over plain SMTP before that. End-to-end encrypted email requires both sides to use PGP or Proton-to-Proton. The custom domain does not give you a legal right to the email hosted there; Proton's TOS still governs. Also: Proton's search is slower than Gmail's, and the mobile app is less polished — you will notice these things in the first week and most people stop noticing after.

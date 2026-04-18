@@ -1,0 +1,96 @@
+---
+title: "Debloat & harden Windows 11"
+description: Strip Microsoft's telemetry, disable Cortana, kill ads in Start, and lock down privacy toggles without breaking the OS.
+last_verified: 2026-04-18
+related:
+  - desktop-os
+  - dns
+difficulty: intermediate
+time_minutes: 40
+prerequisites:
+  - Windows 11 (any edition)
+  - Admin access
+---
+
+> **TL;DR.** Run a reputable debloater in controlled mode, flip every Settings → Privacy toggle off, disable advertising ID and targeted ads, set group policy (or registry) on the telemetry endpoints, turn off Copilot if you are not using it. Forty minutes. No reinstall required.
+
+## Why this matters
+
+Windows 11 ships with a running start on telemetry, Copilot ambient ads, and Start menu recommendations that are thinly veiled upsells. Most of these have toggles. The toggles are scattered across five different Settings panels, two group policy trees, and a handful of scheduled tasks. Forty minutes of triage cleans most of it up.
+
+This guide uses only Microsoft-supported toggles. No third-party scripts that ship from sketchy GitHubs. If you want the nuclear option, see the "Known limits" section.
+
+## What you need before starting
+
+- Windows 11 22H2 or later.
+- An admin account.
+- Read the steps end-to-end first. Some toggles are in odd places.
+
+## Steps
+
+1. **Do this first: create a restore point.** Settings → System → About → System protection → Create. Name it "Pre-hardening." If something breaks, you can roll back in 10 minutes.
+
+2. **Sign in with a local account if you can.** Windows 11 pushes Microsoft account sign-in hard. If you want a local account, during install: shift+f10, `oobe\bypassnro`, reboot, then the "I don't have internet" option appears. If you are already on an MSA: Settings → Accounts → Your info → Sign in with a local account instead.
+
+   {/* SCREENSHOT(step-2): switching to local account in Settings */}
+
+3. **Settings → Privacy & security. Go through every subpanel.** Top to bottom:
+   - **General**: turn off all four toggles (advertising ID, language list, app launch tracking, personalized content).
+   - **Speech**: Online speech recognition → Off.
+   - **Inking & typing personalization**: Off.
+   - **Diagnostics & feedback**: "Send optional diagnostic data" → Off. "Tailored experiences" → Off. "View diagnostic data" (off), "Feedback frequency" → Never. Delete existing diagnostic data.
+   - **Activity history**: toggle off and clear.
+   - **Search permissions**: "Cloud content search" → both Off. "Safe Search" as you prefer. "History" → clear device search history. "More settings" → "Show search highlights" → Off.
+   - **Find my device**: your call. Useful on a stolen laptop.
+
+   {/* SCREENSHOT(step-3): Privacy & Security panel */}
+
+4. **Go through App permissions.** Settings → Privacy & security → App permissions. For each (Location, Camera, Microphone, Voice activation, Notifications, Account info, Contacts, Calendar, etc.): if no app needs it, flip the top-level toggle off. If one app needs it (Zoom for camera, Signal for mic), turn on just that app and leave the rest off.
+
+5. **Turn off Microsoft advertising in Start.** Settings → Personalization → Start → "Show recommendations for tips, shortcuts, new apps, and more" → Off.
+
+6. **Disable ads in File Explorer.** Open any Explorer window → View → Options → View tab → uncheck "Show sync provider notifications."
+
+7. **Turn off Lock Screen "Fun facts / tips."** Settings → Personalization → Lock screen → Lock screen status → None. "Get fun facts, tips, tricks, and more on your lock screen" → Off.
+
+   {/* SCREENSHOT(step-7): Lock screen settings */}
+
+8. **Disable Cortana.** Settings → Apps → Installed apps → Cortana → Advanced options → Background app permissions → Never. If you are on Pro, also: `gpedit.msc` → Computer Configuration → Administrative Templates → Windows Components → Search → "Allow Cortana" → Disabled.
+
+9. **Disable Copilot if you are not using it.** Settings → Personalization → Taskbar → Copilot → Off. On Windows 11 24H2+, also: Settings → Privacy & security → Recall & snapshots → Off (explicitly disable Recall even if it is not activated on your SKU; the scheduler task exists).
+
+10. **Disable Windows 11 Start recommendations.** Settings → Personalization → Start → "Show recently added apps" / "Show most used apps" / "Show recommended files" — flip them all off. The Start menu will be cleaner and Microsoft will not use it as an ad surface.
+
+11. **Cut telemetry at the policy level.** Two paths:
+    - **Pro/Enterprise**: `gpedit.msc` → Computer Configuration → Admin Templates → Windows Components → Data Collection and Preview Builds → "Allow Diagnostic Data" → Enabled → Diagnostic data off (not recommended). This actually works.
+    - **Home**: regedit. `HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection\AllowTelemetry` = 0 (DWORD). Reboot.
+
+    {/* SCREENSHOT(step-11): Group Policy telemetry setting */}
+
+12. **Use the Windows Firewall with outbound default-deny** (advanced, optional). Most people run it as inbound-deny / outbound-allow, which is fine. For a tighter posture: Windows Firewall with Advanced Security → Properties → per profile set "Outbound" to "Block." You will then need to allow apps one by one as you use them. Realistically, only do this if you are prepared for the triage.
+
+13. **Debloat apps you do not want.** Settings → Apps → Installed apps. Uninstall anything you do not use: Xbox (unless you game), Feedback Hub, News, Solitaire, LinkedIn, Copilot (if not on Copilot PCs). Do not uninstall things you are not sure about — Microsoft Store needs some of them.
+
+14. **Set DNS-over-HTTPS** per the [DoH guide](/en/guides/dns-over-https). On Windows 11 this is a proper first-class feature, in adapter settings.
+
+15. **Enable BitLocker** if on Pro, or Device Encryption if on Home. Settings → Privacy & security → Device encryption or BitLocker. Back up the recovery key to a file you store offline, not just to your Microsoft account.
+
+    {/* SCREENSHOT(step-15): BitLocker recovery key backup */}
+
+## Verify it worked
+
+- Open Settings → Privacy & security → Diagnostics & feedback → View diagnostic data. Should be empty or a flat list.
+- Start menu has no "Recommended" apps showing up for things you did not install.
+- Task Manager → Startup: the list should be shorter than what you started with. Nothing named "Microsoft Edge Update" or "Office Click-to-Run" auto-starting if you do not use them.
+- Run `powershell -c "(Get-NetAdapter).Name"` and then check each with `Get-DnsClient`, "DoHSettings" should be your chosen resolver.
+
+## Common pitfalls
+
+- Running a GitHub-random "debloater.ps1" as admin without reading it. They sometimes disable Windows Update or Defender, which is worse than the ads.
+- Removing critical Store apps and then wondering why PC isn't receiving updates. Keep "Microsoft Store," "Xbox Game Bar" (needed for some screen capture), "Windows Security."
+- Disabling Copilot on 24H2+ by toggle and then finding its scheduler task still runs. Also disable the `\Microsoft\Windows\Application Experience\*` tasks if you are thorough, via `taskschd.msc`.
+- Disabling Telemetry via a sketchy third-party registry script that also opens `HKLM` locations Microsoft later repurposes. Stick to documented keys.
+
+## Known limits
+
+You are reducing Windows 11's signal-home surface, not eliminating it. Microsoft retains telemetry paths that cannot be disabled without breaking Windows Update. The Windows kernel will still phone home for WER (Windows Error Reporting) and Defender signatures. If you need a Windows box with guaranteed no-phone-home, the answer is Windows 11 IoT Enterprise LTSC on a machine you control the image for, or a Linux VM hosting the one Windows app you actually need.

@@ -1,0 +1,120 @@
+---
+title: "Linux privacy basics (Ubuntu/Mint/Fedora)"
+description: Strip telemetry, lock down the firewall, set sensible DNS, and configure AppArmor on a mainstream Linux desktop.
+last_verified: 2026-04-18
+related:
+  - desktop-os
+  - dns
+difficulty: intermediate
+time_minutes: 30
+prerequisites:
+  - A Linux install (Ubuntu 24.04, Mint 22, or Fedora 40+)
+  - Terminal comfort
+---
+
+> **TL;DR.** Disable phone-home telemetry, turn on UFW with deny-by-default, flip DoH system-wide, confirm AppArmor is doing its job. Thirty minutes. Nothing exotic.
+
+## Why this matters
+
+Mainstream Linux is a great privacy baseline out of the box — but only after you flip a handful of defaults. Ubuntu still ships a few telemetry pings. Snap and Flatpak sandboxing are not as tight as people assume. The firewall is not on by default on most desktop installs. Thirty minutes of cleanup gets you to a place where your laptop behaves the way you thought it already did.
+
+This is Ubuntu-flavored because most people run Ubuntu, Mint, or Pop!_OS. Fedora differences are called out.
+
+## What you need before starting
+
+- A recent Ubuntu (24.04), Mint (22), or Fedora (40+) install.
+- Root / sudo access.
+- A terminal you are comfortable with.
+
+## Steps
+
+1. **Disable report-a-crash on Ubuntu.** The Apport daemon sends crash dumps to Canonical. Useful upstream, noisy privacy-wise.
+   ```
+   sudo systemctl disable apport.service
+   sudo systemctl stop apport.service
+   ```
+   Edit `/etc/default/apport` and set `enabled=0`.
+
+2. **Disable Ubuntu's "popularity contest" and Canonical ads.** Settings → Privacy → Diagnostics → Never. Also:
+   ```
+   sudo apt remove popularity-contest ubuntu-report
+   ```
+   Fedora: it does not ship a popcon equivalent, skip this step.
+
+3. **Turn off GNOME location services** (if you use GNOME). Settings → Privacy → Location Services → Off. Also disable "Automatic Time Zone" if you do not want the OS pinging a geo-lookup.
+
+   {/* SCREENSHOT(step-3): GNOME privacy panel */}
+
+4. **Enable the firewall with deny-by-default.** Ubuntu ships UFW but it is off.
+   ```
+   sudo ufw default deny incoming
+   sudo ufw default allow outgoing
+   sudo ufw enable
+   sudo ufw status verbose
+   ```
+   On Fedora, firewalld is on by default with a "public" zone — verify with `sudo firewall-cmd --get-default-zone` and check active rules with `sudo firewall-cmd --list-all`.
+
+5. **Set DNS-over-TLS at the system level.** Edit `/etc/systemd/resolved.conf`:
+   ```
+   [Resolve]
+   DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net
+   DNSOverTLS=yes
+   DNSSEC=yes
+   Domains=~.
+   ```
+   Then `sudo systemctl restart systemd-resolved`. Verify with `resolvectl status` — it should show "DNS over TLS: yes."
+
+   If you want actual DoH (not DoT), install `dnscrypt-proxy` and point `systemd-resolved` at `127.0.2.1`.
+
+6. **Install and audit Flatpak sandboxing.** Flatpaks are often more permissive than advertised.
+   ```
+   flatpak override --user --nofilesystem=home some.app.id
+   ```
+   `flatseal` from Flathub is a GUI to inspect and tighten per-app permissions. Install it and walk through every app: most do not need full home access, some do not need network, almost none need `--system` filesystem paths.
+
+   {/* SCREENSHOT(step-6): Flatseal showing per-app permission toggles */}
+
+7. **Check AppArmor is on and enforcing** (Ubuntu/Mint):
+   ```
+   sudo aa-status
+   ```
+   You should see a bunch of enforce-mode profiles. Fedora uses SELinux instead — `getenforce` should return `Enforcing`.
+
+8. **Disable passwordless sudo for non-trusted terminals.** If you use a VS Code terminal or IDE integrated terminal, its process tree is different, and sudo credentials can leak. In `/etc/sudoers.d/timeout`:
+   ```
+   Defaults timestamp_timeout=0
+   ```
+   to require a password every time. Too aggressive for many; `timestamp_timeout=5` is a reasonable middle ground.
+
+9. **Set up automatic updates.** Unattended security updates are underrated.
+   ```
+   sudo apt install unattended-upgrades
+   sudo dpkg-reconfigure --priority=low unattended-upgrades
+   ```
+   Fedora: `sudo dnf install dnf-automatic`, then enable `dnf-automatic-install.timer`.
+
+10. **Turn on full-disk encryption if it is not already on.** You cannot retrofit LUKS without reinstalling. If your install is unencrypted: back up, reinstall with "Encrypt the new Ubuntu installation for security" checked, restore. LUKS is the correct answer; fscrypt and eCryptfs are not.
+
+   {/* SCREENSHOT(step-10): Ubuntu installer LUKS checkbox */}
+
+11. **Harden the browser.** If you installed Firefox via Snap on Ubuntu, switch to the Mozilla-signed DEB — `sudo add-apt-repository ppa:mozillateam/ppa`. Snap Firefox has startup quirks and sandbox compromises. For full Firefox hardening, see the [harden-firefox guide](/en/guides/harden-firefox).
+
+## Verify it worked
+
+- `resolvectl status` shows `DNS over TLS: yes` and your chosen resolver.
+- `sudo ufw status` shows active and the expected deny-by-default.
+- `sudo aa-status` (or `getenforce`) confirms MAC is enforcing.
+- Open the [scanner](/en/scan). DNS should report your resolver, not your ISP.
+- `curl https://apt.canonical.com/` still works (outbound ok), but if you try `nc -l 1234` on another machine and try to connect to your box, it should fail (inbound denied).
+
+## Common pitfalls
+
+- Installing a "privacy distro" instead of hardening a mainstream one. Most privacy distros are one maintainer's personal fork with delayed security updates. Stick to Ubuntu, Mint, Fedora, or Debian.
+- Disabling AppArmor/SELinux because "it broke something." It rarely actually breaks things — check `journalctl -t audit` for real denials before disabling.
+- Running as root in the terminal "for convenience." You will eventually pipe something untrusted and regret it.
+- Enabling UFW with deny-incoming but forgetting you run a local service (SSH, file share). Add rules explicitly: `sudo ufw allow 22/tcp`.
+- Using `sudo apt install google-chrome-stable` and then acting surprised when Chrome phones home. Install only what you actually want.
+
+## Known limits
+
+This guide gets you to a sensible Linux desktop baseline. It does not turn your laptop into Qubes, it does not defend against a nation-state adversary, and it does not prevent a compromised package from the Arch AUR or a bad Snap from doing damage. For high-risk work, Qubes OS or Tails are purpose-built and dramatically tighter than a hardened Ubuntu. For most people, a hardened Ubuntu is enough.

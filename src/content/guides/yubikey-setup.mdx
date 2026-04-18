@@ -1,0 +1,78 @@
+---
+title: "Set up a YubiKey for everything that matters"
+description: Buy two YubiKeys, enroll them on email, password manager, and cloud accounts, back up one, and never get phished again.
+last_verified: 2026-04-18
+related:
+  - 2fa
+  - password-manager
+difficulty: intermediate
+time_minutes: 25
+prerequisites:
+  - Two YubiKey 5-series keys (NFC version if you use a phone)
+  - The accounts you want to secure
+---
+
+> **TL;DR.** Buy two YubiKeys. Enroll both on every critical account. Keep one on your keychain, the other in a safe. Label them. Turn on phishing-resistant 2FA everywhere the key is supported. This is the single biggest upgrade to your account security you can make.
+
+## Why this matters
+
+TOTP codes can be phished. SMS codes can be swapped. A YubiKey (or any FIDO2 security key) cannot be phished by design — the key is bound to the domain, and the browser checks the domain before the key fires. A convincing fake login page never sees a valid response. It is the 2FA that actually works.
+
+The catch: lose your only key and you are locked out. Hence the rule: buy two, enroll two, keep one at home in a drawer. Every account. No exceptions.
+
+## What you need before starting
+
+- Two YubiKey 5-series keys. USB-A for desktops, USB-C for recent laptops, NFC for phones. The 5C NFC is the sweet spot for most people. About $55 each direct from Yubico.
+- Physical access to every device you want to use the key on.
+- About 25 minutes and the patience to repeat the enroll-both-keys flow per account.
+
+## Steps
+
+1. **Buy two keys from Yubico directly** (`yubico.com`) or from Amazon if you trust the supply chain. Do not buy used. Do not buy a single key and tell yourself you will order the second "next month." Every story of a locked-out account starts with that sentence.
+
+2. **Label them.** Physical sharpie on the back. "Daily" and "Backup" is enough.
+
+3. **Decide on the recovery posture.** Options:
+   - **Both keys active, backup in home safe.** Most common. If daily is lost, retrieve backup. Replace the lost one and enroll the new one as the second backup.
+   - **One key + printed TOTP recovery codes in the safe.** Workable but adds one more thing to keep current.
+   - **One key + account recovery questions + trusted phone number.** Adds SMS to the attack surface. Not recommended.
+
+   Most people do option 1.
+
+4. **Start with email.** Your primary email is the root of trust for everything else. If you use Proton: `account.proton.me` → Settings → Authentication & Security → Security Keys → Add a security key. Plug in, touch the button. Name it "Daily." Repeat for "Backup." Both should now be listed.
+
+   {/* SCREENSHOT(step-4): Proton security key enrollment */}
+
+5. **Add the key to your password manager.** Bitwarden: `vault.bitwarden.com` → Settings → Security → Two-step Login → FIDO2 WebAuthn → Manage. Plug in Daily, touch. Name. Plug in Backup, touch. Name. 1Password: same flow under Security. Proton Pass: handled by the Proton account enrollment above.
+
+6. **GitHub, if you code.** Settings → Password and authentication → Security keys → Add. Both keys.
+
+7. **Google, if you have a real account there.** `myaccount.google.com` → Security → 2-Step Verification → Security keys → Add security key. Both keys. Google also has Advanced Protection (optional, requires security keys, disables some features — worth considering for high-risk accounts).
+
+8. **Microsoft, if applicable.** `account.microsoft.com` → Security → Advanced security options → Add a sign-in method → Security key. Both keys.
+
+9. **Everywhere else, one at a time.** For each of: AWS, Cloudflare, Stripe, your bank (most US banks do not support it yet), Twitter/X, Facebook, Dropbox, Discord — check the 2FA settings. If FIDO2 / WebAuthn is offered, enroll both keys.
+
+   {/* SCREENSHOT(step-9): a generic 2FA settings page with security-key option */}
+
+10. **Test the backup.** Unplug the daily key. Sign out of one of the accounts you just enrolled. Sign back in using only the backup key. Confirm it works. Then put the backup key back in the safe or drawer.
+
+11. **Turn off weaker 2FA where possible.** Some accounts let you keep SMS 2FA as a fallback. If an account supports security-key-only mode (Google Advanced Protection, GitHub's "Require security key" setting), flip it on for the critical accounts. An attacker who social-engineers your SMS recovery undoes all the work otherwise.
+
+## Verify it worked
+
+- Sign out of your password manager. Sign back in — the password manager should prompt for a security key after the master password. Touch daily. You are in.
+- Check each enrolled account has at least two keys listed.
+- Try a phishing test: open `phishfrenzy.com` or similar. Attempt to log into a clone of a site you have the key on. The key should refuse to respond (different domain) while an unprotected account would accept a typed password.
+
+## Common pitfalls
+
+- Enrolling only one key. Single point of failure. Buy two.
+- Enrolling both keys on one service (good) but forgetting to also enroll the backup on the next service you add. Make a checklist.
+- Forgetting the key in a hotel or loaner laptop USB port. YubiKey 5C NFC is small; it goes missing often.
+- Using the key as your only factor on your password manager, and forgetting your master password because "the key handles login." You still need the master password on a new device.
+- Buying a "FIDO2 key" off a random Amazon seller for $15. The cheap ones sometimes ship with firmware that cannot be updated, meaning if a flaw is found later, your key is bricked.
+
+## Known limits
+
+A security key defeats phishing of the one account it is enrolled on, on the device it is plugged into. It does not stop malware that runs on your computer, it does not protect a session that is already authenticated (session cookie theft), and it does not retroactively secure accounts you have not enrolled it on. It is also not anonymous — the key has a unique attestation certificate that sites can read to prove it is genuine Yubico hardware.
