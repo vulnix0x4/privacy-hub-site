@@ -79,7 +79,8 @@ describe.skipIf(!distExists)('Gate 5 — per-page SEO contracts', () => {
     for (const file of allHtml) {
       const html = readFileSync(file, 'utf8');
       const match = html.match(/<meta\s+name="description"\s+content="([^"]*)"/i);
-      if (!match || match[1].trim().length === 0) {
+      const content = match?.[1] ?? '';
+      if (content.trim().length === 0) {
         offenders.push(relative(DIST, file));
       }
     }
@@ -136,7 +137,8 @@ describe.skipIf(!distExists)('Gate 5 — no cross-origin script sources', () => 
     for (const file of allHtml) {
       const html = readFileSync(file, 'utf8');
       for (const match of html.matchAll(scriptSrcRe)) {
-        const url = match[1];
+        const url = match[1] ?? '';
+        if (!url) continue;
         try {
           const host = new URL(url).hostname;
           if (!OWN_HOSTS.has(host)) {
@@ -159,7 +161,8 @@ describe.skipIf(!distExists)('Gate 5 — no cross-origin script sources', () => 
     for (const file of allHtml) {
       const html = readFileSync(file, 'utf8');
       for (const match of html.matchAll(linkRe)) {
-        const url = match[1];
+        const url = match[1] ?? '';
+        if (!url) continue;
         try {
           const host = new URL(url).hostname;
           if (!OWN_HOSTS.has(host)) {

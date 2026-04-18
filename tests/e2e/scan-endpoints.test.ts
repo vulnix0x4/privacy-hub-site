@@ -16,7 +16,7 @@
  * Runs in Node env (not happy-dom) so `fetch` isn't subject to same-origin
  * policy — we're deliberately a test harness probing an HTTP endpoint.
  */
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createServer } from 'node:net';
@@ -65,7 +65,7 @@ async function waitForServer(port: number, timeoutMs = 10_000): Promise<void> {
 }
 
 describe.skipIf(!serverExists)('Gate 4 — /api/scan/{nonce,headers} smoke', () => {
-  let child: ChildProcessWithoutNullStreams | null = null;
+  let child: ChildProcess | null = null;
   let port = 0;
 
   beforeAll(async () => {
@@ -79,7 +79,9 @@ describe.skipIf(!serverExists)('Gate 4 — /api/scan/{nonce,headers} smoke', () 
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     // Surface errors to the test output without crashing the harness.
-    child.stderr.on('data', (buf) => {
+    // With stdio: [ignore, pipe, pipe], stderr is a Readable; typescript
+    // still widens ChildProcess.stderr to `Readable | null`, so guard it.
+    child.stderr?.on('data', (buf: Buffer) => {
       const msg = buf.toString();
       if (!/ExperimentalWarning/.test(msg)) {
         process.stderr.write(`[astro-server] ${msg}`);

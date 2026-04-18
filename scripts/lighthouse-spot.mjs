@@ -24,7 +24,6 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
 import process from 'node:process';
 
 const PORT = Number(process.env.LH_PORT ?? 4329);
