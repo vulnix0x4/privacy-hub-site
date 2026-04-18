@@ -14,24 +14,52 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use Kagi. $10/month, no ads, no tracking, genuinely better results than Google for most technical queries, and they own a real crawler (Teclis). You pay with money instead of data.
+> **TL;DR.** Use Kagi. $10/month, no ads, no tracking, genuinely better results than Google for most technical queries, and they own a real crawler (Teclis) plus licensed partners. You pay with money instead of data. Brave Search is the free alternative with an independent index; DuckDuckGo proxies Bing honestly. We earn a commission when you sign up via our Kagi links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your query log. Google retains searches indefinitely, links them to your account, and uses them to build the ad-targeting profile that feeds every Search and YouTube ad you see. Every query you make contributes to that model.
+Your query log. Google retains every search, links them to your account when you're signed in, links them to a `NID` / `SID` cookie graph when you aren't, and feeds the ad-targeting profile that drives Search ads, YouTube ads, display ads across the 2M+ AdSense publisher network, and Gmail promotions tab targeting. Your 10-year search history is a memoir of every health symptom, every financial question, every relationship crisis. Google treats it as a corporate asset.
 
-## Hero pick: Kagi
+Search queries cross-pollute with the rest of the tracking graph. A signed-in search on `google.com` [federates the login signal](/en/vectors/referrer-federated-login) to every G-property for the session. Referrer headers leak the query to any result you click. [Third-party cookies and storage](/en/vectors/third-party-cookies-storage) on result pages carry the session ID to destinations. Moving to a non-ad-funded engine cuts all of that.
 
-Paid search. No ads, so no incentive to optimize results for time-on-page. Custom weighting lets you downrank the AI-slop farms that Google rewards. What you give up: $10/month. And if you go back to an ad-supported engine, everything you typed at Kagi still stayed private, but the queries you type at the next engine won't.
+## This just works: Kagi
+
+Paid search. $10/month Standard (300 searches), $25/month Professional (unlimited) — most users get away on the lower tier if they set Kagi as the default and stop googling casually. No ads, so no incentive to optimize result ranking for time-on-page or ad clicks. Instead, results are ranked for usefulness as judged by paying users who complain when they're wrong. Custom "Lenses" and per-site weightings let you downrank the AI-slop farms and content mills that Google rewards. Uplift: results for programming, medical, and academic queries are routinely better than Google's. Downside: uncommon e-commerce and local results can trail.
+
+Kagi owns a real crawler (Teclis) and licenses additional index data from Google, Mojeek, Marginalia, Yandex, and Brave Search, weights them, and returns a blend. What you give up: $10/month. And when you fall back to an ad-supported engine, everything you typed at Kagi stayed private, but what you type next won't. You have to commit.
 
 ## Alternatives
 
-**Brave Search** — Free, independent index (not a Bing proxy). Fastest private option, though result quality trails Kagi for niche queries. No account required.
+- **Brave Search** — free, independent index (no longer a Bing proxy; `brave-search-independence` crossed 100% in 2023). Fastest private option, no account required, results quality trails Kagi for niche queries but beats DuckDuckGo. Good default for cost-sensitive users. Optional AI summary "Answer with AI" runs on Brave's inference.
+- **DuckDuckGo** — proxies Bing's index, serves sponsored Bing results, no personalization per their policy. Honest about the proxy model. Solid free default; you inherit Bing's content quirks.
+- **Startpage** — proxies Google, strips the tracking parameters and referrer. Google quality because it is Google. Dutch, SOC-audited. Pick if you miss Google's results but not its surveillance.
+- **SearXNG (self-hosted)** — meta-search aggregator on your own server. Pulls Google, Bing, DuckDuckGo, Brave, Wikipedia, arxiv, and dozens more, deduplicates, blends. Needs a VPS; public instances exist on `searx.space`.
 
-**DuckDuckGo** — Proxies Bing's index and serves sponsored results. Honest about it, no personalization, solid default for people who will not pay. Watch for the occasional Bing content quirk.
+## Comparison matrix
 
-**Startpage** — Literally proxies Google, strips the tracking. Quality is Google quality because it is Google. Dutch company, audited.
+| Engine | Ads | Algorithm | Price | Account required | Bias disclosed |
+|---|---|---|---|---|---|
+| **Kagi** | No | User-ranked + custom lenses | $10 / $25 mo | Yes (paid) | Yes (source weights public) |
+| Brave Search | No on default; optional AI | Independent index | Free | No | Yes (Independence meter) |
+| DuckDuckGo | Bing-supplied sponsored | Bing proxy + own | Free | No | Yes ("Bing proxy") |
+| Startpage | No | Google proxy | Free | No | Yes ("Google results, stripped") |
+| SearXNG (self-host) | No | Meta-search aggregator | Free + hosting | No | Configurable per instance |
+| Google | Yes (aggressive) | Google Search | Free | No (but signed-in enriches) | No |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Kagi through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Setting Kagi as default in one browser.** The other three devices you use — phone, work laptop, iPad — are still feeding Google. Set it everywhere or give up on the privacy claim.
+- **Private search while signed into Google in the same browser.** Federated-login state undoes it the moment you click a result. Log out, or container-isolate Google-required sites.
+- **Expecting search privacy to cover the landing page.** The destination site still sees your IP, fingerprint, and arrival cookies. Search privacy is one layer.
+- **Trusting AI-summary features without source-checking.** Every engine is adding them. They hallucinate. Starting point, not answer.
+- **Falling back to Google "when Kagi doesn't work."** It works 95% of the time. For the other 5%, use Brave Search or Startpage — not Google.
+
+## Setup
+
+No dedicated guide yet (Kagi signup is a 60-second thing on their site). The browser-side of this is covered in the [browser category](/en/categories/browser) — set the search engine in the browser you picked.
+
+## Related categories
+
+- **[Browser](/en/categories/browser)** — where you set the default search engine.
+- **[Email](/en/categories/email)** — if you signed up for Kagi, use an alias instead of your primary address.
+- **[Payments](/en/categories/payments)** — pay Kagi with a Privacy.com virtual card and the payment trail stays bounded.

@@ -14,24 +14,54 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use Brave if you want zero-config privacy that plays nicely with every site. Use Firefox (with FPP on) if you want to keep Chromium monoculture from winning. Use Mullvad Browser if you want the Tor Browser hardening profile with a regular VPN instead of onion routing.
+> **TL;DR.** Use Brave if you want zero-config privacy that plays nicely with every site. Use Firefox (with FPP on) if you want to keep Chromium monoculture from winning. Use Mullvad Browser if you want the Tor Browser hardening profile with a regular VPN instead of onion routing. We earn a commission when you install Brave via our links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Fingerprinting, third-party tracking, cross-site cookies, WebRTC leaks, extension-detection bait, and the hundreds of telemetry pings baseline Chrome sends daily. Most of this is fixed with a single install.
+Fingerprinting, third-party tracking, cross-site cookies, WebRTC local-IP leaks, extension-detection bait, and the hundreds of telemetry pings baseline Chrome sends daily. Most of it is fixed with a single install — the browser is the one client decision that moves more dials than any other privacy choice, because it sits between your user session and every tracking vector the scanner enumerates.
 
-## Hero pick: Brave
+Specifically: [canvas fingerprinting](/en/vectors/canvas-fingerprinting) is fixed by browsers that farble or quantize the readback. WebGL, WebGPU, audio, font enumeration, battery, navigator properties — each gets a per-browser answer. The [third-party cookies and storage](/en/vectors/third-party-cookies-storage) surface is fixed by browsers that partition or block them. A tuned VPN plus stock Chrome is weaker than a stock ISP line plus Brave, by a lot. Browser first.
 
-Built-in ad and tracker blocking (Shields). Farbled canvas, WebGL, audio, and font APIs by default. Strict fingerprinting protection is one toggle away. Chromium-based, so every site that works in Chrome works here. What you give up: the crypto wallet and rewards system are baked in and occasionally noisy — disable them in settings. Some users dislike that Brave is a commercial venture.
+## This just works: Brave
+
+Built-in ad and tracker blocking (Shields on by default). Farbled canvas, WebGL, audio, and font APIs — readbacks rotate per session per eTLD+1 so fingerprinters get a moving target instead of a stable ID. Strict fingerprinting protection is one toggle in Shields settings. Chromium-based, so every Chrome site and extension works. Cookie partitioning and WebRTC leak protection are on by default.
+
+What you give up: the crypto wallet and BAT rewards are baked in and occasionally noisy — disable them, they stay disabled. Some dislike that Brave is a commercial venture. And farbling isn't invisible: per "Breaking the Shield" (PoPETs 2025), averaging attacks can partially reconstruct a stable signal over many reads. Per-session identity still rotates, which is the main win.
 
 ## Alternatives
 
-**Firefox** — FPP (privacy.fingerprintingProtection) is real and on by default since 128. Total Cookie Protection partitions third-party cookies. The only mainstream non-Chromium engine. Keep it alive.
+- **Firefox** — FPP (`privacy.fingerprintingProtection`) is on by default since v128 in ETP Strict and private browsing; `arkenfox/user.js` turns it on globally. Total Cookie Protection partitions third-party cookies. Only mainstream non-Chromium engine — keep it alive for ecosystem reasons alone. Caveat: modal Firefox users run ETP Standard, which does NOT enable FPP. Switch to Strict.
+- **Mullvad Browser** — Firefox fork with Tor Browser's hardening recipe (letterboxed windows, uniform fonts, stripped JA4, canvas blocked-by-default) but no Tor routing. Pair with any VPN. Best fit for Tor-bucket uniformity with normal site compatibility.
+- **LibreWolf** — Firefox with telemetry surgically removed, privacy flags pre-set. Pick if you want Firefox's engine with zero Mozilla background traffic. Volunteer-maintained; patches land within a week of upstream.
+- **Tor Browser** — anonymity over convenience. Routes through Tor. You join the largest fingerprint bucket on the internet; take a latency hit.
+- **Safari 26** — Advanced Fingerprinting Protection on by default; WebKit engine; iCloud Private Relay on paid tiers. Apple-only. Reasonable default for iPhone diehards.
 
-**Mullvad Browser** — Firefox fork built in partnership with the Tor Project. Uses Tor Browser's hardening recipe without routing through Tor. Pair it with Mullvad VPN or any VPN and you get letterboxed windows, uniform fonts, and stripped JA4.
+## Comparison matrix
 
-**LibreWolf** — Firefox with telemetry surgically removed and privacy flags pre-set. Good if you want Firefox's engine with no background network traffic to Mozilla.
+| Browser | Engine | Anti-fingerprint default | Built-in VPN | Platforms | FOSS |
+|---|---|---|---|---|---|
+| **Brave** | Chromium (Blink) | Yes (farbling on standard; strict stronger) | Yes (paid Brave VPN) | Every desktop + iOS/Android | Client yes, sync backend partial |
+| Firefox + FPP (Strict) | Gecko | Yes (quantization/spoofing) | Via Mozilla VPN add-on | Every | Yes |
+| Mullvad Browser | Gecko | Yes (Tor Browser recipe) | Via Mullvad VPN | Desktop (Win/macOS/Linux) | Yes |
+| LibreWolf | Gecko | Yes (FPP + RFP subset) | No | Desktop | Yes |
+| Tor Browser | Gecko | Yes (canonical Tor profile) | Built-in (Tor network) | Desktop + Android | Yes |
+| Safari 26 | WebKit | Yes (AFP) | Private Relay (paid) | Apple only | No |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you install Brave through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Running vanilla Chrome with a VPN and calling it private.** The VPN hides the IP; Chrome still fingerprints, cookies, federates the login, and pings Google constantly. Chrome is the product.
+- **Installing 12 privacy extensions.** Each extension is a fingerprint signal — "Extension Detection" is its own scanner row. uBlock Origin plus the browser's built-in Shields/FPP is plenty. More is worse.
+- **Firefox on ETP Standard and thinking FPP is on.** It isn't. Switch to Strict, or install arkenfox. Modal Firefox users run the default and are surprised.
+- **Turning off the Brave rewards/wallet in a way that breaks Shields.** The wallet nags are annoying but disabling them doesn't disable Shields. Read the settings; don't nuke the install.
+- **Trusting WebRTC IP leak as "off" on stock Chrome.** Chrome still exposes the local IP via mDNS by default. Test on the scanner.
+- **Using Incognito as a privacy mode.** It doesn't erase your fingerprint; it just doesn't save cookies. Firefox private mode *does* enable FPP, the exception.
+
+## Setup
+
+[Harden Firefox guide](/en/guides/harden-firefox) for the Firefox + arkenfox route. [uBlock Origin setup](/en/guides/ublock-origin-setup) for the universal "add this first" extension. [Firefox containers](/en/guides/firefox-containers) for session isolation within Firefox. [Tor Browser first-run](/en/guides/tor-browser-first-run) for the strongest option.
+
+## Related categories
+
+- **[DNS resolver](/en/categories/dns)** — the browser can do DoH; pair it with a specific resolver instead of the default.
+- **[VPN](/en/categories/vpn)** — the tunnel handles the network layer; the browser handles the JS layer.
+- **[Search engine](/en/categories/search)** — set it as default in the browser you picked.
