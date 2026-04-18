@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="privacy.whattheflip.lol">
+  <rect width="32" height="32" rx="6" fill="#0a0a0a"/>
+  <path d="M16 6 L22 10 V17 C22 21 19 24 16 26 C13 24 10 21 10 17 V10 Z"
+        fill="none" stroke="#22c55e" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="16" cy="16" r="2" fill="#22c55e"/>
+</svg>
