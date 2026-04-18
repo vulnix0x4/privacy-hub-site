@@ -2,15 +2,69 @@
 import Layout from '../../layouts/Layout.astro';
 import { ReducedMotionProvider } from '../../components/islands/ReducedMotionProvider';
 import { GhostDemo } from '../../components/ghost/GhostDemo';
+
+// Design doc §4.2 item 3 — three equal-weight entry lanes below the
+// Ghost Demo hero. Static cards, not interactive — each lane links to
+// the corresponding section index. Order matches the design-doc audience
+// taxonomy in §2.0: scanner first (emotional hook for everyone), browse
+// by topic (intent-driven middle audience), encyclopedia (curious
+// nerds).
+const lanes = [
+  {
+    href: '/en/scan',
+    eyebrow: 'Live scanner',
+    title: 'Scan yourself',
+    body: 'See what every site sees about your browser. Five Defense Mode states. No bit score, no shame.',
+  },
+  {
+    href: '/en/categories',
+    eyebrow: 'Tool picks',
+    title: 'Browse by topic',
+    body: 'Need a VPN, a password manager, or a private email? One opinionated pick per category, plus alternatives.',
+  },
+  {
+    href: '/en/vectors',
+    eyebrow: 'Encyclopedia',
+    title: 'Learn how tracking works',
+    body: 'Twenty-two tracking vectors, plain-English plus the technical detail. Read in any order.',
+  },
+] as const;
+
+// TODO(v1): "What's new" ribbon — surface the last 3 changelog entries
+// here per design doc §4.2 item 4. Defer until /en/changelog ships its
+// own collection in a later phase.
 ---
 <Layout
   title="privacy.whattheflip.lol — the privacy hub"
   description="Opinionated privacy tools that just work. Live tracker scanner, full encyclopedia of tracking vectors, threat-model playlists, and step-by-step guides."
 >
-  <div class="max-w-3xl py-8 space-y-10">
-    <ReducedMotionProvider client:load>
-      <GhostDemo client:load />
-    </ReducedMotionProvider>
+  <div class="max-w-5xl py-8 space-y-12">
+    <div class="max-w-3xl space-y-10">
+      <ReducedMotionProvider client:load>
+        <GhostDemo client:load />
+      </ReducedMotionProvider>
+    </div>
+
+    <section aria-labelledby="lanes" class="space-y-4">
+      <h2 id="lanes" class="sr-only">Pick how you want to start</h2>
+      <ul class="grid gap-4 md:grid-cols-3">
+        {lanes.map((lane) => (
+          <li>
+            <a
+              href={lane.href}
+              class="group flex h-full flex-col gap-2 rounded-lg border border-white/10 bg-surface p-5 transition-colors hover:border-accent/50"
+            >
+              <p class="text-xs uppercase tracking-wider text-text-muted">{lane.eyebrow}</p>
+              <h3 class="text-xl font-semibold text-text group-hover:text-accent">
+                {lane.title} <span aria-hidden="true">&rarr;</span>
+              </h3>
+              <p class="text-sm text-text-muted">{lane.body}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
     <p class="text-sm text-text-muted">
       Scaffolded <time datetime="2026-04-17">2026-04-17</time>. Follow build progress on
       <a class="underline" href="https://github.com/vulnix0x4/privacy-hub-site">GitHub</a>.
