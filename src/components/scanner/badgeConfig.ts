@@ -19,53 +19,59 @@ export interface BadgeConfig {
   glyph: string;
 }
 
+/**
+ * Badge text uses the *-text state variants (Tailwind *-400 shades) so the
+ * label lands at >=4.5:1 contrast on the /15 alpha tint — see Gate 2/Gate 3
+ * accessibility audits. Borders and tints stay on the mid-saturation core
+ * token so the visual palette is unchanged.
+ */
 export const BADGE_CONFIG: Record<BadgeKey, BadgeConfig> = {
   UNCHANGED: {
     label: 'Tracked',
     className:
-      'bg-state-unchanged/15 text-state-unchanged border border-state-unchanged/40',
+      'bg-state-unchanged/15 text-state-unchanged-text border border-state-unchanged/40',
     glyph: '!',
   },
   SPOOFED: {
     label: 'Spoofed',
     className:
-      'bg-state-spoofed/15 text-state-spoofed border border-state-spoofed/40',
+      'bg-state-spoofed/15 text-state-spoofed-text border border-state-spoofed/40',
     glyph: 'S',
   },
   FARBLED: {
     label: 'Farbled',
     className:
-      'bg-state-farbled/15 text-state-farbled border border-state-farbled/40',
+      'bg-state-farbled/15 text-state-farbled-text border border-state-farbled/40',
     glyph: 'F',
   },
   QUANTIZED: {
     label: 'Quantized',
     className:
-      'bg-state-quantized/15 text-state-quantized border border-state-quantized/40',
+      'bg-state-quantized/15 text-state-quantized-text border border-state-quantized/40',
     glyph: 'Q',
   },
   BLOCKED: {
     label: 'Blocked — nice',
     className:
-      'bg-state-blocked/15 text-state-blocked border border-state-blocked/40',
+      'bg-state-blocked/15 text-state-blocked-text border border-state-blocked/40',
     glyph: 'B',
   },
   'INFO-PUBLIC': {
     label: 'Public',
     className:
-      'bg-state-info/15 text-state-info border border-state-info/40',
+      'bg-state-info/15 text-state-info-text border border-state-info/40',
     glyph: 'i',
   },
   'INFO-CONTEXT': {
     label: 'Info',
     className:
-      'bg-state-info/15 text-state-info border border-state-info/40',
+      'bg-state-info/15 text-state-info-text border border-state-info/40',
     glyph: 'i',
   },
   'pending-backend': {
     label: 'Pending — backend',
     className:
-      'bg-state-info/10 text-state-info border border-state-info/30',
+      'bg-state-info/10 text-state-info-text border border-state-info/30',
     glyph: '…',
   },
 };

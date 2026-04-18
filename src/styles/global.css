@@ -8,12 +8,26 @@
   --color-text-muted: #9ca3af;
   --color-border: rgb(255 255 255 / 0.08);
   --color-accent: #22c55e;
+  /*
+   * State tokens come in two shades: a mid-saturation "core" used for
+   * borders/tints, and a lighter "text" variant used wherever the color
+   * lands on top of a /15 alpha tint. The /15 tint dims contrast enough
+   * that the mid-saturation red/purple/blue shades drop below WCAG 2.2 AA
+   * 4.5:1 (see Gate 2/Gate 3 audits). The *-text variants map to
+   * Tailwind's *-400 shades which clear 5:1 on the /15 tint.
+   */
   --color-state-unchanged: #ef4444;
+  --color-state-unchanged-text: #f87171;
   --color-state-spoofed: #22c55e;
+  --color-state-spoofed-text: #4ade80;
   --color-state-farbled: #22c55e;
+  --color-state-farbled-text: #4ade80;
   --color-state-quantized: #a855f7;
+  --color-state-quantized-text: #c084fc;
   --color-state-blocked: #3b82f6;
+  --color-state-blocked-text: #60a5fa;
   --color-state-info: #9ca3af;
+  --color-state-info-text: #d1d5db;
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
