@@ -14,24 +14,53 @@ related:
   - supercookies-hsts-etag-favicon
 ---
 
-> **TL;DR.** Use Proton Drive. End-to-end encrypted, integrated with the rest of the Proton suite, and cheap. The free tier gives 5 GB, plenty for documents; paid plans start at €4/month for 200 GB.
+> **TL;DR.** Use Proton Drive. Zero-access encryption, Swiss jurisdiction, bundled with the rest of the Proton suite. Free tier gives 5 GB (fine for documents); paid plans start at €4/month for 200 GB. Tresorit for business team-folders, Filen if cost matters, Mega for the generous free tier. We earn a commission when you sign up via our Proton links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your documents, photos, backups, and anything else you upload. With Dropbox or Google Drive, the provider has the keys and can hand over plaintext on subpoena, scan for policy violations, or use content to train AI. With end-to-end encryption, they cannot.
+Your documents, scans, backups, tax records, and anything else you upload. With Dropbox, Google Drive, or OneDrive, the provider has the decryption keys. They can — and on subpoena, do — hand over plaintext to law enforcement, scan for policy violations (CSAM hashing, copyright claims), or feed document content into AI training pipes. Microsoft's Recall screenshots notwithstanding, the cloud copy is the more durable leak.
 
-## Hero pick: Proton Drive
+Encrypted storage also reduces the tracking surface around file-sharing. Every Google Drive "share link" carries an auth token, a cookie session, and a [third-party cookies and storage](/en/vectors/third-party-cookies-storage) graph that includes the document title and open time. End-to-end encrypted providers share via cryptographic keys in URL fragments — the server knows nothing about the recipient's session. [Supercookie-class probes](/en/vectors/supercookies-hsts-etag-favicon) against the sharing domain also leak less because the session is shorter-lived.
 
-Swiss jurisdiction, zero-access encryption, open-source clients. File sharing uses cryptographic per-link keys rather than just a URL guess. What you give up: no block-level sync yet (every file change re-uploads the whole file), which matters if you work with large binary assets all day.
+## This just works: Proton Drive
+
+Swiss jurisdiction, zero-access encryption (Proton cannot read your files or their names), open-source clients (Android, iOS, web, desktop). File sharing uses per-link cryptographic keys rather than URL-guessing — the share URL includes the key in the fragment, and the server sees only encrypted blobs going out. Android and iOS apps handle photo backup as first-class, desktop clients sync a folder.
+
+Bundles with Proton Mail, Calendar, VPN, Pass, and Sentinel on Proton Unlimited (€9.99/mo, 500 GB shared). What you give up: no block-level sync yet — every file change re-uploads — which matters for large binary assets. Desktop client is newer than Dropbox's and rougher around edge cases.
 
 ## Alternatives
 
-**Tresorit** — Swiss, business-focused, premium pricing (~€10/month personal). Best if you need zero-knowledge team folders with granular permissions.
+- **Tresorit** — Swiss, business-focused, premium pricing (~€10/month personal). Zero-knowledge team folders with granular permissions, Windows Information Protection integration, SOC 2 Type II audited. Best if you need enterprise-feature parity with Dropbox Business while staying E2EE.
+- **Filen** — German, cheap (€1.99/mo for 200 GB), E2EE, open-source clients. Pick if cost matters most; fewer platform integrations than Proton.
+- **MEGA** — New Zealand, 20 GB free (most generous free tier), E2EE, open-source clients. Kim Dotcom no longer involved; crypto is audited. Good free-tier stash or bulk storage at €5/mo for 2 TB.
+- **Nextcloud (self-hosted)** — open-source, run on a VPS or NAS. Per-folder E2EE available; server-side E2EE optional. Best if you already run a homelab.
+- **Cryptomator** — client-side encryption over any cloud. Drop on top of Google Drive, iCloud, or OneDrive — files land encrypted. Transitional option when you can't switch providers.
 
-**Filen** — German, cheap, genuinely end-to-end encrypted, younger company than the others. Pick if cost matters and you do not need polish.
+## Comparison matrix
 
-**MEGA** — New Zealand, 20 GB free, end-to-end encrypted. Controversial founder history, but the crypto is real. Generous free tier.
+| Provider | E2EE | Audit | Self-host | Platforms | Price/mo |
+|---|---|---|---|---|---|
+| **Proton Drive** | Yes (zero-access) | Securitum annual | No (Proton-hosted) | Web, desktop, iOS, Android | €0 / €4 / €10 |
+| Tresorit | Yes | SOC 2 Type II | No | Web, desktop, iOS, Android | €10 / €20 |
+| Filen | Yes | Self-claim | No | Web, desktop, iOS, Android | €0 / €1.99 / €8.99 |
+| MEGA | Yes | Cure53 2020 | No | Web, desktop, iOS, Android | €0 (20 GB) / €5 / €20 |
+| Nextcloud | ~ (per-folder E2EE optional) | Community | Yes | Web, desktop, iOS, Android | Hosting cost |
+| Cryptomator + any cloud | Yes (client-side) | Cure53 + KPMG | Yes (library) | Desktop, iOS, Android | Free / $15 one-time iOS |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Proton Drive through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Using "encrypted" providers that hold the keys.** iCloud Drive is not E2EE without Advanced Data Protection turned on. Dropbox is not E2EE at all. Default OneDrive is not E2EE. The word "encryption" in marketing copy usually means "encrypted in transit and at rest, we hold the keys."
+- **Sharing via email-tokenized links.** Any "anyone with the link can view" URL that arrives via email has been logged at every mail relay en route. E2EE providers share via URL fragment keys; fragments don't hit the server.
+- **Leaving the free tier as a de-facto backup.** 5 GB or 20 GB of free space is not a backup plan. It's a sync folder. Back up with a real tool (Restic, Borg) to storage you control.
+- **OS-level "open in Drive" integrations.** macOS Files and Windows Explorer decrypt to a temp file the client may or may not clean up.
+- **Forgetting the recovery phrase.** E2EE means the provider can't recover if you lose the master password. Write it down physically.
+
+## Setup
+
+No dedicated file-storage guide yet. [Encrypted backup with Restic](/en/guides/encrypted-backup-restic) is the companion for "cloud is not backup."
+
+## Related categories
+
+- **[Photo storage](/en/categories/photo-storage)** — a split-off category because photo libraries have unique characteristics (face recognition, geotags).
+- **[Disk encryption](/en/categories/disk-encryption)** — the local drive's copy is worth nothing without it.
+- **[Notes](/en/categories/notes)** — notes live in a file hierarchy; pick a notes app that uses the same storage backend.

@@ -14,24 +14,51 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Use Obsidian. Files are plain Markdown in a local folder. No account. Sync, if you want it, is end-to-end encrypted (Obsidian Sync is $4/month) or you wire up your own via Syncthing, iCloud, or a self-hosted git repo.
+> **TL;DR.** Use Obsidian. Files are plain Markdown in a local folder you own. No account required. Sync, if you want it, is end-to-end encrypted (Obsidian Sync is $4/month) or you wire up Syncthing, iCloud, or a self-hosted git repo. We earn a commission when you sign up for Obsidian Sync via our links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your thinking. Evernote and Notion store every note in plaintext on their servers. Both have had security incidents. Both can be subpoenaed. A local-first note system means the provider has nothing to hand over, because they never had the content.
+Your thinking. Every half-drafted thought, every bullet about a relationship, every medical question you didn't want to search ends up in your notes. Evernote and Notion store it plaintext on their servers. Both have had security incidents. Both can be subpoenaed. Notion's 2024 AI Connectors routes workspace content through OpenAI on opt-in and has quietly defaulted-on for some plans since.
 
-## Hero pick: Obsidian
+A local-first note system means the provider has nothing to hand over because they never had the content. Sync, when layered on an E2EE backend, is the convenience layer — not the trust root. For the sync-first case where the notes are intended to travel across your devices via a cloud, see the [sync-aware notes](/en/categories/note-taking) category. This category is the "files on your laptop" model. [Supercookie](/en/vectors/supercookies-hsts-etag-favicon) and [third-party cookie](/en/vectors/third-party-cookies-storage) probes are absent entirely from local-first apps because there is no web session to probe.
 
-Plain Markdown files in a folder you own. Works offline permanently. Enormous plugin ecosystem. Graph view and backlinks are genuinely useful for long-running research. What you give up: proprietary app code (the free tier has no source access). If that is a dealbreaker, jump to Logseq.
+## This just works: Obsidian
+
+Plain Markdown files in a folder you own. Works offline permanently. No account for the core app — you install Obsidian, pick a vault directory, and you're done. Enormous plugin ecosystem (Dataview, Templater, Excalidraw, Kanban, Git — thousands more). Graph view and backlinks are genuinely useful for long-running research. Mobile apps on iOS and Android sync to whatever backend you configure.
+
+Obsidian Sync is $4/month for E2EE across devices, version history, priority support — the convenient path, and we earn a commission. Free alternatives: Syncthing (P2P), iCloud Drive (Apple-only), a self-hosted git repo with `git-secret`. What you give up: proprietary app code (sync server closed too), a dealbreaker for some. If that's you, jump to Logseq.
 
 ## Alternatives
 
-**Logseq** — Open-source, outliner-first, optional git-backed sync. Best pick if you want fully-FOSS and block-level references.
+- **Logseq** — open-source, outliner-first, optional git-backed sync. Best pick if you want fully-FOSS and block-level references (each bullet is its own addressable unit). Markdown-compatible files on disk; the outliner model is a different writing UX than Obsidian's page-based approach. Free desktop app, donation model.
+- **Standard Notes** — cloud-first, end-to-end encrypted, minimal editor by default. Good if you want Evernote-style sync without Evernote-style surveillance. Covered in more detail in the [sync-aware notes](/en/categories/note-taking) category, which is the better fit for that model.
+- **Joplin** — open-source, Markdown-based, integrates with Nextcloud, Dropbox, or any WebDAV server for E2EE sync (you bring the backend, Joplin encrypts before upload). Desktop and mobile clients. Reasonable middle ground between "local files only" and "full cloud sync."
+- **AnyType** — local-first, peer-to-peer sync, block-based editor with a more Notion-like structure. Newer, younger community, active development. Worth watching.
 
-**Standard Notes** — Cloud-first, end-to-end encrypted, opinionated minimal editor. Good if you want Evernote-style sync without Evernote-style surveillance.
+## Comparison matrix
 
-**Joplin** — Open-source, Markdown-based, integrates with Nextcloud, Dropbox, or any WebDAV server for encrypted sync. Desktop and mobile clients.
+| App | E2EE (sync) | FOSS | Markdown | Sync options | Mobile | Price |
+|---|---|---|---|---|---|---|
+| **Obsidian** | Yes (Sync) | No (core + server closed) | Yes (plain .md) | Sync / Syncthing / iCloud / Git | Yes | Free core; $4/mo Sync |
+| Logseq | ~ (backend-dependent) | Yes | Yes | Git / iCloud / Dropbox (BYO) | Yes | Free |
+| Standard Notes | Yes | Yes | Yes (paid tier) | Built-in cloud | Yes | $0 / $90yr |
+| Joplin | Yes (client-side) | Yes | Yes | Nextcloud / WebDAV / S3 / Dropbox (BYO) | Yes | Free |
+| AnyType | Yes | Client yes | ~ (block-based) | P2P | Yes | Free |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Obsidian Sync through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Storing the vault in iCloud Drive and expecting E2EE.** iCloud is not end-to-end encrypted without Advanced Data Protection turned on. Flip ADP or don't sync sensitive notes via iCloud.
+- **Using Obsidian Sync + Syncthing + git at the same time.** They fight each other. Pick one.
+- **Leaving the vault unencrypted on disk.** An unencrypted laptop with an Obsidian vault is a portable confession. Disk encryption matters more here than for most cloud apps.
+- **Installing 40 community plugins without auditing.** Every plugin runs with vault access. Audit the source for anything you didn't write, especially ones that request network access.
+- **Migrating from Evernote and leaving the Evernote account open.** Evernote's "trash" isn't a delete. Close the account after the export; the plaintext on their servers is the reason you left.
+
+## Setup
+
+No dedicated Obsidian guide yet. For the underlying sync backend, [Encrypted backup with Restic](/en/guides/encrypted-backup-restic) is the closest companion — the guide covers self-hosted encrypted sync patterns that apply here too.
+
+## Related categories
+
+- **[Sync-aware notes](/en/categories/note-taking)** — if you want cloud-first sync as the primary model, that's the right category.
+- **[File storage](/en/categories/file-storage)** — the backend under Obsidian vaults if you sync via a generic cloud.
+- **[Disk encryption](/en/categories/disk-encryption)** — the other half of "notes stay on my laptop."

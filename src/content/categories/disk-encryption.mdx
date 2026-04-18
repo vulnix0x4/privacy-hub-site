@@ -14,20 +14,52 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** Use VeraCrypt if you want cross-platform, open-source full-disk encryption for a data drive or a removable volume. For your OS volume, use whatever ships with the OS (FileVault on macOS, BitLocker on Windows Pro, LUKS on most Linux distros) — it is convenient, properly integrated, and adequate for anything short of a nation-state adversary.
+> **TL;DR.** Use VeraCrypt for cross-platform full-disk encryption on data drives and removable volumes. For the OS volume, use whatever ships with the OS — FileVault on macOS (on by default on Apple Silicon), BitLocker on Windows Pro, LUKS on Linux. All are adequate for the "stolen laptop" threat model that covers 99% of the risk. No affiliate — VeraCrypt is FOSS, OS tools don't pay referrals.
 
 ## What this category protects
 
-Your data against physical theft, sloppy pawnshop disposal, and border crossings with sleeping devices. Without disk encryption, anyone who boots from a USB stick reads your drive.
+Your data against physical theft, sloppy pawnshop disposal, border crossings with sleeping devices, and repair-shop returns. Without disk encryption, anyone who boots from a USB stick reads your drive. A bricked laptop shipped to a recycler for data recovery reads your drive. The $100 coffee-shop theft reads your drive. These aren't hypothetical — device loss is the single most common data-exposure event, ahead of breaches and phishing on any real year.
 
-## Hero pick: VeraCrypt
+It also closes an underrated leak: browser caches, [supercookie residue](/en/vectors/supercookies-hsts-etag-favicon), tokens cached under `~/AppData` or `~/.config`, saved credentials in the OS keychain. Every tracking artifact your browser accumulates over a year lives unencrypted unless the disk is encrypted. The [permissions bitmap](/en/vectors/permissions-bitmap) state per origin is also on-disk — a stolen laptop replays every permission you ever granted.
 
-Open-source, audited (OSTIF sponsored the 2016 audit), runs on every desktop OS. Encrypts whole volumes or creates encrypted containers that look like ordinary files. Supports plausible-deniability hidden volumes if your threat model genuinely needs them. What you give up: no mobile clients (use the OS tools there), and it does not integrate with secure-boot as cleanly as BitLocker.
+## This just works: VeraCrypt
+
+Open-source, audited (OSTIF sponsored the 2016 Cure53 audit; findings were patched). Runs on every desktop OS (Windows, macOS, Linux, FreeBSD). Encrypts whole volumes or creates encrypted containers that look like ordinary files — mount when you need them, unmount when you don't. Supports plausible-deniability hidden volumes if your threat model genuinely needs them (two passwords, two different hidden datasets, no way to prove the hidden one exists). Widely packaged: on Debian-family `apt install veracrypt`; on macOS and Windows, signed binaries from veracrypt.fr.
+
+What you give up: no mobile clients (OS tools there). Less clean secure-boot integration than BitLocker. Format on large volumes takes time — a 2 TB drive is an hour of AES-XTS unless you use quick-format.
 
 ## Alternatives
 
-**BitLocker** — Ships with Windows Pro, uses the TPM so no password required at boot. Good default on Windows; just confirm your recovery key is saved somewhere other than the drive itself.
+- **BitLocker** — ships with Windows Pro and Enterprise. Uses the TPM so no password required at boot. Good Windows default if you're on Pro — confirm your recovery key is saved somewhere other than the drive. Home edition's "Device Encryption" is similar but ties the recovery key to your Microsoft account by default.
+- **FileVault** — macOS default. On by default on Apple Silicon Macs — the storage is already encrypted at the hardware level and FileVault binds the decryption to your login password. Tied to your iCloud account for recovery unless you deliberately choose a local recovery key at setup.
+- **LUKS** (Linux Unified Key Setup) — Linux standard. Most distros offer it at install time as a single checkbox. Uses `cryptsetup` under the hood. No reason not to tick the box. Excellent tooling, widely audited, plays nicely with LVM and Btrfs.
+- **Cryptomator** — file-level encryption layer over any cloud storage. Different threat model (cloud privacy, not device theft) but useful when you want encrypted-on-disk files that happen to live in Dropbox or Google Drive.
 
-**FileVault** — macOS default. On by default on Apple Silicon. Tied to your iCloud account unless you deliberately choose a local recovery key.
+## Comparison matrix
 
-**LUKS** — Linux standard. Most distros offer it at install time. No reason not to tick the box.
+| Tool | Platform | FOSS | Plausible deniability | Audit | GUI |
+|---|---|---|---|---|---|
+| **VeraCrypt** | Windows, macOS, Linux, FreeBSD | Yes | Yes (hidden volumes) | Cure53 2016 (OSTIF) | Yes |
+| BitLocker | Windows Pro/Enterprise | No | No | Microsoft self-claim | Yes |
+| FileVault | macOS | No | No | Apple self-claim | Yes |
+| LUKS | Linux | Yes | ~ (via `cryptsetup --header`) | Informal | Partial (distro tools) |
+| Cryptomator | Every | Yes | No (cloud layer, not disk) | Cure53 + KPMG | Yes |
+
+## Common mistakes
+
+- **Storing the recovery key on the drive you're encrypting.** Obvious in retrospect, terrifyingly common in practice. Print it, stash it in a safe, or save it to a second device.
+- **Using a weak password because "the TPM protects it."** The TPM protects against someone pulling the drive and mounting it elsewhere; it doesn't protect against someone guessing your login password at the lock screen. Use a strong password anyway.
+- **Skipping encryption on data drives "because they're just photos."** Photos are EXIF-tagged locations, faces of everyone you know, and often the tax forms you meant to organize later. Encrypt data drives too.
+- **Sleeping an unlocked laptop at a coffee shop.** Sleep keeps the key in RAM; cold-boot attacks are real. For serious threat models, shut down or hibernate (hibernate writes encrypted RAM to disk, re-sealing the key).
+- **Believing "BitLocker has a backdoor."** It doesn't, per multiple audits. What it has is a recovery key tied to a Microsoft account by default — a policy choice, not a backdoor. Change it at setup.
+- **Forgetting LUKS doesn't encrypt `/boot` by default.** A targeted attacker can modify the initramfs. Use Secure Boot with a signed kernel, or move `/boot` into the encrypted partition.
+
+## Setup
+
+[VeraCrypt disk guide](/en/guides/veracrypt-disk) walks through creating an encrypted container and a full-disk setup. [Harden Windows 11](/en/guides/harden-windows-11) covers enabling BitLocker with local-key recovery.
+
+## Related categories
+
+- **[File storage](/en/categories/file-storage)** — disk encryption is the on-device layer; cloud storage is the off-device layer. Both matter.
+- **[Desktop OS](/en/categories/desktop-os)** — Linux Mint ships LUKS as a one-click option at install time.
+- **[Encrypted backup](/en/categories/file-storage)** — the backup also needs to be encrypted at rest; Restic and Borg do this natively.

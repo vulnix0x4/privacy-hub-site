@@ -14,20 +14,51 @@ related:
   - supercookies-hsts-etag-favicon
 ---
 
-> **TL;DR.** Use Standard Notes if you want phone-and-desktop synced notes that are end-to-end encrypted by default. Free tier is plain-text only; paid tier unlocks rich editors and 2FA.
+> **TL;DR.** Use Standard Notes if you want phone-and-desktop synced notes that are end-to-end encrypted by default. Free tier syncs plain text only; $90/year Productivity plan unlocks rich editors. No affiliate — we don't earn on anything in this category.
 
 ## What this category protects
 
-Sync convenience without sync surveillance. Evernote, Notion, OneNote, and Google Keep all store your notes plaintext on their servers. A sync-aware encrypted app keeps the convenience and removes the provider's read access.
+Sync convenience without sync surveillance. Evernote, Notion, OneNote, and Google Keep all store your notes plaintext on their servers. Notion's AI features added the "your workspace feeds OpenAI on opt-in" angle in 2024. A sync-aware encrypted app keeps the convenience (pick up your phone, the note is there) and removes the provider's read access. Distinct from the [local-first notes](/en/categories/notes) category, which keeps everything on-device as the primary model.
 
-## Hero pick: Standard Notes
+Sync-capable notes also avoid the [third-party cookies and storage](/en/vectors/third-party-cookies-storage) leakage that plaintext cloud note apps layer on the web-client side — you're not logging into a session that tracks your reading patterns, and [supercookie-class](/en/vectors/supercookies-hsts-etag-favicon) probes against the note domain can't correlate you across sessions because the sync model doesn't need a long-lived browser login.
 
-Zero-knowledge, end-to-end encrypted, cross-platform. Free tier syncs plaintext notes; the $90/year Productivity plan adds Markdown, code, spreadsheet, and task-list editors. Minimal by design. What you give up: no realtime collaboration; sharing is per-note export.
+## This just works: Standard Notes
+
+Zero-knowledge, end-to-end encrypted, cross-platform. Free tier syncs plain-text notes across unlimited devices; the $90/year Productivity plan adds Markdown, code, spreadsheet, and task-list editors plus file attachments. Minimal by design — no graph view, no backlinks, no plugin marketplace. Text in, text out. Owned by Proton since 2024, which consolidated the privacy-app vendor list but didn't change the crypto.
+
+What you give up: no realtime collaboration (sharing is per-note export or a public link); editor ecosystem is fixed, not plugin-extensible; no graph or backlinks. Those tradeoffs are intentional — Standard Notes picks "sync safely" over "do everything." For plugin-rich workflows, use Obsidian + Obsidian Sync instead. For rich document sharing, use Cryptee.
 
 ## Alternatives
 
-**Joplin** — Self-sync via Nextcloud, WebDAV, S3, or Joplin Cloud. Markdown-native. Best for people who already run a cloud they trust.
+- **Joplin** — open-source, self-sync via Nextcloud, WebDAV, S3, Joplin Cloud, or Dropbox with client-side encryption. Markdown-native, clean desktop UI, occasionally clunky mobile app. Best for people who already run a cloud they trust or want full control.
+- **Obsidian Sync** — Obsidian's first-party sync, $4/month, end-to-end encrypted. Pick if Obsidian is already your notes app and you want zero-config sync without running Syncthing yourself. Covered in detail in the [notes category](/en/categories/notes).
+- **Cryptee** — end-to-end encrypted documents and photos, EU-hosted, minimal UI. Useful for mixed document-plus-photo journaling and when you want a web-native client rather than a desktop app. Smaller team, quieter roadmap.
+- **Anytype** — local-first with peer-to-peer sync, block-based editor closer to Notion. Newer, free, FOSS clients.
 
-**Obsidian Sync** — Obsidian's first-party sync, $4/month, end-to-end encrypted. Pick if Obsidian is already your notes app and you want zero-config sync.
+## Comparison matrix
 
-**Cryptee** — End-to-end encrypted documents and photos. EU-hosted, minimal UI. Useful for mixed document-plus-photo journaling.
+| App | E2EE | FOSS | Platforms | Sharing | Price/mo |
+|---|---|---|---|---|---|
+| **Standard Notes** | Yes (zero-knowledge) | Yes | iOS, Android, web, desktop | Per-note export / public link | $0 / $7.50 (annual) |
+| Joplin | Yes (client-side) | Yes | iOS, Android, desktop | Nextcloud share / export | Free (BYO backend) |
+| Obsidian Sync | Yes | Client yes; sync server no | Every | Manual export | $4 |
+| Cryptee | Yes | Partial | Web (PWA) | Share link | €0 / €3+ |
+| Anytype | Yes | Client yes | iOS, Android, desktop | P2P share | Free |
+
+## Common mistakes
+
+- **Picking a "secure notes" app where encryption is optional per-note.** If it's a toggle, some notes leak. Pick defaults-on.
+- **Syncing via the OS-default cloud (iCloud, Google Drive) and assuming it's private.** iCloud without ADP isn't E2EE; Google Drive isn't E2EE at all. If the sync backend is plaintext, the notes are plaintext.
+- **Trusting the web client on a shared computer.** Even with E2EE at rest, a logged-in web client leaves a decrypted session in browser memory. Log out, or use a per-session browser profile.
+- **Not auditing editor plugins.** Standard Notes' editors are first-party; Obsidian and Joplin plugins are third-party and run with vault access. A malicious plugin defeats every crypto claim.
+- **Forgetting the recovery method.** E2EE means the provider can't recover your password. Standard Notes displays a recovery sheet once at signup — write it down.
+
+## Setup
+
+No dedicated guide yet. The backend for self-sync paths (Joplin via Nextcloud, Obsidian via Syncthing) overlaps with [Encrypted backup with Restic](/en/guides/encrypted-backup-restic) in mindset.
+
+## Related categories
+
+- **[Notes & docs](/en/categories/notes)** — local-first note apps where sync is optional; pick that category if Obsidian is your mental model.
+- **[File storage](/en/categories/file-storage)** — for BYO-sync options, the cloud backend lives in the file-storage category.
+- **[Password manager](/en/categories/password-manager)** — your notes-app master password goes here.

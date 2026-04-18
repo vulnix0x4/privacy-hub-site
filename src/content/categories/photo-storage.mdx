@@ -14,24 +14,51 @@ related:
   - supercookies-hsts-etag-favicon
 ---
 
-> **TL;DR.** Use Ente. End-to-end encrypted photo library with excellent mobile apps, face recognition done client-side, 5 GB free, paid plans competitive with Google Photos. Works on iOS, Android, web, and desktop.
+> **TL;DR.** Use Ente. End-to-end encrypted photo library with excellent mobile apps, face recognition on-device (the server never sees faces), 5 GB free, paid plans that undercut Google Photos. iOS, Android, web, desktop. We earn a commission when you sign up via our Ente links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-Your photo library is location history (EXIF GPS), face recognition fodder, lifestyle profiling, and child-safety-scan input all in one bucket. Google Photos scans every image. iCloud Photos scans some. Encrypted photo services do not.
+Your photo library is four things at once: location history (EXIF GPS), face recognition fodder, lifestyle profiling, and child-safety-scan input. Google Photos runs every image through face and object recognition by default, builds a "people" graph, and reserves the right to scan for CSAM with server-side hashing. iCloud Photos does CSAM scanning too (since the 2021 announcement, on uploaded content) and feeds the Memories feature from its analysis. Encrypted photo services do none of that because they can't — they never have plaintext.
 
-## Hero pick: Ente
+The EXIF leak is the most underrated part. A single iPhone photo uploaded to any non-encrypted service includes GPS coordinates to six decimal places — meter-level accuracy — plus timestamp and model. Across thousands of photos the provider has your home, workplace, favourite coffee shop, and travel history. The [IP geolocation](/en/vectors/ip-geolocation) row on the scanner shows your current IP; EXIF is 10 years of it, much more precise. [Supercookie](/en/vectors/supercookies-hsts-etag-favicon) probes against photo-share domains also matter because shared albums typically carry long-lived public URLs.
 
-Zero-knowledge. Face recognition runs on your device, the server never sees faces. Open-source clients. Family plan at $24/year for 200 GB beats Google's family pricing. What you give up: sharing albums externally requires a recipient-side decryption step; smooth but one more tap.
+## This just works: Ente
+
+Zero-knowledge. Your library is encrypted on your device before upload; Ente's servers store ciphertext. Face recognition runs on your device using an on-device ML model — the server never sees faces, never builds a "people" graph on their side. Open-source clients on GitHub, published audit reports (Cure53). EXIF is preserved inside the encrypted container but not readable on the server side, and Ente's shared-album feature generates cryptographic links rather than public URLs.
+
+Family plan at $24/year for 200 GB beats Google's family pricing. Individual plans start at $2.99/month for 100 GB. What you give up: sharing albums externally requires a recipient-side decryption step (smooth, but one more tap); no "Memories"-style nostalgia feed, though the app does surface on-this-day. Apple Photos integration on iOS is via the standard photo-picker, not the system-level Photos replacement Apple sometimes blocks.
 
 ## Alternatives
 
-**Proton Drive** — Photos are first-class in Proton Drive's mobile app now. Good if you want one vendor for files and photos and already pay Proton.
+- **Proton Drive** — photos are first-class in Proton Drive's mobile app now. Good if you want one vendor for files and photos and already pay Proton. Photo-specific features (on-device face recognition, map view) trail Ente.
+- **iCloud with Advanced Data Protection** — Apple's zero-knowledge tier. Requires iOS 16+ and switching ADP on (Settings → Apple ID → iCloud → Advanced Data Protection). Best if you live entirely in the Apple ecosystem and don't mind the opt-in friction. Photos, notes, backups all become E2EE.
+- **Immich (self-hosted)** — open-source Google Photos clone. Runs on a home server. Active development, solid iOS/Android apps, face recognition on your own hardware.
+- **Stingle** — open-source, E2EE, 1 GB free tier. Smaller team than Ente; reasonable fallback where Ente isn't available.
 
-**iCloud with Advanced Data Protection** — Apple's zero-knowledge tier. Requires iOS 16+ and switching on ADP (Settings -&gt; Apple ID -&gt; iCloud -&gt; Advanced Data Protection). Best if you live in the Apple ecosystem.
+## Comparison matrix
 
-**Immich (self-hosted)** — The open-source Google Photos clone. Runs on a home server. Best if you want full control and do not mind maintaining infrastructure.
+| Provider | E2EE | Face recognition | Platforms | Sharing | Price/mo |
+|---|---|---|---|---|---|
+| **Ente** | Yes (zero-knowledge) | On-device | iOS, Android, web, desktop | Cryptographic-link | $0 / $2.99 / $9.99 |
+| Proton Drive | Yes | No (roadmap) | iOS, Android, web, desktop | Per-link keys | €0 / €4 / €10 |
+| iCloud + ADP | Yes (when ADP on) | On-device (Apple Neural Engine) | Apple only | Share via system | Included in iCloud tiers |
+| Immich (self-host) | ~ (depends on setup) | On-device | iOS, Android, web | Internal + external | $0 + hardware |
+| Google Photos | No (provider reads) | Server-side (default) | Every | Public link / account | Free tier + Google One paid |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Ente through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Uploading "just the recent photos" to test Ente, leaving 10 years on Google.** The 10-year dataset is the product. Migrate in full or the old library keeps training whoever scans it.
+- **Leaving iCloud Photos + ADP off.** Most iPhone users' iCloud Photos is not end-to-end encrypted. ADP is opt-in, requires a recovery-key setup, and is the single switch that makes iCloud actually private.
+- **Expecting shared-album recipients to use the encrypted app.** A non-Ente viewer gets a web link with client-side decrypt. Works fine; occasionally confuses relatives. Warn them the link looks weird.
+- **Scrubbing EXIF before upload.** Ente stores EXIF inside the encrypted blob — the server can't read it anyway. Scrubbing before upload only matters if you then share the file outside Ente.
+- **Using the iCloud desktop "download originals" feature and not wiping the temp folder.** Plaintext copies accumulate in `~/Pictures/Photos Library.photoslibrary/originals` even after you delete from iCloud.
+
+## Setup
+
+No dedicated photo-storage guide yet. The closest adjacent guide is [Encrypted backup with Restic](/en/guides/encrypted-backup-restic) — photo libraries benefit from a cold-storage backup even when the primary is E2EE cloud.
+
+## Related categories
+
+- **[File storage](/en/categories/file-storage)** — general cloud storage; Ente is photo-specific.
+- **[Phone OS](/en/categories/phone-os)** — a hardened phone is where the original EXIF and biometric capture happens; upstream matters.
+- **[Disk encryption](/en/categories/disk-encryption)** — local library copy needs the same hygiene as the cloud copy.
