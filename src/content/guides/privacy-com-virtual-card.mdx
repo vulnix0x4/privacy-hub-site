@@ -1,0 +1,73 @@
+---
+title: "Privacy.com virtual card in 3 minutes"
+description: Create a single-use or per-merchant virtual card backed by your real bank. The subscription cancels itself when you pause the card.
+last_verified: 2026-04-18
+related:
+  - payments
+  - breach-monitoring
+difficulty: easy
+time_minutes: 5
+prerequisites:
+  - US bank account or debit card (Privacy.com is US-only)
+  - A device to sign up on
+---
+
+> **TL;DR.** Sign up, link your US bank, create a merchant-locked or single-use card. Use the card for signups and subscriptions. Pause the card and the merchant stops billing, period.
+
+## Why this matters
+
+Most recurring charges you hate — the gym you meant to cancel, the trial that auto-renewed — exist because it is easier for the merchant to keep charging than for you to cancel. A per-merchant virtual card flips that: when you pause the card, the charge fails, full stop, no phone call, no "are you sure you want to leave us."
+
+It is also a privacy win. The merchant gets a card number they can only bill in the limit you set. If they leak it, the leak is capped. If you stop trusting them, the card dies without touching your real account.
+
+US-only, unfortunately. Revolut Premium offers something similar in Europe, MoneyLion Cards and Apple Card in the US.
+
+## What you need before starting
+
+- A US bank account or debit card — Privacy.com funds cards from your real account via ACH, so they need one to link.
+- Your legal name and address (yes, they KYC).
+- A US phone number.
+
+## Steps
+
+1. **Sign up at `privacy.com`.** Email, password, phone number. Verify the phone SMS.
+
+   {/* SCREENSHOT(step-1): Privacy.com signup */}
+
+2. **Complete KYC.** Legal name, DOB, SSN (last four), address. This is required — Privacy.com is a regulated financial product. Skip this step and nothing works.
+
+3. **Link a bank account.** Plaid flow — search your bank, log in via Plaid. Or add manually with routing + account number, which takes 2-3 days to verify micro-deposits. Plaid is faster.
+
+   {/* SCREENSHOT(step-3): Plaid bank linking inside Privacy.com */}
+
+4. **Create your first card.** Click "New Card." Name it after the merchant ("Netflix," "Gym ABC," "One-time buy at weird site"). Pick card type:
+   - **Merchant-locked**: card can only be charged by that one merchant. Good for subscriptions.
+   - **Single-use**: dies after first charge. Good for sketchy one-off purchases.
+   - **Category-locked** (paid tier): limited to one MCC category.
+
+   {/* SCREENSHOT(step-4): create-card screen with card type selection */}
+
+5. **Set a limit.** Per-transaction, per-month, per-year, or total. Lower is better. If Netflix is $15.49, set monthly limit to $20. If the merchant tries to charge $200 next year, the card declines.
+
+6. **Copy the card to the merchant.** Click the card → copy number, CVV, exp. Paste into the merchant's checkout form. Billing address is whatever you enter in the merchant's form — most merchants accept any address, but some AVS-strict ones (Amazon, sometimes Stripe) require a match with what Privacy has. Privacy.com also offers an autofill extension that handles this.
+
+7. **Pause, close, or let ride.** After checkout, if it was a one-time buy, close the card. For recurring: leave it open. To cancel a subscription later, just pause the card. The merchant's charge will fail and (depending on merchant policy) they will email you to update payment. You ignore the email. Done.
+
+   {/* SCREENSHOT(step-7): card pause/close controls */}
+
+## Verify it worked
+
+- Find a cheap thing to buy — $1 Stripe test, a newsletter with a $5 intro. Charge the virtual card. You should see the charge appear in Privacy.com's transaction log within minutes, with the merchant name normalized.
+- Pause a card. Try to charge it via a small test transaction (or wait for the next billing cycle). The charge will decline.
+- Install the browser extension from `privacy.com/extension`. It should autofill virtual card details on checkout.
+
+## Common pitfalls
+
+- Giving a merchant a merchant-locked card and then trying to use the same card elsewhere. It will decline. Create a new card.
+- Setting the limit too low for recurring annual charges. Credit card autofill at signup-time is fine with a $20/mo cap; then the annual renewal hits $199 and declines.
+- Closing the card on a sub-in-progress trial and being surprised when the merchant emails you harder. That is the merchant's problem. You owe them nothing, but some will threaten collections — keep screenshots.
+- Funding from a credit card rather than a bank account. Privacy.com supports this but your credit card may classify it as a cash advance. Cheaper to link a checking account.
+
+## Known limits
+
+Privacy.com is US-only, and for US-issued merchant-acquired transactions. International merchants sometimes fail AVS or decline outright. It also does not anonymize you to your bank or to Privacy.com itself — they both know your real identity by KYC. The privacy benefit is at the merchant layer, not the payment network layer.

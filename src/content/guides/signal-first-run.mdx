@@ -1,0 +1,73 @@
+---
+title: "Signal, first run"
+description: Install Signal, turn on the settings that actually matter, and avoid the common mistakes that leak metadata.
+last_verified: 2026-04-18
+related:
+  - messaging
+  - permissions-bitmap
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - A smartphone
+  - A phone number (yours or a secondary)
+---
+
+> **TL;DR.** Install from the official store. Register with a phone number (or a secondary). Turn on Registration Lock. Set disappearing messages. Do not screenshot conversations to other apps.
+
+## Why this matters
+
+Signal is the default encrypted messenger for a reason: the protocol is correct, the clients are open source, and the nonprofit behind it does not monetize you. But out of the box some defaults are permissive, and the apps most people bounce to after Signal (Screenshot → iMessage → Dropbox, say) ruin the encryption you just set up.
+
+Ten minutes to do it right.
+
+## What you need before starting
+
+- An Android or iOS phone.
+- A phone number you control. A secondary number (MySudo, Google Voice in the US, a cheap eSIM) is fine and often preferable for account separation.
+- About ten minutes.
+
+## Steps
+
+1. **Install from the App Store or Play Store.** Search "Signal Private Messenger." The publisher is "Signal Messenger, LLC." Check the publisher — there are copycats.
+
+   {/* SCREENSHOT(step-1): Signal app listing on Play Store */}
+
+2. **Register with a phone number.** Signal will SMS you a 6-digit code. Enter it. The number becomes the primary identifier for your account — contacts find you by it, and it is what Signal uses to know it is you if you reinstall.
+
+3. **Set a PIN.** Signal asks for a PIN during setup. This is not just an app lock — it is a recovery secret for your profile, stored server-side encrypted. Pick at least 6 digits. Do not reuse your bank PIN.
+
+   {/* SCREENSHOT(step-3): Signal PIN setup */}
+
+4. **Turn on Registration Lock.** Settings → Account → Registration Lock → On. This is the one setting that protects you from a SIM swap: even if an attacker ports your number, they cannot re-register Signal without your PIN for 7 days.
+
+5. **Set a username.** Settings → Profile → Username. Pick something like `yourname.42`. Share the username or a QR code instead of your phone number. People who have your username cannot find your phone number, and vice versa.
+
+   {/* SCREENSHOT(step-5): username creation screen */}
+
+6. **Turn on disappearing messages globally.** Settings → Privacy → Default Timer for New Chats → pick something reasonable. A week is a decent default. You can still override per-chat.
+
+7. **Lock the app.** Settings → Privacy → Screen Lock → On. Signal will require biometric unlock to open. Also turn on "Screen Security" to stop thumbnails appearing in the task switcher.
+
+   {/* SCREENSHOT(step-7): Screen Lock and Screen Security toggles */}
+
+8. **Disable link previews** if you are paranoid. Settings → Chats → Generate Link Previews → Off. Link previews fetch URLs from your client, which can reveal your IP to the page host before you tap the link.
+
+9. **Link desktop carefully.** Settings → Linked Devices → Link a New Device, then scan the QR code from the desktop app. Each linked device is an additional attack surface. Keep the list short.
+
+## Verify it worked
+
+- Send a disappearing message to a friend. The message should show a clock icon and vanish at the interval.
+- Try to register Signal on a new device without your PIN. It should refuse for 7 days — that is Registration Lock.
+- Tap your profile. You should see both your phone number (hidden by default from contacts) and your username. Anyone who messages you by username should not be able to see your phone number.
+
+## Common pitfalls
+
+- Registering without setting a PIN, then losing the phone. Your contacts and backups are gone.
+- Forgetting the PIN. Signal will eventually make you set a new one, but you lose your profile details in the process. Write it down in your password manager.
+- Sharing your phone number when you could share your username. Reverses the whole benefit.
+- Assuming Signal hides metadata from your mobile network. The fact that you ran Signal at 10:42 is visible to the OS and to your carrier's per-app data counters. The message contents are not.
+- Screenshotting a Signal chat to iMessage / WhatsApp / email. The encryption ends at your screen; whatever you do next is a different trust domain.
+
+## Known limits
+
+Signal encrypts message contents end-to-end with forward secrecy. It does not hide metadata from Signal itself beyond what their "Sealed Sender" lets them, it does not protect against a compromised device, and it does not protect against the person you are messaging choosing to leak the conversation. If your threat model requires no metadata at all and no trusted server, look at SimpleX.

@@ -1,0 +1,68 @@
+---
+title: "Passkeys: a 10-minute primer"
+description: What passkeys are, why they kill phishing, and how to turn them on for the first account you actually care about.
+last_verified: 2026-04-18
+related:
+  - 2fa
+  - password-manager
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - A password manager that supports passkeys (Bitwarden, 1Password, Proton Pass, or the OS keychain)
+  - One account that matters — email, GitHub, a bank
+---
+
+> **TL;DR.** A passkey is a key pair bound to a site. No password travels, no OTP gets phished, no credential stuffing works. Turn it on for one important account today. You will thank yourself the next time a breach list drops.
+
+## Why this matters
+
+Every password you type is a password a phishing page can ask for. TOTP codes too. Passkeys make phishing structurally impossible: the key is bound to the domain, and the domain is checked by the browser before the key fires. A fake login page never sees the private half.
+
+It is not a rebrand of "login with Google." A passkey lives in your password manager or your device's keychain. You keep it. You can sync it. You can back it up.
+
+## What you need before starting
+
+- A password manager with passkey support. Bitwarden, 1Password, Proton Pass, and Apple/Google/Windows built-in all work.
+- One account you actually care about. GitHub, Proton, your bank, Microsoft, Google — pick one.
+- Biometrics or a device PIN. That is what unlocks the passkey.
+
+## Steps
+
+1. **Decide where your passkeys will live.** Put them in your password manager, not the OS keychain, if you bounce between devices or operating systems. Bitwarden and Proton Pass sync across desktop, Android, iOS, and the browser. The OS keychain syncs inside one ecosystem.
+
+   {/* SCREENSHOT(step-1): Bitwarden mobile showing passkey section */}
+
+2. **Pick the account to convert first.** Go for something with lateral damage — email is a good call, since whoever owns your email can reset everything else. GitHub if you push code. A bank if the bank actually supports it (most US banks still do not).
+
+3. **Log in to that account on desktop.** You want the full settings page. Mobile app flows for passkey creation are inconsistent and sometimes skip the "save to manager" prompt.
+
+4. **Find the security settings.** Look for "Security," "Sign-in," "Two-factor," or "Passkeys." On Google: myaccount.google.com → Security → Passkeys. On GitHub: Settings → Password and authentication → Passkeys. On Proton: Account → Security → Passkeys.
+
+   {/* SCREENSHOT(step-4): GitHub passkey settings page */}
+
+5. **Click "Add a passkey" (or equivalent).** The browser will pop a dialog asking where to save: your password manager extension, your phone, a security key, or the OS. Pick the password manager if you want sync. Pick the phone if you want the key to live only on that device.
+
+6. **Authenticate.** Face ID, Touch ID, Windows Hello, or a device PIN. That is it. The key is generated and registered with the site. No password was typed, no secret traveled.
+
+   {/* SCREENSHOT(step-6): browser passkey save prompt */}
+
+7. **Test the login.** Sign out. Sign in. The site should prompt for a passkey. Your manager or OS will unlock it with biometrics and you will be logged in in about two seconds.
+
+8. **Keep a backup sign-in method for now.** Do not delete your password yet. Leave it and your TOTP in place as recovery paths until you have used the passkey from every device you use the account on. After a week with no problems, you can delete the password on sites that allow passkey-only accounts.
+
+## Verify it worked
+
+- Sign out and sign back in using the passkey. It should take seconds and never ask for your password.
+- On Bitwarden: open the vault item — there should be a "Passkey" section next to the password field.
+- Try to sign in from a device you have not used yet. A good passkey setup either syncs automatically (via your manager) or offers a QR-code cross-device flow that uses your phone.
+
+## Common pitfalls
+
+- Saving a passkey to the browser instead of your password manager. Chrome and Safari both default to their own keychain. Check the "save to" dropdown every time.
+- Creating a passkey on one device and then wondering why your other device does not see it. The manager has to sync — confirm in its settings, and confirm the extension is logged in on both devices.
+- Deleting the password too soon. Keep both for at least a week while you get used to the new flow.
+- Assuming passkeys protect against account takeover if the manager itself is compromised. They do not. Your master password and your manager's own 2FA still matter.
+
+## Known limits
+
+Passkeys kill phishing and credential stuffing. They do not protect you from a compromised device, a shoulder surfer watching you unlock your phone, or a site that ships a malicious update to its own login page. They also do not work on sites that have not implemented them — which, in early 2026, is still most of the internet. Start with the accounts that matter and accept that passwords are going to be around for a while.

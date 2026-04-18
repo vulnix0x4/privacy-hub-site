@@ -1,0 +1,60 @@
+---
+title: "Mullvad VPN in five minutes"
+description: Sign up anonymously with cash or crypto, install the client, pick WireGuard, and verify no leaks. Done in five minutes.
+last_verified: 2026-04-18
+related:
+  - vpn
+  - dns-leaks
+  - ip-geolocation
+difficulty: easy
+time_minutes: 5
+prerequisites:
+  - A computer or phone
+  - Five euros in cash, a card, or crypto
+---
+
+> **TL;DR.** Generate an account number, pay (cash works), install the app, connect. WireGuard by default. Five minutes. No email, no name, no card on file unless you want one.
+
+## Why this matters
+
+Mullvad is the reference VPN for a reason: flat five euros a month, no email required, accepts cash mailed in an envelope, kills its logs on purpose, and ships clients for every platform. They also submit to third-party audits and publish the reports. You do not need to trust them blindly, which is the whole point.
+
+## What you need before starting
+
+- A device to install the client on.
+- Five euros worth of payment. A card is fine. So is crypto. So is literally cash in an envelope if you want to keep the account unlinked from any identity.
+
+## Steps
+
+1. **Go to mullvad.net and click "Generate account number."** You get a 16-digit number. Write it down. That is your whole account — no email, no password, no recovery email. Lose the number, lose the account.
+
+   {/* SCREENSHOT(step-1): mullvad.net account generation screen */}
+
+2. **Add time.** Click "Add time." Pick your period (one month, three, a year). Pick a payment method. Card, PayPal, Swish, Bitcoin, Monero, and literal cash through the postal service all work. The cash option gives you an address to mail to — include your account number on a slip of paper.
+
+3. **Download the app.** `mullvad.net/download`. Installers for Windows, macOS, Linux, iOS, Android, and router firmwares. Install it the normal way for your OS.
+
+   {/* SCREENSHOT(step-3): Mullvad download page with OS options */}
+
+4. **Launch the app and paste your account number.** No username, no password, just the number. The app will show how much time is left on the account.
+
+   {/* SCREENSHOT(step-4): Mullvad desktop client login */}
+
+5. **Click "Secure my connection."** Done. By default Mullvad uses WireGuard, picks a fast server, and blocks leaks. You are connected.
+
+## Verify it worked
+
+- Open the [scanner](/en/scan). Your IP should be a Mullvad exit in your chosen country. DNS should resolve through Mullvad (not your ISP). WebRTC should show no local IP leak.
+- Visit `mullvad.net`. At the top of the page it will say "You are connected" with a big green indicator. If it says "You are not connected," your app is not routing traffic — restart it.
+- `mullvad.net/check` gives a detailed leak test. Look for green across DNS, IPv6, and WebRTC. If anything is red, open the app's settings and flip "Block when disconnected" on.
+
+## Common pitfalls
+
+- Running Mullvad alongside another VPN. One at a time. They will fight over the routing table and you will end up with no tunnel.
+- Forgetting to enable "Always require VPN" (kill switch). On by default in Mullvad but double-check. Without it, if the tunnel drops for a second, your traffic leaks.
+- Using the "Any port" option with a torrent client. Mullvad does not forward ports anymore — they dropped it in 2023 to improve anonymity. If you need port forwarding, use a different provider or a Mullvad-compatible VPS trick.
+- Picking a server in the same city as you. Perfectly legal, perfectly private from your ISP, but your geolocation does not change, which is sometimes the whole point.
+
+## Known limits
+
+A VPN hides your IP from the site and your traffic from your ISP. It does not anonymize you to Google if you are logged in, and it does not stop browser fingerprinting. Mullvad specifically does not keep logs — but they cannot prove a negative, so your threat model has to include "trust Mullvad." If your threat model cannot include any trusted party, use Tor.

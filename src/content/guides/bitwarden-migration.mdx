@@ -1,0 +1,80 @@
+---
+title: "Migrate to Bitwarden from another password manager"
+description: Export from LastPass, 1Password, or Chrome. Import to Bitwarden. Verify nothing dropped. Decommission the old one safely.
+last_verified: 2026-04-18
+related:
+  - password-manager
+  - 2fa
+difficulty: easy
+time_minutes: 20
+prerequisites:
+  - A Bitwarden account (free tier is fine)
+  - Admin access to the account you are migrating out of
+---
+
+> **TL;DR.** Export from your old manager as CSV or JSON. Import to Bitwarden via the web vault. Spot-check 20 random logins. Turn on 2FA on Bitwarden. Only then delete the old account.
+
+## Why this matters
+
+Password-manager migration is the thing people put off for years because they are afraid of losing logins. The process is actually boring and fast — the fear is a lie. What matters is doing it in a sensible order so you do not end up with half your passwords in each place, or worse, in neither.
+
+LastPass's 2022 breach is a reminder: a manager you no longer trust should be actively decommissioned, not just stopped being used.
+
+## What you need before starting
+
+- A Bitwarden account. Sign up at `bitwarden.com` — free tier stores everything the paid tier does, paid gets you TOTP, 1 GB of file attachments, and priority support at $10/year.
+- Admin access to the password manager you are leaving. Most exports require logging in on desktop.
+- 20 minutes and a coffee.
+
+## Steps
+
+1. **Create the Bitwarden account with a strong master password.** Use a long passphrase, 5+ words. This is the only password you need to remember. Store a backup of it on paper somewhere safe.
+
+2. **Export from the old manager.** Go to the web vault (not the app). Settings → Export. Pick JSON if the manager offers it; otherwise CSV.
+   - **LastPass**: web vault → Account Settings → Advanced → Export → LastPass CSV File.
+   - **1Password**: 1Password.com → account menu → Export → 1Password Unencrypted Export (1PUX) or CSV.
+   - **Chrome/Brave/Edge**: `chrome://password-manager/settings` → Download passwords.
+   - **Dashlane**: Account → Settings → Export Data → CSV.
+   - **Proton Pass**: Settings → Export → JSON.
+
+   {/* SCREENSHOT(step-2): LastPass export screen */}
+
+3. **Open the exported file in a text editor.** Do not skip this. Make sure the file actually has data. A frequent failure: the export silently succeeds with an empty file when a 2FA step timed out. Check the row count vs. what you expected.
+
+4. **Import into Bitwarden.** Go to `vault.bitwarden.com` → Tools → Import Data. Pick your source format from the dropdown (it knows about LastPass, 1Password, Chrome, Dashlane, and ~40 others). Upload the file.
+
+   {/* SCREENSHOT(step-4): Bitwarden web vault Import Data screen */}
+
+5. **Verify the count.** Bitwarden shows you how many items were imported. Compare against the source. If there is a mismatch, look at the import log — duplicates sometimes get flagged and skipped.
+
+6. **Spot-check 20 logins.** Pick 20 items at random. Check that username, password, URL, and notes all match. Pay extra attention to the ones with custom fields, TOTP secrets, and attachments — those are the fields that most often drop on import.
+
+   {/* SCREENSHOT(step-6): Bitwarden item detail showing all fields */}
+
+7. **Install the Bitwarden browser extension and mobile app.** Log in, unlock with your master password, let it sync. Test login flows on two sites you use daily.
+
+8. **Turn on 2FA for Bitwarden itself.** Settings → Security → Two-step Login. Add a TOTP authenticator (Aegis, Ente Auth, Proton Authenticator) and ideally a YubiKey. Print the recovery code and keep it offline.
+
+   {/* SCREENSHOT(step-8): Bitwarden 2FA setup */}
+
+9. **Securely delete the exported file.** It is plaintext passwords on disk. Empty it, then empty your trash / run a secure-delete if you are paranoid.
+
+10. **Delete the old manager account, or keep it in archive mode.** Once you have used Bitwarden for 7 days without incident, cancel the old manager and delete the account. Do not just stop paying — the vault stays intact. Explicitly delete.
+
+## Verify it worked
+
+- Log into two sites via Bitwarden's autofill. Both should work on first try.
+- Search for a specific, obscure login from the old manager. It should be in Bitwarden. If not, go back and re-import.
+- Try to log into the old manager. After deletion, login should fail.
+- Run the [scanner](/en/scan). Nothing in Bitwarden's flow should change your fingerprint — this is a sanity check that nothing went sideways.
+
+## Common pitfalls
+
+- Deleting the old manager before verifying the import. If the import dropped custom fields you did not notice, you are stuck.
+- Forgetting that TOTP secrets may not export. LastPass specifically does not export TOTP seeds in CSV. You will need to re-enroll those from scratch — another reason to keep the old manager accessible for a week.
+- Trusting the "0 errors" in the import dialog. Errors are visible; silent mismatches are not.
+- Reusing the master password from the old manager. If that manager was the reason you are migrating, the password may be exposed.
+
+## Known limits
+
+Migration moves credentials, not behavior. If your old manager was configured to autofill everywhere and you got used to that, Bitwarden's slightly more conservative defaults may feel clunky. This is a good thing — tune autofill behavior per-site rather than trusting it globally. It also does not change the fact that any password manager is only as secure as the master password and the 2FA on it.

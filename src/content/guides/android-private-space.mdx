@@ -1,0 +1,66 @@
+---
+title: "Android 15 Private Space"
+description: A second, lockable profile for sensitive apps. Hidden from the launcher, separate data, one tap to open.
+last_verified: 2026-04-18
+related:
+  - phone-os
+  - permissions-bitmap
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Android 15 or newer
+  - A lock screen PIN, pattern, or biometric
+---
+
+> **TL;DR.** Settings → Security & privacy → Private space → set it up with a separate lock. Install your sensitive apps inside. The space disappears from the launcher when locked and comes back when you unlock it.
+
+## Why this matters
+
+Android 15 introduced Private Space — a second profile on the same device, with its own Google account option, its own app data, and its own lock. When locked, the apps inside are hidden from the launcher, from recent apps, from notifications. It is designed for the moment someone hands you their phone and you do not want your banking, dating, or Signal icon visible.
+
+It is not about hiding from a well-resourced forensic examination. It is about the coworker glancing at your home screen and the partner who scrolls your recents.
+
+## What you need before starting
+
+- Android 15 or later. Pixels first, then most OEMs during 2025.
+- A lock screen credential already set.
+- A Google account you will use for the private space (can be the same as your main account or a separate one — separate is better).
+
+## Steps
+
+1. **Settings → Security & privacy → Private space.** On some OEM skins it is under "Privacy" or "More security settings." Tap "Set up." The system walks you through creation.
+
+   {/* SCREENSHOT(step-1): Private space setup entry */}
+
+2. **Sign in with a Google account.** Either your main one (if you just want app isolation) or a new one (if you want cleaner separation). You can skip this and still use most apps, but Play Store inside the space needs an account.
+
+3. **Set a separate lock.** Pick a different PIN, pattern, or biometric for the space. Do not use the same as your device lock — the whole point is a second barrier. A distinct 6-digit PIN is fine.
+
+   {/* SCREENSHOT(step-3): separate-lock prompt */}
+
+4. **Choose "Hide Private Space when locked" = On.** With this on, once locked the space disappears from the app drawer entirely. Someone swiping through your launcher would not know it exists.
+
+   {/* SCREENSHOT(step-4): hide-when-locked toggle */}
+
+5. **Open Private Space and install apps.** The space now shows as a locked section at the bottom of your app drawer. Tap it, unlock, and install what you want: banking, Signal, dating, healthcare portals, whatever you would rather not have visible. Apps installed here have their own data and do not share cookies or accounts with the main profile.
+
+6. **Set notification behavior per-app.** Inside the space, each app's notification setting is independent. If an app in the space buzzes when the space is locked, you may leak that it exists. Silence notifications for the loudest offenders, or set the space-wide "No notifications when locked" option.
+
+   {/* SCREENSHOT(step-6): per-app notification toggle in Private Space */}
+
+## Verify it worked
+
+- Lock the space (swipe down on the notification shade → Private Space → Lock, or from the launcher section). Scroll the app drawer. The Private Space section should disappear entirely.
+- Open an app inside the space — say, Signal. Back out and open regular Signal on the main profile. They should have different accounts, different message history, different contacts.
+- Plug the phone into a computer. File manager view only shows the main profile's data; the space's files are not exposed over USB unless you unlock it first.
+
+## Common pitfalls
+
+- Using the same PIN for the space as for your device lock. A casual snooper who knows your phone PIN unlocks the space too. Use something different.
+- Assuming Private Space survives a forensic dump. A full adb/system dump reads both profiles. This is not a defense against law enforcement with physical access and tooling.
+- Sideloading a banking app into the space and then being unable to log in because the bank's fraud system flags the new install. Give it a day of normal use to settle, and enable biometrics for the bank inside the space.
+- Forgetting the space lock. There is no recovery other than wiping the space entirely. Back up any data inside before you forget the PIN.
+
+## Known limits
+
+Private Space hides apps from casual visual inspection and isolates app data at the profile level. It does not make the data uniquely encrypted at rest beyond what the device already does, it does not hide network traffic, and it does not prevent notifications from ever leaking the app's existence (timing patterns, vibration). For cases where you need stronger guarantees, look at GrapheneOS's per-profile model.

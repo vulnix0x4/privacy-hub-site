@@ -1,0 +1,70 @@
+---
+title: "Tor Browser, first run"
+description: Install Tor Browser, understand what it actually protects against, and avoid the handful of mistakes that de-anonymize new users.
+last_verified: 2026-04-18
+related:
+  - browser
+  - ip-geolocation
+  - webrtc-local-ip
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Any desktop OS (Windows, macOS, or Linux)
+  - A stable internet connection
+---
+
+> **TL;DR.** Download Tor Browser from torproject.org. Do not resize the window. Do not install extensions. Do not log into your normal accounts. That is most of the threat model right there.
+
+## Why this matters
+
+Tor is the only widely-deployed tool that can hide your source IP from the site you are visiting without paying someone to trust you. It is also the tool people make the most mistakes with, because it looks like a regular browser. The mistakes are not subtle — they take you from "anonymous" to "here is my home IP and my real name."
+
+Ten minutes now saves you from the three or four things everyone does wrong the first time.
+
+## What you need before starting
+
+- Any modern desktop OS.
+- Enough bandwidth to download roughly 100 MB.
+- A clear intent — Tor is slow, and you should know what you are using it for. "Reading a site without it seeing my IP" is a fine answer. "Streaming Netflix" is not.
+
+## Steps
+
+1. **Go to torproject.org and download the browser.** Only use this URL. Do not search for "Tor Browser download" and click the first result — there are malicious mirrors. The official site is HTTPS, and the download page is at `torproject.org/download`.
+
+   {/* SCREENSHOT(step-1): torproject.org download page */}
+
+2. **Verify the signature if you can.** On the download page there is a "Verify signature" link with step-by-step instructions for your OS. This confirms the file was actually built by Tor Project and not swapped by a MITM. Skippable for casual use, required if you are at risk.
+
+3. **Install it like a normal app.** Windows: run the installer. macOS: drag into Applications. Linux: extract and run `start-tor-browser`. There is no system-level install — Tor Browser is portable by design.
+
+   {/* SCREENSHOT(step-3): Tor Browser installer on Windows */}
+
+4. **Launch it. Click "Connect."** You will see a connection dialog. For most people, "Connect" works. If Tor is blocked on your network (some corporate, campus, or state-level filters), click "Configure connection" and pick a bridge. `obfs4` bridges from the built-in list work for most cases.
+
+5. **Leave the window at its default size.** This is the one rule new users miss. Tor Browser ships with a fixed window size (roughly 1000x1000) called "letterboxing." If you maximize, you leak your exact screen dimensions, which is a strong fingerprint. Use it at default size.
+
+   {/* SCREENSHOT(step-5): Tor Browser at default window size with letterboxing */}
+
+6. **Do not install extensions.** Not uBlock, not a password manager, not your favorite dark mode. Tor Browser ships with everything it needs pre-configured, and every extension you add makes your browser unique among Tor users. uBlock is bundled. That is it.
+
+7. **Do not log into accounts tied to your real identity.** Logging into your Gmail over Tor connects your Tor traffic to your real name. If you want anonymous browsing, keep it anonymous. If you want a separate identity on Tor, create accounts from inside Tor Browser and never touch them from your clearnet browser.
+
+8. **Use the "New Identity" button when switching context.** The broom icon in the top-right. This closes all tabs, clears session state, and gets you a new circuit. Use it whenever you move between tasks that should not be linked to each other.
+
+## Verify it worked
+
+- Visit `check.torproject.org`. It should say "Congratulations. This browser is configured to use Tor."
+- Run our [scanner](/en/scan). Your IP should be an exit node from somewhere in Europe or North America, not your home ISP. WebRTC should show no local IP leak.
+- Your security level should be "Standard" at minimum. Click the shield in the toolbar, check "Security Level." "Safer" disables JavaScript on non-HTTPS sites; "Safest" disables it everywhere.
+
+## Common pitfalls
+
+- Maximizing the window. Letterboxing cannot protect you if you override it.
+- Adding uBlock when it is already there. Results in double-blocking and weird sites.
+- Logging into an account from both Tor and your regular browser. This links the two identities forever.
+- Using a VPN and Tor together without understanding the order. VPN-then-Tor is fine. Tor-then-VPN is almost always a mistake.
+- Downloading and opening files (PDFs, docs) through Tor Browser and then opening them in a normal app. The app may phone home and leak your IP. Disconnect first.
+
+## Known limits
+
+Tor hides your IP from the destination site and your ISP from the destination site. It does not hide your traffic from the exit node — if you visit HTTP sites (not HTTPS), the exit can read your traffic. It does not protect you if a site uses browser fingerprinting cleverly enough to ID you anyway, and it does not protect you from malware that runs locally. It also does not make you anonymous to sites where you are logged in.

@@ -1,0 +1,80 @@
+---
+title: "uBlock Origin: sensible defaults"
+description: Install uBlock Origin and configure the five settings that go beyond "block ads" into real tracker defense.
+last_verified: 2026-04-18
+related:
+  - browser
+  - third-party-cookies-storage
+  - cdn-bot-cookies
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Firefox, LibreWolf, or a Chromium fork that still supports MV2 (Brave, Edge, Chrome until Manifest V3 kills it)
+---
+
+> **TL;DR.** Install uBlock Origin from the official AMO or Chrome Web Store listing. Enable the default filter lists. Turn on "Block CSP reports" and "Disable prefetching." Add AdGuard Annoyances. That is the whole game.
+
+## Why this matters
+
+uBlock Origin is not an "ad blocker." It is a wide-spectrum request filter that kills ads as a side effect. The defaults are good; a few extra flips make them great. Do not install it alongside AdBlock Plus, Ghostery, Privacy Badger, or any other content blocker — they fight and lose and make pages slower than either would alone.
+
+In April 2026, MV2 is effectively dead on Chrome. uBO still works there via enterprise policies, but Firefox and forks (LibreWolf, Zen) are the place uBO is happiest. uBO Lite is the MV3 version and is fine for casual use but less capable.
+
+## What you need before starting
+
+- Firefox or a compatible browser. Chrome / Edge support depends on the month; check before you start.
+
+## Steps
+
+1. **Install uBlock Origin.** In Firefox: `addons.mozilla.org/firefox/addon/ublock-origin`. The publisher is "Raymond Hill." That is the one. Anything by another publisher is a clone.
+
+   {/* SCREENSHOT(step-1): uBO on AMO */}
+
+2. **Pin the extension button.** Click the puzzle-piece icon → Pin uBO to the toolbar. You want one-click access to the popup.
+
+3. **Open uBO's dashboard.** Click the icon → open the dashboard icon (top-right of the popup). Dashboard is where the config lives.
+
+   {/* SCREENSHOT(step-3): uBO dashboard landing */}
+
+4. **Enable recommended lists.** In the "Filter lists" tab, these are on by default and should stay on:
+   - uBlock filters (all of them)
+   - EasyList
+   - EasyPrivacy
+   - Peter Lowe's Ad and tracking server list
+
+   Also enable:
+   - AdGuard Annoyances (cookie dialogs, "subscribe to our newsletter" popups)
+   - uBlock filters – Annoyances
+   - Fanboy's Social Blocking List (kills social media widgets that double as trackers)
+
+   {/* SCREENSHOT(step-4): filter lists panel with recommended selections */}
+
+5. **Click "Apply changes."** Top-right. uBO downloads the lists. Takes 10 seconds.
+
+6. **Open the "Settings" tab and flip these three toggles:**
+   - "Prevent WebRTC from leaking local IP addresses" → on
+   - "Block CSP reports" → on
+   - "Disable pre-fetching (to prevent any connection for blocked network requests)" → on
+
+   The first matters if you use a VPN and want to stop WebRTC from revealing your real IP. The second blocks a common browser-side exfil channel. The third stops browsers from connecting to destinations you have not actually visited yet.
+
+   {/* SCREENSHOT(step-6): uBO settings panel with toggles */}
+
+7. **Leave the dashboard.** That is it. Do not open the "My filters" or "My rules" tabs unless you know what you are doing — bespoke rules are the most common way people brick their own browsing.
+
+## Verify it worked
+
+- Visit a news site that is usually drenched in ads. Page should load clean, faster, and with no cookie banner (if AdGuard Annoyances is on).
+- Open the [scanner](/en/scan). Third-party cookie probe should show "Blocked" on sites that use common tracker CDNs.
+- Click the uBO icon while visiting a page. You should see a request count — "Blocked: N requests." On a big news site, that number will be 30+.
+
+## Common pitfalls
+
+- Installing uBO alongside AdBlock Plus, Ghostery, or Privacy Badger. Pick one. uBO does everything the others do.
+- Turning on "advanced user mode" and then forgetting you did. The dynamic filtering matrix lets you break every site in 10 seconds. Leave it off unless you are actively configuring.
+- Assuming uBO replaces a VPN or a tracker blocker at the DNS level (Pi-hole, NextDNS). It blocks in-browser; network-level blocking catches apps and native code too. They layer.
+- Thinking you need to update filter lists manually. You do not. uBO auto-updates them every few days.
+
+## Known limits
+
+uBO blocks requests before they make a network call, and cosmetic filters hide leftover UI. It does not touch first-party trackers that run in-page without making any external request (rare but rising). It does not stop the page from reading your canvas or audio fingerprint — those are rendered in-process. Combine with Firefox's Fingerprinting Protection for that layer.

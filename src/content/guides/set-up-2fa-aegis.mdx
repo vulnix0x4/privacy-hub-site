@@ -1,0 +1,77 @@
+---
+title: "Set up Aegis for TOTP codes"
+description: Replace Authy, Google Authenticator, or SMS codes with an offline, encrypted TOTP app on Android. Export anytime.
+last_verified: 2026-04-18
+related:
+  - 2fa
+  - password-manager
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Android phone
+  - F-Droid or the Play Store
+---
+
+> **TL;DR.** Install Aegis. Set a passphrase. Enable biometric unlock. Scan or re-add each TOTP seed. Export an encrypted backup monthly. Stop using SMS 2FA everywhere you can.
+
+## Why this matters
+
+TOTP codes — the 6-digit rotating numbers — are one-way credentials. If the seed lives on a device, you can log in with them. The big mistake most people make: using Google Authenticator (opaque, no export, not encrypted) or Authy (cloud sync with a sad history of lock-ins and breaches, shutting down), or worse, accepting SMS codes.
+
+Aegis is open source, offline-first, encrypted, and supports reliable export. If you lose your phone, you restore from the backup and you are running again in two minutes. If the developer vanishes, the app still works.
+
+## What you need before starting
+
+- Android 6 or later.
+- A passphrase for the vault, at least 8 words, that you will not forget.
+- A place to keep an encrypted backup — cloud storage, email to yourself, Nextcloud, whatever.
+
+## Steps
+
+1. **Install Aegis.** From F-Droid (preferred) or the Play Store. Publisher is "Beem Development." Do not install apps named "Aegis Authenticator" by other developers — there are clones.
+
+   {/* SCREENSHOT(step-1): Aegis on F-Droid */}
+
+2. **Set an encryption passphrase.** On first run, pick "Password" or "Biometrics + Password." Use at least 8 words, memorable, not the same as your password manager master. This passphrase encrypts the vault on disk. No passphrase, no codes.
+
+   {/* SCREENSHOT(step-2): Aegis first-run encryption setup */}
+
+3. **Enable biometric unlock (optional).** Faster day-to-day. The biometric is a convenience layer on top of the passphrase, not a replacement.
+
+4. **Add your first TOTP seed.** Tap the "+" button. Pick "Scan QR code" and point at the QR your account provides during 2FA setup. Or pick "Enter manually" if you have the base32 secret.
+
+5. **Migrate existing seeds.** The painful part. For each account with TOTP:
+   - Log into the account.
+   - Go to Security → Two-factor settings.
+   - Disable 2FA (you will re-enable it).
+   - Re-enable 2FA. Scan the new QR with Aegis instead of your old app.
+   - Enter the 6-digit code to confirm, print the recovery codes.
+
+   Alternatively, if your old app is Google Authenticator or Authy and you can export, do that first — Aegis has import paths for both. Google Authenticator: tap "Export accounts" in the old app, scan the QR with Aegis.
+
+   {/* SCREENSHOT(step-5): Aegis importing a QR */}
+
+6. **Organize with groups.** Tap an entry → set a group: Work, Personal, Finance. You can filter by group, which is essential once you have 30+ entries.
+
+7. **Set up encrypted backups.** Settings → Backups → turn on "Enable Android Auto-Backup" OFF (it is plaintext-to-Google), and turn on Aegis's own encrypted backup. Pick a directory — internal storage, Nextcloud sync folder, Syncthing folder. Pick an interval (Weekly is fine). Aegis writes a `.json` file encrypted with your passphrase.
+
+   {/* SCREENSHOT(step-7): Aegis encrypted backup settings */}
+
+8. **Test the restore.** Copy the backup file off the phone. Uninstall Aegis. Reinstall. On first run, pick "Restore from backup" and import the file with your passphrase. All codes should come back. Do this once now so you know it works.
+
+## Verify it worked
+
+- Pull up a TOTP code in Aegis. Log into the matching account using that code. Should work on first try.
+- Check the backup file is actually encrypted — open it in a text editor, the contents should look like base64 garbage, not JSON with plaintext `secret:` fields.
+- Export once, then try to import back into a fresh Aegis install. Your vault should come back without issue.
+
+## Common pitfalls
+
+- Using Aegis's cloud-sync-via-Google-Drive-folder trick without confirming encryption is on. Without Aegis encryption, you just uploaded your TOTP seeds to Google.
+- Never testing the backup. People discover their backup never actually saved when they wipe their phone. Test it.
+- Keeping the old app installed "just in case." Eventually they drift apart — you add a new site to Aegis, forget to add it to Google Authenticator, wipe the phone, and the new site is gone.
+- Using SMS 2FA for the account that protects everything else (email, password manager). SMS is the single most SIM-swappable 2FA method. Replace it first.
+
+## Known limits
+
+TOTP is phishing-resistant in the sense that you need the seed, but a convincing phishing page can still ask for your code and use it within the 30-second window. For accounts that support passkeys or security keys, prefer those. Aegis protects the seeds if your phone is stolen (as long as it is locked) and gives you backup sovereignty — but if your passphrase is weak, a stolen phone plus a brute force makes it moot.

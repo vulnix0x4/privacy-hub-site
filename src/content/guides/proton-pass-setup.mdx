@@ -1,0 +1,74 @@
+---
+title: "Proton Pass from scratch"
+description: Set up Proton Pass as your password manager, migrate from Bitwarden or LastPass, and get hide-my-email aliases out of the box.
+last_verified: 2026-04-18
+related:
+  - password-manager
+  - email
+difficulty: easy
+time_minutes: 15
+prerequisites:
+  - A Proton account (free tier works)
+  - A device to install the extension on
+---
+
+> **TL;DR.** Sign up on the Proton website, install the browser extension and mobile app, import your existing vault, turn on 2FA with a security key. The alias generator is the feature that actually earns its keep.
+
+## Why this matters
+
+Proton Pass does what Bitwarden does, plus ships hide-my-email aliases as a first-class feature. Each new signup gets its own burn-able address. If a site leaks, you rotate one alias and move on. If you are already on Proton Mail, the integration is tight — aliases land in your inbox with the service name tagged.
+
+It is not for everyone. If you hate the Proton ecosystem, stay with Bitwarden. If you want aliases and are already paying for Proton, Pass is a no-brainer.
+
+## What you need before starting
+
+- A Proton account. Free works for Pass (with a cap on aliases — 10 on free). Paid plans lift the cap and add the `pm.me` domain.
+- A device (desktop + mobile).
+
+## Steps
+
+1. **Go to `pass.proton.me` and sign in.** If you already have Proton Mail, it is the same account. If not, click "Create account," use a strong passphrase, and verify email.
+
+2. **Set up your vault.** Proton Pass shows an onboarding flow. Pick whether you want to import, create from scratch, or both. You can skip and do it later.
+
+   {/* SCREENSHOT(step-2): Proton Pass onboarding screen */}
+
+3. **Install the browser extension.** Firefox: `addons.mozilla.org/firefox/addon/proton-pass`. Chrome: Chrome Web Store, search "Proton Pass." Pin to the toolbar. Log in with your Proton credentials.
+
+4. **Install the mobile app.** Play Store or App Store, search "Proton Pass." Log in. Enable biometric unlock.
+
+5. **Import from your old manager.** In the web vault (`pass.proton.me`) → Settings → Import. Proton Pass supports: Bitwarden JSON, 1Password (1PUX or CSV), LastPass CSV, Dashlane CSV, Chrome/Firefox native export, Keeper, and ~15 others.
+
+   Export your old vault. Upload. Confirm count matches.
+
+   {/* SCREENSHOT(step-5): Proton Pass import screen with source format dropdown */}
+
+6. **Create your first alias.** Click "New item" → "Hide-my-email alias" → pick a service name ("newsletter-signup") and the destination (your real Proton address or any forward). Copy the generated alias. That is now your signup address for that one service.
+
+   {/* SCREENSHOT(step-6): alias generation with the service-name field */}
+
+7. **Turn on 2FA on the Proton account.** `account.proton.me` → Settings → Authentication & Security → Two-factor authentication. Add TOTP from Aegis, and ideally enroll a YubiKey as a backup factor.
+
+   {/* SCREENSHOT(step-7): Proton account 2FA settings */}
+
+8. **Set up the autofill permission.** On first site visit, the extension will ask for permission to read/write forms. Grant it. On mobile: Settings → Passwords & autofill → Proton Pass → enabled.
+
+9. **Add your most-used logins to the vault.** The extension will detect existing form submissions and prompt to save. Tell it to save.
+
+## Verify it worked
+
+- Create an alias for a test signup. Confirm the welcome email lands in your Proton inbox with the service tag visible.
+- Rotate (disable) an alias. The source should now bounce or silently drop.
+- Log into two sites in a row with autofill. Smooth single-click.
+- Open Settings → Security. Proton Pass shows a password health report: reused, weak, and breached passwords. Triage.
+
+## Common pitfalls
+
+- Using `user+tag@proton.me` instead of aliases. The `+tag` trick is transparent to sites — they strip it. Use real hide-my-email aliases.
+- Exceeding the free-tier alias cap (10) and being surprised that new aliases fail. Either upgrade or delete old ones.
+- Using Proton Pass's built-in 2FA generator for your own Proton account login. That is a lockout waiting to happen — keep Proton's 2FA in a separate authenticator app.
+- Forgetting that aliases are visible in your Proton inbox headers. The sender sees the alias; your inbox sees the real source. Aliases do not hide your inbox from Proton itself.
+
+## Known limits
+
+Proton Pass encrypts the vault client-side with your Proton password. If you forget it, the recovery options depend on the keys you set up — Proton cannot reset it from scratch without data loss. Aliases rotate the sender-visible address but not the content; a site that already has your alias can correlate across leaks if the alias is public. The mobile autofill, as of early 2026, is still a step behind Bitwarden and 1Password on iOS — watch for occasional form-fill hiccups.

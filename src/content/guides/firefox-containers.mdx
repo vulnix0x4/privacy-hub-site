@@ -1,0 +1,68 @@
+---
+title: "Firefox Multi-Account Containers"
+description: Corral Google, Meta, work, and personal tabs into separate cookie jars so trackers stop following you across them.
+last_verified: 2026-04-18
+related:
+  - browser
+  - third-party-cookies-storage
+  - referrer-federated-login
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Firefox (any recent version)
+---
+
+> **TL;DR.** Install Multi-Account Containers. Assign Google, Meta, Amazon, and your bank to their own containers. Trackers from one container cannot see cookies from another. Ten minutes, and you stop leaving a trail between services.
+
+## Why this matters
+
+You log into Google. Google drops a cookie. You open a news site with a Google ad tag embedded. That ad tag can now call out to Google with your identity attached. Same game with Facebook Pixel, Amazon Associates, and everything else. ETP Strict blocks most of this already — containers plug the gaps and give you a way to sandbox a whole context (work, personal, shopping, banking) into its own cookie jar.
+
+It costs you nothing and breaks nothing.
+
+## What you need before starting
+
+- Firefox. Any recent version. Containers work in standard Firefox, not in forks like LibreWolf where they are already baked in differently.
+
+## Steps
+
+1. **Install Firefox Multi-Account Containers.** Go to `addons.mozilla.org` and search for "Multi-Account Containers." Install the official Mozilla extension — the icon is four colored squares. Install also "Facebook Container" (same developer) if you use Facebook at all.
+
+   {/* SCREENSHOT(step-1): AMO listing for Multi-Account Containers */}
+
+2. **Open the containers menu.** Click the icon in the toolbar. You will see four default containers — Personal, Work, Banking, Shopping. You can add more, rename, recolor, or delete.
+
+   {/* SCREENSHOT(step-2): containers menu with default four */}
+
+3. **Assign sites to containers.** Navigate to `google.com`. Click the containers icon, tick "Always open this site in..." and pick (or create) a "Google" container. Now every Google tab opens in that container. Repeat for:
+   - `facebook.com`, `instagram.com`, `threads.net` → Meta container
+   - `amazon.com` → Shopping
+   - your bank → Banking
+   - your main mail provider → a "Mail" container
+
+   {/* SCREENSHOT(step-3): site-to-container assignment prompt */}
+
+4. **Decide your daily browsing default.** If you never want a site to auto-assign, use "No Container" as the default. Most people stay with the default "Personal" for untagged traffic and assign noisy services to their own containers.
+
+5. **Turn on "Limit to Designated Sites."** In the container settings for Google/Meta/banking, enable "Open this site in this container only." Now if a link from another container tries to open Google, it reopens in the Google container, keeping the cookie jar isolated.
+
+   {/* SCREENSHOT(step-5): container lock-in setting */}
+
+6. **Use the right-click "Open in..." menu.** Sometimes you want to open one link in a different container temporarily — research, alt accounts, comparing logged-in vs logged-out behavior. Right-click a link → "Open Link in New Container Tab" → pick.
+
+## Verify it worked
+
+- Open two tabs: `google.com` in Google container, `duckduckgo.com` in Personal. Both tabs should load normally, but the URL bar for Google should have a colored stripe at the top and a container pill next to it.
+- Log into Google in the Google container. Open a new Personal tab, visit Google again — you should be logged out. That is isolation working.
+- Run the [scanner](/en/scan) in Personal, then again in a throwaway container. Third-party cookie behavior should differ between the two.
+
+## Common pitfalls
+
+- Opening "ze same site in multiple containers" is actually fine and sometimes useful (alt accounts). People get confused when the same Google page shows two different logins depending on the tab — that is the feature.
+- Assuming containers hide your IP. They do not. A VPN and containers are complementary, not a replacement for each other.
+- Mixing containers and "Multi-Account Containers" with a private window. Private windows are their own sandbox, containers do not apply there.
+- Assigning your bank to the Shopping container by accident. Then every Amazon tab shares state with your bank. Double-check assignments.
+
+## Known limits
+
+Containers isolate cookies, storage, and local site data. They do not isolate network-level fingerprinting, they do not change your IP, and they do not protect you from a site that ID's you from your fingerprint alone. For that, combine with Firefox's Fingerprinting Protection (FPP) and uBlock Origin.

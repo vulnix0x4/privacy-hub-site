@@ -1,0 +1,87 @@
+---
+title: "Turn on DNS-over-HTTPS (browser + OS)"
+description: Stop your ISP from seeing every domain you visit. Flip DoH in Firefox, Chrome, Windows, macOS, and Android in under ten minutes.
+last_verified: 2026-04-18
+related:
+  - dns
+  - dns-leaks
+difficulty: easy
+time_minutes: 10
+prerequisites:
+  - Any modern OS and browser
+---
+
+> **TL;DR.** Pick a resolver that is not your ISP (Mullvad, Quad9, NextDNS, Cloudflare). Flip it on in your browser AND your OS. Verify with a leak test. Ten minutes.
+
+## Why this matters
+
+Plain DNS sends every domain you look up to your ISP in cleartext. Netflix, your bank, that weird forum — all of it, every query, logged and in many jurisdictions sold. DoH tunnels those queries over HTTPS to a resolver of your choice. Your ISP sees encrypted traffic to the resolver and nothing else.
+
+Note: browser DoH only protects DNS inside that browser. Your other apps still use the OS resolver. So flip both.
+
+## What you need before starting
+
+- A modern OS (Windows 11, macOS 11+, any Linux with systemd-resolved or NetworkManager, Android 9+, iOS 14+).
+- A resolver to use. Good defaults:
+  - **Mullvad DNS** (`dns.mullvad.net`) — no logs, ad-blocking variants available, free even without a VPN account.
+  - **Quad9** (`dns.quad9.net`) — Swiss nonprofit, blocks known-malicious domains, no logging.
+  - **NextDNS** (`dns.nextdns.io/<your-id>`) — free tier + paid, full dashboard, per-device profiles.
+  - **Cloudflare** (`cloudflare-dns.com/dns-query`) — fastest for most people, moderate logging.
+
+## Steps
+
+### Browser-level DoH
+
+1. **Firefox.** Settings → Privacy & Security → DNS over HTTPS. Set "Max Protection" and pick a provider from the dropdown, or paste a custom URL. Restart the browser.
+
+   {/* SCREENSHOT(firefox): DoH settings in Firefox */}
+
+2. **Chrome / Edge / Brave.** Settings → Privacy and security → Security → Use secure DNS. Pick "With" and choose a provider. Paste a custom URL if yours is not listed.
+
+   {/* SCREENSHOT(chrome): Secure DNS setting in Chrome */}
+
+### OS-level DoH
+
+3. **Windows 11.** Settings → Network & Internet → your adapter → DNS server assignment → Edit → Manual → IPv4 on → Preferred DNS: `9.9.9.9` (Quad9), DNS over HTTPS: "On (automatic template)." Repeat for IPv6 and alternate DNS. Windows will show "Encrypted" next to the resolver if it is working.
+
+   {/* SCREENSHOT(windows): Win11 DoH adapter settings */}
+
+4. **macOS.** macOS does not have a built-in UI for DoH. Use a `.mobileconfig` profile from your resolver's website (Quad9, NextDNS, Mullvad all ship one). Download, double-click, approve in System Settings → General → VPN & Device Management.
+
+   {/* SCREENSHOT(macos): installing a DoH mobileconfig profile */}
+
+5. **Linux (systemd-resolved).** Edit `/etc/systemd/resolved.conf`:
+   ```
+   [Resolve]
+   DNS=9.9.9.9#dns.quad9.net
+   DNSOverTLS=yes
+   ```
+   Then `sudo systemctl restart systemd-resolved`. Note this is DoT, not DoH — `systemd-resolved` does not support DoH natively. For DoH, run `dnscrypt-proxy`.
+
+6. **Android 9+.** Settings → Network & Internet → Private DNS → Private DNS provider hostname → enter `dns.quad9.net` (or `dns.mullvad.net`, or `<your-id>.dns.nextdns.io`). Tap save. This is system-wide — all apps use it.
+
+   {/* SCREENSHOT(android): Private DNS setting */}
+
+7. **iOS 14+.** Install a DNS profile from your resolver (Mullvad, NextDNS, Quad9 all have iOS profile installers on their sites). Settings → General → VPN, DNS, & Device Management → accept the profile. Then Settings → General → VPN & DNS → DNS → pick the installed profile.
+
+### Final touches
+
+8. **Disable fallback to your ISP's DNS.** On most OSes, if DoH fails, the system falls back to plaintext DNS. For privacy-strict setups, turn that off — in Windows adapter settings, uncheck "Fall back to plaintext DNS"; in Firefox, use Max Protection mode.
+
+## Verify it worked
+
+- Run the [scanner](/en/scan) DNS leaks probe. It should report your resolver, not your ISP.
+- Visit `dnsleaktest.com` → Extended test. The servers shown should belong to your chosen resolver's ASN. If you see an ISP ASN, DoH is not being honored.
+- `curl -sS 'https://1.1.1.1/cdn-cgi/trace' | grep warp` (on Cloudflare users) shows whether you are on their DoH.
+- For Mullvad: visit `mullvad.net/check`. It will tell you if you are using Mullvad DNS specifically.
+
+## Common pitfalls
+
+- Setting browser DoH only. Your Discord, Steam, and system updates still leak to your ISP.
+- Leaving IPv6 on ISP DNS. Most setups need both v4 and v6 DoH. Check both.
+- Using Cloudflare for everything and then discovering your company VPN requires ISP DNS for split tunneling. Disable DoH per-network.
+- Using a VPN with its own DNS AND a different OS-level DoH. Results vary. Pick one — usually the VPN's DNS when connected, which most apps handle automatically.
+
+## Known limits
+
+DoH hides domain lookups from your ISP. It does not hide the IP you connect to after the lookup — your ISP still sees "traffic to Cloudflare" for a site on Cloudflare. It does not protect against the resolver itself if it is malicious or subpoenaed. It also does not help against SNI sniffing, which still reveals the hostname to the middle network; ECH (Encrypted Client Hello) is the fix for that and is spreading slowly.

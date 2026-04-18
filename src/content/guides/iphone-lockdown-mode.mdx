@@ -1,0 +1,62 @@
+---
+title: "iPhone Lockdown Mode"
+description: Turn on Apple's high-risk user profile. Five minutes, big drop in attack surface, some apps will complain.
+last_verified: 2026-04-18
+related:
+  - phone-os
+  - permissions-bitmap
+difficulty: easy
+time_minutes: 5
+prerequisites:
+  - iPhone running iOS 16 or later
+  - About five minutes and willingness to restart
+---
+
+> **TL;DR.** Settings → Privacy & Security → Lockdown Mode → Turn On. Restart. iMessage attachments, Safari JIT, and some web APIs get stripped. Journalists, dissidents, and targets of mercenary spyware benefit. Normal users may find it annoying.
+
+## Why this matters
+
+Lockdown Mode is Apple's response to NSO-style mercenary spyware. It disables the parts of iOS with the most attack surface — message attachments, just-in-time JavaScript, a pile of web APIs, certain wireless features, and some configuration profiles. It is not for everyone. If you are a journalist, an activist, an elected official, an executive of a geopolitically interesting company, or someone a motivated attacker might spend six figures to compromise, turn it on.
+
+If you are not any of those, you can still turn it on. It will sometimes be annoying.
+
+## What you need before starting
+
+- An iPhone on iOS 16 or newer (17+ recommended).
+- A few minutes. It requires a restart.
+- Heads-up for anyone who sends you attachments that they may break.
+
+## Steps
+
+1. **Open Settings. Tap Privacy & Security.** Scroll to the bottom of that menu. Lockdown Mode is the last item.
+
+   {/* SCREENSHOT(step-1): Settings > Privacy & Security > Lockdown Mode */}
+
+2. **Tap Lockdown Mode. Read the explanation.** Apple lists what changes. Message attachments other than images are blocked. Links in messages are stripped of previews. Safari disables JIT compilation. FaceTime invitations from unknown callers are blocked. Shared albums are removed. Configuration profiles cannot be installed.
+
+3. **Tap "Turn On Lockdown Mode."** You will get one more confirmation dialog. Confirm.
+
+   {/* SCREENSHOT(step-3): Turn On Lockdown Mode confirmation */}
+
+4. **Restart when prompted.** Lockdown Mode requires a reboot to take full effect. Let it restart.
+
+5. **Exclude apps individually if needed.** After reboot, you can go back to Settings → Privacy & Security → Lockdown Mode → Configure Web Browsing, and excluded sites where JIT is required. Same for configuration profiles if you need an MDM profile at work.
+
+   {/* SCREENSHOT(step-5): per-app Lockdown Mode exception list */}
+
+## Verify it worked
+
+- Open Safari. Top of the page (near the URL bar), tap the "AA" icon. You should see "Lockdown Mode Enabled."
+- Ask a friend to send you a PDF over iMessage. You should get a notification but the attachment will not auto-render.
+- Visit a WebAssembly-heavy site — Figma, a browser game. It should run noticeably slower or refuse certain features. That is the JIT downgrade doing its job.
+
+## Common pitfalls
+
+- Expecting Lockdown Mode to protect Signal, WhatsApp, or third-party messengers. It only hardens Apple's own services. Third-party apps run their own code paths.
+- Installing an MDM profile on a work iPhone while Lockdown Mode is on. It will refuse, and IT will blame you. Either turn it off while enrolling or add the profile to the exclusion list after.
+- Enabling it on a family member's iPhone as a "just to be safe." They will hit the first broken iMessage attachment and rage-uninstall it. Either talk them through the tradeoffs or leave it off.
+- Assuming Lockdown Mode is a replacement for a pin, biometrics, or keeping iOS updated. It is additive, not a silver bullet.
+
+## Known limits
+
+Lockdown Mode reduces attack surface in iOS and Safari. It does not protect against compromised apps you install yourself, social engineering, SIM swaps, physical access, or attackers with a zero-day that does not go through any of the disabled paths. If you have been specifically targeted and have good reason to believe your device is already compromised, Lockdown Mode is not a cleanup — it is a preventative.
