@@ -11,30 +11,100 @@ related:
   - webgl-fingerprinting
 ---
 
-> **TL;DR.** A script generates a triangle wave through a `DynamicsCompressorNode`, captures a few hundred samples, and sums or hashes them. Floating-point math, audio drivers, and CPU instruction sets perturb the output. Same machine always returns the same number.
+## also known as: AudioContext fingerprint, OfflineAudioContext fingerprint, Web Audio API fingerprinting, compressor-node hash
+
+> **TL;DR** — A script builds a silent audio graph (oscillator → compressor → analyser), processes a few hundred samples offline, and hashes the output. Floating-point math, CPU instruction paths, and the browser's audio engine perturb the result. Same machine always returns the same number — runs headless, without speakers, and without any permission prompt.
+> Severity: critical
+> Prevalence: very-common
 
 This is one of the oldest and most reliable fingerprints. It works headless, works without speakers, works without permission.
 
-## How it works
+## How it works (plain English)
 
-The Web Audio API was designed for music and games but exposes a silent `OfflineAudioContext`. A site builds a short audio graph: oscillator -&gt; compressor -&gt; analyser -&gt; nothing audible. The compressor's nonlinear math depends on the exact floating-point implementation, which depends on the CPU, the OS audio stack, and how the browser compiled the audio nodes. The output, summed to a single float, is your fingerprint.
+The Web Audio API was designed for music and games — synthesizing sounds, mixing audio tracks, processing microphone input for effects. One capability it has is running the whole audio pipeline **offline**: instead of playing sound through your speakers in real time, the browser computes what the audio **would** have sounded like, as fast as the CPU can run, and hands the numeric samples back to the script. This was meant for rendering final audio for export.
 
-The trick is famous because Mowery and Shacham published it in 2012. Twelve years later it still works in every browser that has not specifically farbled it.
+Fingerprinters hijacked that. They build a tiny audio graph: a synthesizer that generates a triangle wave, feeding into a dynamics compressor, feeding into an analyser node that just captures the output. No speakers needed — the graph runs entirely offline. The compressor's internal math involves a lot of floating-point operations. Those operations are subject to small numeric differences depending on the exact CPU instructions the browser uses, how the audio engine was compiled, the audio driver path, and sometimes the OS kernel. Run the same test twice on the same machine: same output. Run it on a different machine: different output.
 
-## What it leaks about you
+The trick is that muting your speakers does not help. The audio is never played — it is computed. The whole thing happens in a few milliseconds, invisibly, on page load, with no user interaction.
 
-A stable per-machine identifier with around 5-7 bits of entropy on its own and with much more when joined to canvas, WebGL, and font enumeration.
+## How it works (technical)
+
+```js
+const ctx = new OfflineAudioContext(1, 44100, 44100);
+const osc = ctx.createOscillator();
+osc.type = 'triangle';
+osc.frequency.setValueAtTime(10000, ctx.currentTime);
+const compressor = ctx.createDynamicsCompressor();
+compressor.threshold.setValueAtTime(-50, ctx.currentTime);
+compressor.knee.setValueAtTime(40, ctx.currentTime);
+compressor.ratio.setValueAtTime(12, ctx.currentTime);
+compressor.attack.setValueAtTime(0, ctx.currentTime);
+compressor.release.setValueAtTime(0.25, ctx.currentTime);
+osc.connect(compressor);
+compressor.connect(ctx.destination);
+osc.start(0);
+const buf = await ctx.startRendering();
+const samples = buf.getChannelData(0).slice(4500, 5000);
+const sum = samples.reduce((a, b) => a + Math.abs(b), 0); // single float, stable per machine
+```
+
+The `DynamicsCompressorNode` is the canonical choice because its algorithm involves exponential math (for the attack/release envelope) and absolute-value operations that expose subtle differences in the C++ implementation and the floating-point rounding mode. In practice, the summed `sum` varies across a narrow band — the published entropy is around 5-7 bits per machine on its own.
+
+Mowery and Shacham's 2012 Princeton paper *Pixel Perfect* briefly covered audio alongside canvas; the first standalone study was from CertSimple in 2017 (an early product that shipped audio fingerprinting as a commercial ID), later written up by Peter Snyder et al. (*Browser Feature Usage on the Modern Web*, IMC 2016). Engelhardt & Narayanan's 2016 CCS crawl found audio fingerprinting on 2,000+ of the top 1M sites. Laperdrix 2020 reports audio as a "consistent secondary vector" — low bits on its own, but stable across months and easy to combine with canvas and WebGL.
+
+In 2020 the Gecko/Firefox team reverse-engineered the compressor algorithm and confirmed that the output depends on the CPU's implementation of x87 or SSE2 floating-point depending on build flags. The Laperdrix/Petit-Bianco FPP patches introduced additive noise in the audio rendering path to farble the hash without breaking Web Audio for legitimate use.
+
+## Who uses this, and why
+
+FingerprintJS, ThreatMetrix, Iovation, MaxMind minFraud, Sift, Forter, SEON, Kount. Every commercial fingerprinting and anti-fraud vendor records the audio hash as part of their cross-browser ID. Ad-tech device-graph vendors (LiveRamp, ID5, Tapad) use it as a secondary input to cluster users across cookie boundaries.
+
+CDN bot-management (Cloudflare, Akamai, Imperva, PerimeterX/HUMAN) uses it as a consistency check: a claimed mobile Safari with a desktop-style audio hash is inconsistent and bot-flagged. Headless browsers historically had a distinctive, low-variance audio fingerprint; modern stealth automation tools explicitly farble the audio path to match real browser populations.
+
+Research: Mowery & Shacham 2012 (initial observation, CCS); Englehardt & Narayanan 2016 (large-scale measurement); Laperdrix 2020 (entropy survey); Olejnik's 2017 blog posts on W3C WG privacy implications. The vector is twelve years old and still works on every browser that has not specifically farbled it.
+
+## What it reveals about you
+
+A stable per-machine identifier with around 5-7 bits of entropy on its own. Combined with canvas, WebGL, and font enumeration, it contributes ~25-27 bits to the joint fingerprint, which is enough for per-user uniqueness across populations in the tens of millions. The audio hash is unusually stable across browser updates and OS patches — it changes only when the audio engine itself is recompiled, which happens rarely.
+
+Indirectly it reveals your CPU family (ARM vs x86, AVX support) and OS audio stack (CoreAudio, WASAPI, ALSA/PulseAudio). Headless browsers without a full audio backend produce a distinct "null" hash that labels them headless.
 
 ## How to defend
 
-- 🟢 Tor Browser and Mullvad Browser return a uniform audio fingerprint.
-- 🟢 Firefox FPP and Brave both farble the AudioContext output.
-- 🟡 Disabling the Web Audio API entirely breaks most modern sites; not recommended.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Tor Browser and Mullvad Browser return a uniform audio fingerprint across all users. Firefox FPP (via `privacy.fingerprintingProtection`) farbles the AudioContext output on a per-session basis, so cross-session linking breaks.
 
-Muting your speakers. The audio is never played; it is computed offline.
+### Level 2: Install a free tool 🟡
 
-## Try it
+Brave applies audio farbling via the shields fingerprinting-protection system by default. Librewolf ships Firefox with FPP on. The **AudioContext Fingerprint Defender** extension (Firefox/Chrome) adds per-session noise at the `OfflineAudioContext` output — effective but adds a small rendering-latency overhead.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run the browser in a fresh VM for each high-stakes session. Disabling Web Audio via `about:config` → `dom.audiocontext.testing.enabled = false` in Firefox (and the equivalent Chromium runtime flag) is technically possible but breaks any site using audio, including most video calls.
+
+### What doesn't help
+
+Muting your speakers. The audio is never played — it is computed offline in a few milliseconds. A VPN does not touch audio rendering. Incognito/private mode in Chrome does not farble audio. Disabling JavaScript for one site — you turn it back on for the next and re-leak.
+
+## Tools that help
+
+- **Brave** — audio farbling by default via shields.
+- **Tor Browser / Mullvad Browser** — uniform audio identity across all users.
+- **Firefox + FPP** — per-session farbling.
+- **Librewolf** — Firefox fork with FPP on by default.
+- **AudioContext Fingerprint Defender** — browser extension, per-session noise injection.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/audio](https://browserleaks.com/audio) — reference test
+- Mowery & Shacham, *Pixel Perfect: Fingerprinting Canvas in HTML5* (2012) — introduces the audio vector
+- [creepjs](https://abrahamjuliot.github.io/creepjs/) — audio entropy live
+- Englehardt & Narayanan, *Online Tracking: A 1-million-site Measurement and Analysis* (CCS 2016)
+
+## Known limits
+
+Audio-only defences leave canvas, WebGL, fonts, and 20+ other vectors untouched. Per-session farbling defeats cross-session linking but not single-session identification. Uniform audio (Tor Browser approach) breaks some legitimate uses — Web Audio is used by every browser DAW, every browser-based music app, and many voice-call apps for processing. The audio fingerprint is a single line item in a thicket of fingerprints; a browser-level strategy is the only coherent answer.

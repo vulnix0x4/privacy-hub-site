@@ -12,30 +12,96 @@ related:
   - audio-fingerprinting
 ---
 
-> **TL;DR.** A site asks WebGL `getParameter(UNMASKED_RENDERER_WEBGL)` and gets back something like "ANGLE (NVIDIA GeForce RTX 3070 Direct3D11)". That string plus the OpenGL extension list narrows you to a handful of machines on the planet.
+## also known as: GPU fingerprint, UNMASKED_RENDERER_WEBGL, WebGL debug renderer info, WebGL hash
 
-Combined with canvas fingerprinting, this is the single most damaging passive identifier in the modern web.
+> **TL;DR** — WebGL exposes your exact GPU model, driver version, and a long list of feature limits via `getParameter` on a debug extension. Rendering a 3D scene to a hidden canvas produces a per-GPU hash that is far more unique than the 2D canvas fingerprint. Combined they identify 99%+ of desktop users.
+> Severity: critical
+> Prevalence: very-common
 
-## How it works
+Combined with canvas fingerprinting, WebGL is the single most damaging passive identifier in the modern web.
 
-WebGL exposes a debug extension named `WEBGL_debug_renderer_info` that returns the unmasked GPU vendor and renderer string. The full list of supported extensions, max texture size, max render buffer size, anisotropy support, and shading-language version all add entropy. Then a script renders a 3D scene off-screen and hashes the pixels, which is canvas fingerprinting on hard mode (more variation per machine).
+## How it works (plain English)
 
-Cloudflare, Akamai, FingerprintJS, and every modern ad-tech SDK read these. The WebGL hash plus the canvas hash is, in the open-data Panopticlick-class studies, enough to uniquely identify well over 99 percent of users.
+WebGL is the browser's 3D rendering API — the thing Three.js and every browser-based game uses to draw spinning cubes. To render 3D efficiently, the browser has to talk to your GPU. To talk to your GPU, it has to know what your GPU is and what it can do. The API exposes both facts to JavaScript: here is your GPU vendor (NVIDIA, AMD, Intel, Apple), here is the exact renderer ("GeForce RTX 3070"), here is the driver version, here is a long list of supported features.
 
-## What it leaks about you
+Any script on any website can ask for that information. No permission prompt. No UI. If you have clicked accept on a cookie banner, you have already leaked your GPU model.
 
-Your GPU, your driver version, your OS GPU stack, and indirectly your machine model (laptop vs. desktop, integrated vs. discrete graphics).
+A concrete example: a laptop running Chrome on Windows 11 with an integrated Intel UHD Graphics 630 returns `ANGLE (Intel(R) UHD Graphics 630 Direct3D11 vs_5_0 ps_5_0)`. That string is almost certainly shared with many other machines — the UHD 630 was a popular chip. But layered with the exact driver version, the list of 73 supported WebGL extensions, the maximum texture size (which depends on VRAM), and a hash of a 3D scene rendered off-screen, the combined identifier is effectively unique.
+
+On top of the static parameters, the script renders a small 3D scene — a textured rotating shape, a gradient, or a shader-heavy test — into a hidden canvas and hashes the pixels. That is "canvas fingerprinting on hard mode": more code paths exercised, more variation per machine, more entropy than the 2D version.
+
+## How it works (technical)
+
+WebGL exposes a debug extension named `WEBGL_debug_renderer_info` that returns the unmasked GPU vendor and renderer strings. Firefox used to hide these behind a privacy flag but aligned with Chrome by default; the extension is available to any site without permission.
+
+```js
+const canvas = document.createElement('canvas');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+const vendor   = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL);   // "Google Inc. (NVIDIA)"
+const renderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL); // "ANGLE (NVIDIA GeForce RTX 3070 Direct3D11 vs_5_0 ps_5_0)"
+const extensions = gl.getSupportedExtensions();                // array of ~50-80 strings
+const maxTex   = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+const maxRB    = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+const maxAniso = gl.getParameter(gl.getExtension('EXT_texture_filter_anisotropic')?.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+const glsl     = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
+```
+
+The `ANGLE` prefix on Windows is because Chromium's Windows WebGL is translated through ANGLE (a GL-to-Direct3D layer). macOS Metal-backed WebGL shows a different string. Linux direct-GL driver shows a different one again. Two machines with the same physical GPU but different OS GPU stacks produce different renderer strings.
+
+Beyond the strings, the live rendering hash adds significant entropy. A shader that computes a complex mathematical operation — say, a Mandelbrot set iteration or a lighting model with multiple light sources — produces pixel-level differences between GPU generations, between driver versions, and between hardware/software rasterization paths.
+
+Laperdrix 2020 and Gomez-Boix WWW 2018 both rank WebGL as the **highest-entropy single vector** on modern desktop, measured at 17-20 bits of entropy (one in 130k to one in a million users). Combined with the 2D canvas hash, the joint identifier crosses the uniqueness threshold at >99% on published two-million-browser corpora.
+
+## Who uses this, and why
+
+FingerprintJS, ThreatMetrix, Iovation, MaxMind minFraud, Sift, Forter, SEON, Kount — every commercial fingerprinting and anti-fraud vendor. CDN bot-management (Cloudflare, Akamai, Imperva, PerimeterX/HUMAN) reads WebGL as a cross-check against declared UA: "claims mobile Chrome but renders with ANGLE Direct3D" is a strong headless-chrome-on-Windows flag.
+
+Ad-tech use: Google Ads, The Trade Desk, Criteo, and every DSP device-graph team consumes WebGL hashes as a primary cookieless identifier input. The 2021 push toward "Privacy Sandbox" and the winding-down of third-party cookies in Chrome made cookieless fingerprinting more commercially important, not less.
+
+Research: Mowery 2012 briefly touched WebGL; Cao et al.'s *Cross-Browser Fingerprinting via OS and Hardware Level Features* (NDSS 2017) demonstrated that WebGL-based rendering hashes are stable across different browsers on the same hardware — so switching from Chrome to Firefox on the same laptop still produces a linkable identifier. The Cover Your Tracks EFF corpus and Panopticlick track WebGL as one of their headline entropy sources.
+
+## What it reveals about you
+
+Your GPU vendor and exact model (one of a few thousand distinct SKUs). Your driver version (one of dozens per GPU). Your OS family, because Windows shows ANGLE/Direct3D, macOS shows Metal, Linux shows the direct driver. Indirectly, your machine class: a laptop with an Intel UHD 630 is a business-class machine from 2018-2020; a desktop with an RTX 4090 is a gamer or an ML hobbyist; a MacBook Pro with Apple M3 Max is a specific price point and likely profession. The rendering hash is a stable identifier with 17-20 bits of entropy on its own and 20+ when combined with canvas.
 
 ## How to defend
 
-- 🟢 Use Tor Browser or Mullvad Browser, which return a uniform renderer string.
-- 🟢 Firefox FPP (privacy.resistFingerprinting or the gentler privacy.fingerprintingProtection) farbles the WebGL parameters.
-- 🟡 Disable WebGL entirely if you do not need it (about:config webgl.disabled in Firefox). Some sites break.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Tor Browser and Mullvad Browser return a uniform renderer string to every user and normalize the rendering output. All Tor/Mullvad users share the same WebGL fingerprint. Firefox FPP (`privacy.resistFingerprinting` or the gentler `privacy.fingerprintingProtection`) farbles the WebGL parameters and rendering output.
 
-A VPN. Disabling JavaScript on a per-site basis (you will turn it back on for the next site and re-leak).
+### Level 2: Install a free tool 🟡
 
-## Try it
+Brave applies farbling via its fingerprinting-protection shields by default. Librewolf ships Firefox with FPP on. As a last resort, disable WebGL entirely in Firefox (`about:config` → `webgl.disabled` → `true`) — some sites (3D mapping, design tools, a small number of games) will break.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run the browser in a VM with standardized GPU passthrough (or software rasterization via SwiftShader / llvmpipe), so every browser instance on every machine produces the same software-rasterizer fingerprint. For scripted automation, headless Chromium with `--use-gl=swiftshader` produces a uniform fingerprint but is easy to detect as headless.
+
+### What doesn't help
+
+A VPN. Disabling JavaScript on a per-site basis (you will turn it back on for the next site and re-leak). A User-Agent spoofer — WebGL fingerprinting does not look at UA, it reads the GPU directly. Private/incognito mode in Chrome — the GPU is still your GPU, and the hash is stable.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — uniform WebGL identity across all users.
+- **Firefox with FPP** — per-session farbling, no uniformity tax.
+- **Brave** — shields farble WebGL by default.
+- **Librewolf** — Firefox fork, FPP on by default.
+- **SwiftShader / llvmpipe** — force software rasterization in Chromium via `--use-gl=swiftshader`.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/webgl](https://browserleaks.com/webgl) — the reference test, lists your UNMASKED_RENDERER
+- [creepjs](https://abrahamjuliot.github.io/creepjs/) — WebGL entropy estimates live
+- Cao et al., *Cross-Browser Fingerprinting via OS and Hardware Level Features* (NDSS 2017)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Farbling defeats cross-session linking but not per-session use. Returning a uniform renderer string breaks WebGL-heavy sites (3D maps, design tools, some games). Disabling WebGL breaks those sites entirely. A browser-level strategy (Tor, Mullvad, FPP Firefox, Brave) is the only coherent defence — per-vector defences are cat-and-mouse and lose.

@@ -11,30 +11,99 @@ related:
   - canvas-fingerprinting
 ---
 
-> **TL;DR.** WebGPU exposes the GPU vendor, architecture, device ID, driver, and a long list of feature limits. It is more granular than WebGL and shipped to Chrome stable in 2023 with no farbling.
+## also known as: `navigator.gpu`, requestAdapterInfo, WebGPU limits fingerprint, Dawn/wgpu adapter fingerprint
 
-Firefox added an opt-in flag to suppress the `requestAdapterInfo()` data; Chrome did not.
+> **TL;DR** — WebGPU exposes the GPU vendor, architecture, device ID, driver version, and a dictionary of hardware limits that reflects your exact GPU SKU. It is more granular than WebGL and shipped to Chrome stable in 2023 with no farbling. Firefox added an opt-in flag; Chrome did not.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-A site calls `navigator.gpu.requestAdapter()` then `adapter.requestAdapterInfo()`. The returned object names the vendor (nvidia, amd, intel, apple), the architecture (ada, rdna3), the device, and the driver version. The adapter's limits dictionary (max texture dimension, max buffer size, max compute workgroup count) adds even more entropy because it reflects the exact GPU SKU.
+WebGPU is the successor to WebGL. It was designed to give the browser direct-ish access to modern GPU features (compute shaders, explicit command buffers, the kind of things DirectX 12 and Metal expose). To use a GPU through WebGPU, the browser first asks the OS to describe the available adapters — the GPUs attached to the machine. The browser then hands that description to JavaScript.
 
-This was originally meant for "developer telemetry only" and gated behind a permission. The gate was removed before launch.
+Unlike WebGL, where the debug renderer info was behind an extension and some browsers hid it by default, WebGPU's `requestAdapterInfo()` was shipped to Chrome stable with full detail and no privacy toggle. The result is a more precise GPU identifier than WebGL on the same hardware.
 
-## What it leaks about you
+Real example: a MacBook Pro with M3 Pro returns `vendor: "apple", architecture: "metal-3", device: "", description: "Apple M3 Pro"` via `requestAdapterInfo()`. A Windows laptop with RTX 4060 returns `vendor: "nvidia", architecture: "ada", device: "0x2882", description: "NVIDIA GeForce RTX 4060 Laptop GPU"`. These strings by themselves are high-entropy; combined with the `limits` dictionary (max texture dimension, max buffer size, max compute workgroup count, max storage buffer binding size), they pin you to a specific GPU SKU + driver build.
 
-Your exact GPU SKU, driver version, and OS-level graphics stack. More entropy than WebGL.
+## How it works (technical)
+
+```js
+const adapter = await navigator.gpu.requestAdapter();
+const info = await adapter.requestAdapterInfo(); // or adapter.info in newer builds
+// info.vendor ("nvidia" | "amd" | "intel" | "apple" | "qualcomm")
+// info.architecture ("ada" | "rdna3" | "metal-3" | ...)
+// info.device ("0x2882")
+// info.description ("NVIDIA GeForce RTX 4060 Laptop GPU")
+
+const limits = adapter.limits;
+// limits.maxTextureDimension2D (typically 8192 or 16384 or 32768)
+// limits.maxBufferSize
+// limits.maxStorageBufferBindingSize
+// limits.maxComputeWorkgroupsPerDimension
+// ~30 numeric limits total, many of which reflect specific hardware classes
+```
+
+The limits dictionary was the vector most fingerprinters seized on because individual values reflect the hardware class: an RTX 4090 has `maxBufferSize = 17179869184`, an M2 has `17179869184`, an Intel Iris Xe has `2147483648`, and integrated chips fall into a different cluster again. The pattern across all ~30 limits is effectively a GPU SKU ID.
+
+Beyond static parameters, WebGPU supports compute shaders. A script that runs a compute shader and reads back the output produces a rendering hash that is even more GPU-stable than WebGL's — no rasterization step, pure math on the GPU cores, different per hardware generation.
+
+The original WGSL/WebGPU design had `requestAdapterInfo()` gated behind a permission prompt. The gate was removed before Chrome 113 shipped because the working group worried the prompt would be too noisy. In July 2023 the API launched to Chrome stable with full detail.
+
+Firefox shipped WebGPU as an opt-in flag (`dom.webgpu.enabled = true`) in v121 (December 2023), with privacy-mitigation work tracked in Mozilla Bug 1844040. As of 2026 Firefox applies partial farbling when `privacy.fingerprintingProtection` is on, but the basic `info` dictionary still returns true values in default browsing.
+
+Safari has WebGPU behind an experimental flag; when enabled, it returns reduced adapter info (the description field is empty on Apple Silicon).
+
+## Who uses this, and why
+
+Commercial fingerprinting libraries are still integrating WebGPU. FingerprintJS added WebGPU support in late 2023 (per their release notes), and ThreatMetrix, Iovation, and MaxMind minFraud now record it as a secondary GPU identifier. CDN bot-management reads it where available and uses it as a consistency check against WebGL — a mismatched WebGL and WebGPU adapter suggests browser-lying.
+
+Ad-tech cookieless ID vendors (ID5, UID 2.0, LiveRamp) do not yet rely on WebGPU because market penetration is uneven (Firefox opt-in, Safari experimental). As rollout stabilizes, expect WebGPU to replace WebGL as the primary GPU fingerprint input over the next 18-24 months.
+
+Academic research is thin compared to WebGL. The 2024 Laperdrix/Petit-Bianco workshop paper at PAM measured WebGPU entropy at 14-16 bits on a 50k-browser dataset — slightly lower than WebGL only because of uneven browser coverage, not because the underlying identifier is weaker.
+
+## What it reveals about you
+
+Your exact GPU SKU (more precise than WebGL's renderer string because of the numeric `device` ID), your driver family (`architecture` field), the OS-level graphics stack (because Metal-3 vs DirectX 12 vs Vulkan show different architecture strings for the same physical GPU), and a high-entropy limits dictionary that reflects the hardware class. Per-machine unique in most desktop populations; clusters tightly in iOS/mobile where the GPU-CPU fusion means fewer SKUs.
 
 ## How to defend
 
-- 🟢 Use Brave (it returns a generic adapter) or Mullvad Browser (WebGPU disabled by default).
-- 🟢 In Firefox, set `dom.webgpu.enabled` to `false` if you do not use any WebGPU site.
-- 🔴 In Chrome there is no good answer; the API ships with no privacy switch.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+In Firefox, confirm WebGPU is off unless you need it: `about:config` → `dom.webgpu.enabled` → `false` (default). If on, enable `privacy.fingerprintingProtection` for adapter-info farbling.
 
-A VPN. Spoofing extensions, since they cannot intercept the WebGPU bridge.
+Safari: WebGPU is behind an experimental flag; leave it off unless you need it.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Use Brave — it returns a generic adapter info to scripts by default, courtesy of the shields farbling system. Use Mullvad Browser, which disables WebGPU entirely at the preference level.
+
+### Level 3: Advanced / paid 🔴
+
+In Chrome there is no good answer; the API ships with no privacy switch. Options: run a Chromium fork (Brave, Vivaldi) that farbles; use Mullvad Browser or Tor Browser for high-risk browsing; disable the hardware GPU and force SwiftShader (`chrome://flags/#disable-accelerated-2d-canvas`, plus `--use-gl=swiftshader` launch flag) which produces a uniform software-rasterizer identity at a performance cost.
+
+### What doesn't help
+
+A VPN. Spoofing extensions cannot intercept the WebGPU bridge — Chromium exposes it via internal Mojo pipes that are not reachable from extension APIs. User-Agent modification changes nothing at this layer. Disabling WebGL without disabling WebGPU still leaks; the two APIs are independent.
+
+## Tools that help
+
+- **Brave** — generic WebGPU adapter via shields.
+- **Mullvad Browser** — WebGPU disabled by default.
+- **Firefox (default)** — WebGPU off unless flag enabled.
+- **Tor Browser** — WebGPU disabled at compile time.
+- **`chrome://flags` → Disable WebGPU** — Chromium flag, persists across restarts.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [WebGPU specification, Adapter Info](https://www.w3.org/TR/webgpu/#gpu-adapter-info)
+- [browserleaks.com/webgpu](https://browserleaks.com/webgpu) — reference test, may not be available in all browsers
+- Mozilla Bug 1844040: WebGPU fingerprinting protection
+- Chromium Issue 1442319: WebGPU `requestAdapterInfo` permission removal discussion
+
+## Known limits
+
+WebGPU is in active rollout — mitigations lag behind the shipped API. Disabling WebGPU breaks a small but growing set of sites (Figma, some ML demos, browser-based compute). Until browsers add first-class farbling, using a hardened browser (Brave, Mullvad, Tor) is the only scalable defence. Chrome users have no supported escape hatch.

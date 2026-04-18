@@ -11,30 +11,114 @@ related:
   - navigator-properties
 ---
 
-> **TL;DR.** The classic `User-Agent: Mozilla/5.0 ...` header tells every server your browser, OS, and architecture. Chrome's "User-Agent reduction" replaced detail with a new opt-in delivery mechanism named Client Hints that hands the same data back when the server asks.
+## also known as: UA string, `Sec-CH-UA`, UA-CH, Client Hints, User-Agent Reduction
 
-Net effect: Chrome users now leak the same info on request, and the request is invisible.
+> **TL;DR** — The classic `User-Agent` header announces your browser, OS, and architecture on every request. Chrome's "User-Agent Reduction" stripped detail and introduced Client Hints — an opt-in delivery channel where the server requests and the browser supplies the same data, silently. Net effect: Chrome users still leak the full profile; the request is just invisible.
+> Severity: high
+> Prevalence: very-common
 
-## How it works
+## How it works (plain English)
 
-A server sends `Accept-CH: Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Model`. The browser caches that demand, then attaches the requested values to every future request to that origin (and, with `Critical-CH`, on the very first one). You see no UI.
+The User-Agent header is the oldest browser-identification primitive, in every request since the 1990s. `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36` tells every server your browser brand, major version, OS family, OS version, and CPU architecture. Every site you visit sees it. Analytics dashboards are built around it.
 
-Firefox does not implement Client Hints. Brave returns a generic value. Safari ignores most of them.
+Google's privacy team argued (correctly) that the UA string was oversharing by default: even a site that had no business knowing your CPU architecture got told. They rolled out "User-Agent Reduction" starting Chrome 101 — the UA now announces a coarse version like `Chrome/130.0.0.0` without the minor patch level, and the platform version was reduced.
 
-## What it leaks about you
+But sites that legitimately needed the full detail (Office 365 telling you a binary is not supported on your version, analytics wanting to split Windows 10 from Windows 11) pushed back. So Google introduced **Client Hints** — `Sec-CH-UA-*` HTTP headers — as the replacement delivery mechanism. A server sends `Accept-CH: Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Model`. The browser caches that demand, then sends those values on every future request to that origin.
 
-Browser brand and full version, exact OS, OS version, CPU arch, mobile model on phones (Pixel 8 Pro, iPhone 15 Pro Max).
+You see no UI. There is no permission prompt. There is no user-facing indication that the server just asked for — and received — your full OS version, CPU architecture, and (on mobile) your exact device model.
+
+## How it works (technical)
+
+The classic UA:
+```
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36
+```
+Reduced (post UA-Reduction):
+```
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36
+```
+The reduction is less than it looks — "Windows NT 10.0" is frozen at 10.0 regardless of whether the user is on Windows 10 or Windows 11. Platform version lookup now goes through Client Hints.
+
+Client Hints cycle:
+```
+# First request to site.example
+GET / HTTP/2
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...
+Sec-CH-UA: "Chromium";v="130", "Google Chrome";v="130", "Not/A)Brand";v="8"
+Sec-CH-UA-Mobile: ?0
+Sec-CH-UA-Platform: "Windows"
+
+# Server response declares what additional hints it wants
+HTTP/2 200
+Accept-CH: Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Model
+
+# Subsequent requests include the requested hints
+GET /api/... HTTP/2
+Sec-CH-UA-Full-Version-List: "Chromium";v="130.0.6723.116", "Google Chrome";v="130.0.6723.116"
+Sec-CH-UA-Platform-Version: "15.0.0"
+Sec-CH-UA-Arch: "x86"
+Sec-CH-UA-Bitness: "64"
+Sec-CH-UA-Model: ""
+```
+
+The `Critical-CH` response header extends this to the **first** request on the next navigation — so a site that loads a shopping-cart iframe from an ad-tech domain can demand full hints on the very first load of that iframe, and get them silently.
+
+Browser posture varies dramatically. Chrome (and Edge, Brave behaves uniquely) implement Client Hints fully. Firefox **does not** implement Client Hints as of 2026 — Mozilla's position is that the existing UA string is already too much and adding Client Hints would make it worse. Safari ignores most of them. Brave returns a generic value (specific UA but masked Client Hints) under the shields fingerprinting-protection system.
+
+Chrome-Mobile Client Hints add `Sec-CH-UA-Model` which returns the specific phone model (`Pixel 8 Pro`, `SM-S928B` which is Galaxy S24 Ultra, `iPhone17,2` which is iPhone 15 Pro Max). On Chrome Android, the model string is one of the highest-entropy single mobile identifiers available without permission.
+
+## Who uses this, and why
+
+Every CDN and analytics vendor consumes UA and Client Hints as a baseline classifier. Cloudflare, Akamai, Fastly, Imperva — all cross-check UA against JA4 for bot detection. Analytics (Google Analytics 4, Plausible, Matomo, Fathom) use them to split traffic by browser and OS. Ad-tech DSPs (The Trade Desk, Criteo) use Client Hints for device-class bidding.
+
+Anti-fraud (ThreatMetrix, Sift, Forter, SEON, Kount) treat a UA that does not match JA4 or Client Hints as an active signal. Commercial fingerprinting (FingerprintJS, Iovation, MaxMind minFraud) packages UA+CH as a core component of device ID.
+
+Research: Schelter et al. 2019 *Fingerprinting Revisited* measured 3-4 bits of entropy in UA alone after reduction; Lauinger et al. 2024 *Client Hints in the Wild* (IMC) surveyed Client Hints adoption and found 47% of top 1k sites actively request them.
+
+## What it reveals about you
+
+Browser brand and major version (3 bits). Exact full version via `Sec-CH-UA-Full-Version-List` (5-7 bits depending on rollout stage). Exact OS and OS version (4-6 bits). CPU architecture and bitness (1-2 bits). Mobile phone model (up to 15 bits on Android where model strings cluster per country). Touch support via `Sec-CH-UA-Mobile`. Combined with other signals, UA+CH is a mid-entropy cluster of 12-20 bits without a single permission prompt.
 
 ## How to defend
 
-- 🟢 Use Firefox or Brave; neither hands over the full Client Hints set.
-- 🟡 In Chrome, install an extension that strips `Sec-CH-*` headers (limited list available; review carefully).
-- 🔴 Run a request-rewriting proxy locally that drops Client Hints across all browsers on the device.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox or Brave. Firefox does not implement Client Hints at all. Brave returns generic Client Hints values — declaring Chrome 130 but not the full minor version, and normalizing platform version to a short string.
 
-Spoofing the User-Agent string. Modern fingerprinting cross-checks UA against JA4 (TLS), navigator props, and Client Hints; mismatch is a signal in itself.
+### Level 2: Install a free tool 🟡
 
-## Try it
+In Chrome, install a Client-Hints-stripping extension (limited list available — review the source before installing; `uBlock Origin` in advanced mode can strip `Sec-CH-*` headers). Test after install at `browserleaks.com/ip` → HTTP headers section to confirm headers are suppressed.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run a request-rewriting proxy locally (`mitmproxy` with a Python script, or `Privoxy`) that drops `Sec-CH-*` headers on egress regardless of browser. Pair with a Firefox or Tor Browser profile to eliminate Client Hints entirely. Tor Browser normalizes UA across every user — every Tor user has the same UA — and does not implement Client Hints.
+
+### What doesn't help
+
+Spoofing the User-Agent string via extension or `chrome://flags/#user-agent-ovveride`. Modern fingerprinting cross-checks UA against JA4 (TLS layer), against `navigator.userAgent` vs `navigator.userAgentData`, against Client Hints, and against canvas/WebGL population clusters. A mismatched UA is a bigger flag than a truthful one. Incognito mode does not change your UA or suppress Client Hints.
+
+## Tools that help
+
+- **Firefox** — no Client Hints implementation, smaller UA string.
+- **Brave** — farbled Client Hints under shields.
+- **Tor Browser / Mullvad Browser** — normalized UA across all users, no Client Hints.
+- **mitmproxy** — intercept and drop `Sec-CH-*` headers regardless of browser.
+- **uBlock Origin (advanced mode)** — header-filtering via dynamic rules.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/ip](https://browserleaks.com/ip) — lists all HTTP request headers including Client Hints
+- [Client Hints explainer (W3C)](https://wicg.github.io/client-hints-infrastructure/)
+- Lauinger et al., *Client Hints in the Wild* (IMC 2024)
+- [Mozilla position on Client Hints](https://mozilla.github.io/standards-positions/) (standards-positions repo)
+- [Chrome UA Reduction announcement](https://developer.chrome.com/docs/privacy-security/user-agent-client-hints)
+
+## Known limits
+
+Client Hints adoption is rising; by 2027 the assumption should be that every CDN fronted site requests them. Extension-based header stripping is fragile — browser updates break extensions routinely. The only durable posture is to use a browser that refuses to implement UA-CH (Firefox) or normalizes to a population fingerprint (Tor Browser, Mullvad Browser).

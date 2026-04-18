@@ -11,20 +11,101 @@ related:
   - audio-fingerprinting
 ---
 
-> **TL;DR.** A website asks your browser to draw a short string to an invisible canvas, reads back the pixels, and hashes them. Your GPU, drivers, font rasterizer, and OS all leave their signature. The hash rarely collides with anyone else's.
+## also known as: canvas hash, HTML5 canvas fingerprint, toDataURL fingerprint, drawText fingerprint
+
+> **TL;DR** — A website draws text and shapes to an invisible canvas, reads back the pixel bytes, and hashes them. Your GPU, drivers, font rasterizer, and OS all leave a signature in the output. The hash rarely collides with anyone else's. No permission prompt, no UI, stable across cookie clears.
+> Severity: critical
+> Prevalence: very-common
 
 This is the single highest-entropy passive fingerprint a first-party site can collect without asking permission. Every major ad-tech and anti-fraud vendor reads it.
 
-## How it works
+## How it works (plain English)
 
-The site creates a hidden `<canvas>`, fills it with text and shapes, then calls `toDataURL()` or `getImageData()`. The returned bytes depend on antialiasing, subpixel rendering, and which version of which font your OS decided to use. Two identical machines with identical browsers can still produce different hashes if one installed a new font this morning.
+Your computer has opinions about how to draw the letter `g`. The curve at the top, the hook at the bottom, the antialiasing along the diagonal — these are decided by a chain of software: the browser's text layout, the font rasterizer (FreeType on Linux, DirectWrite on Windows, Core Text on macOS), the graphics driver, and ultimately the GPU. Two machines with the same browser, same font, and same operating system version will usually draw a `g` identically. Two machines with any difference — a newer driver, a different font file, a different GPU — will not.
 
-## What defends
+A tracker uses this by drawing a complicated test pattern into an invisible canvas on the page, reading the resulting pixels back as bytes, and running a hash over them. The hash is a single number, maybe forty hex characters long, and it acts like a fingerprint. Same machine always produces the same number. Different machines, different numbers.
 
-Tor Browser and Mullvad Browser return a uniform blank image to everyone. Firefox's Fingerprinting Protection (FPP, on by default since v128) applies "farbling" — tiny per-session noise that defeats cross-session linking without breaking canvas for legit use. Brave uses the same approach with a different noise function.
+The analogy is a wax seal: every signet ring has tiny nicks and scratches that make a unique impression in wax. The canvas test is the wax; your hardware-plus-software stack is the ring. You cannot see the nicks, but a microscope can, and so can a 60-line JavaScript snippet.
 
-Chrome does nothing. Safari does partial mitigation on private browsing windows only.
+A tracker does not have to ask permission, show UI, or use any visible pixel. The canvas can be `display: none` and the test still works.
 
-## What doesn't help
+## How it works (technical)
 
-A VPN. Incognito mode in Chrome. Clearing cookies. Canvas is computed from your hardware and software stack, none of which those touch.
+The script creates a hidden `<canvas>`, draws a sequence of text and shapes using specific fonts and colors, then calls `toDataURL()` or `getImageData()` to read back the pixel buffer:
+
+```js
+const canvas = document.createElement('canvas');
+canvas.width = 280; canvas.height = 60;
+const ctx = canvas.getContext('2d');
+ctx.textBaseline = 'top';
+ctx.font = "14px 'Arial'";
+ctx.fillStyle = '#f60';
+ctx.fillRect(125, 1, 62, 20);
+ctx.fillStyle = '#069';
+ctx.fillText('Cwm fjordbank glyphs vext quiz, 😀', 2, 15);
+ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+ctx.fillText('Cwm fjordbank glyphs vext quiz, 😀', 4, 17);
+const hash = await sha256(canvas.toDataURL());
+```
+
+The text line is a pangram chosen to exercise many glyph shapes at once. The emoji is critical: emoji rendering is dramatically different per OS (Apple color emoji, Noto, Twemoji, Segoe UI Emoji) and per version. The returned bytes depend on antialiasing settings, subpixel rendering orientation (RGB vs BGR), which version of which font your OS decided to use, GPU-accelerated compositing differences, and in some browsers the device pixel ratio.
+
+Mowery and Shacham published the canvas fingerprinting technique in 2012. Acar et al.'s 2014 Princeton study found it live on 5.5% of the top 100k Alexa sites; Englehardt and Narayanan's 2016 follow-up found it had become a standard adtech primitive. Laperdrix's 2020 survey rates canvas as the second-most-entropic single vector after installed fonts, with typical measurements of 15-17 bits of entropy on desktop corpora. Gomez-Boix et al.'s WWW 2018 "Hiding in the Crowd" paper measured canvas uniqueness at 99.42% on a two-million-browser dataset.
+
+Two readout techniques matter. `toDataURL()` returns a base64-encoded PNG of the canvas — compact and widely used. `getImageData().data` returns a raw Uint8ClampedArray of pixel bytes, which is what fingerprint libraries actually hash because it avoids PNG's lossy compression paths. Privacy countermeasures generally farble on the `getImageData` path as well as `toDataURL`.
+
+## Who uses this, and why
+
+Every mainstream commercial fingerprinting library reads canvas: FingerprintJS (the most prominent commercial vendor, on >30% of top e-commerce sites), ThreatMetrix (now LexisNexis Risk Solutions), Iovation, MaxMind minFraud, Sift, Forter, SEON, Kount, and the device-ID stacks of every major ad-tech DSP.
+
+CDN-layer bot-management reads it opportunistically — Cloudflare Bot Management, Akamai Bot Manager, Imperva, PerimeterX/HUMAN, DataDome — usually as a consistency check against claimed browser and OS. A canvas hash that doesn't match the cluster for "Chrome 130 on Windows 11" gets a higher bot score.
+
+Research-wise, canvas is the most-studied fingerprinting vector. Key papers: Mowery & Shacham 2012 (the original); Acar et al. 2014 *The Web Never Forgets* (CCS); Englehardt & Narayanan 2016 (CCS, 1M-site crawl); Laperdrix et al. 2020 survey (ACM TWEB); FPTrace 2025 (NDSS) for longitudinal stability data.
+
+State-actor use is documented but narrower — canvas fingerprinting appears in leaked NSO Group Pegasus attribution tooling, and targeted investigations use it to re-identify subjects across cookie-cleared sessions.
+
+## What it reveals about you
+
+A stable identifier with typical entropy of 15-17 bits (Laperdrix 2020, so one in 32k to one in 131k users). Combined with WebGL hash, it uniquely identifies 99.42% of desktop users (Gomez-Boix WWW 2018) and approximately 95-97% of mobile users (lower because mobile font/GPU stacks cluster more tightly). The hash indirectly reveals your OS family, your GPU family, your font stack, and sometimes installed software that adds fonts (Office, Adobe, game engines).
+
+## How to defend
+
+### Level 1: Easiest (no install) 🟢
+
+Firefox's Fingerprinting Protection (FPP, on by default since v128 in private mode, configurable site-wide via `privacy.fingerprintingProtection`) applies tiny per-session noise — "farbling" — that defeats cross-session linking without breaking canvas for legitimate uses. Safari does partial mitigation on private browsing windows only. Chrome does nothing at baseline.
+
+### Level 2: Install a free tool 🟡
+
+Use Brave. It applies deterministic-per-session farbling to canvas reads via the shields system — same approach as Firefox FPP, more thorough surface coverage. Alternatively, the **CanvasBlocker** Firefox extension gives granular per-site control. Tor Browser and Mullvad Browser return a uniform blank image to every site, so every Tor/Mullvad user has the same canvas hash.
+
+### Level 3: Advanced / paid 🔴
+
+Mullvad Browser on top of your own VPN is the hardened-without-Tor-exit-penalty setup. For scripted automation, the `fingerprintjs/fingerprintjs` library itself publishes which canvas tests it runs so you can verify countermeasures; the commercial anti-detect browsers (Multilogin, AdsPower) sell bundled per-profile canvas farbling.
+
+### What doesn't help
+
+A VPN alone — the canvas fingerprint is computed in your browser from your hardware, not over the network. Incognito mode in Chrome — same GPU, same fonts, same hash. Clearing cookies — the hash does not depend on cookies. Disabling JavaScript for one site — you'll turn it back on for the next site and re-leak.
+
+## Tools that help
+
+- **Firefox + FPP** — built-in, free, per-session farbling. Toggle in `about:config` as `privacy.fingerprintingProtection`.
+- **Brave** — farbling via Shields, on by default.
+- **Tor Browser / Mullvad Browser** — uniform canvas output across all users.
+- **CanvasBlocker (Firefox extension)** — per-site canvas permissions with granular controls.
+- **Librewolf** — Firefox fork with FPP forced on by default.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/canvas](https://browserleaks.com/canvas) — reference site test
+- [creepjs by abrahamjuliot](https://abrahamjuliot.github.io/creepjs/) — canvas + all related vectors, with entropy estimates
+- Mowery & Shacham, *Pixel Perfect: Fingerprinting Canvas in HTML5* (W2SP 2012)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+- Gomez-Boix et al., *Hiding in the Crowd: an Analysis of the Effectiveness of Browser Fingerprinting at Large Scale* (WWW 2018)
+
+## Known limits
+
+Canvas farbling defeats **cross-session** linking but does not defeat **single-session** use; a fingerprinter that reads canvas once per page load still has a per-session identifier to join with IP. A truly uniform canvas output (Tor Browser strategy) breaks some legitimate uses (browser games, canvas-based image editors). Defending canvas alone leaves 20+ other fingerprint vectors untouched — the honest answer is that you need a browser-level strategy, not a per-vector one.

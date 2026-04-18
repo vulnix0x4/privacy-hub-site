@@ -11,31 +11,99 @@ related:
   - webgl-fingerprinting
 ---
 
-> **TL;DR.** Your installed-font list reflects every program you have ever installed: Microsoft Office adds dozens, Adobe adds hundreds, every game adds a few. The list is high-entropy and stable.
+## also known as: font list fingerprint, text-measurement font probe, `queryLocalFonts`, font-side-channel
 
-A script does not need a permission prompt to enumerate it. There are at least three reliable techniques and browsers patch them slowly.
+> **TL;DR** — Your installed-font list reflects every program ever installed: Office adds dozens, Adobe adds hundreds, every game adds a few, every accessibility tool adds its own. The list is high-entropy and stable. A script does not need permission to enumerate it — at least three reliable techniques work, and browsers patch them slowly.
+> Severity: critical
+> Prevalence: very-common
 
-## How it works
+## How it works (plain English)
 
-The classic method: render a string in a known fallback font, measure the bounding box, then render it in the candidate font and measure again. If the boxes differ, the candidate font is installed. Loop over a list of 5,000 candidate fonts and you get a per-machine bitmap.
+Fonts are files on your computer. The OS keeps track of every font that has ever been installed. When Microsoft Office installs, it brings along forty-plus fonts you did not ask for. Adobe Creative Suite brings hundreds. Every game installer drops a few. macOS ships with a regional baseline (different fonts in Japanese, Arabic, Chinese regions). Windows language packs add language-specific fonts. Accessibility tools install OpenDyslexic and large-print fonts. By the time you have used your machine for a year, your font list is effectively a resume of the software you have installed.
 
-The CSS Font Loading API offers a faster route. The newer `queryLocalFonts()` requires permission, which is the right design and is why most fingerprinters still use the measurement trick.
+Websites historically never needed to know your font list. They reference fonts by name ("please display this in Helvetica") and the browser uses it if installed, falls back to a default otherwise. But they can use that fallback logic to **probe** which fonts are present: render a test string in a known fallback font, measure the bounding box, then render it in "Helvetica," and if the boxes differ, Helvetica is installed. Loop over five thousand candidate fonts and you get a per-machine bit-string — a compact, high-entropy identifier.
 
-## What it leaks about you
+A concrete example: a designer's MacBook has 300+ fonts (Adobe defaults plus the system set). A gaming laptop has a different 250+ (Office defaults plus game-specific). A fresh Linux install has 50-80 (just the distro defaults). Each list is close to unique. The probe takes under a second and runs silently.
 
-Your OS, your locale (CJK fonts give you away), every Office or design suite you have installed, sometimes specific niche software (game fonts, accessibility fonts).
+## How it works (technical)
+
+Three reliable enumeration techniques. **Technique 1** (the classic): measure text bounds in a fallback font, then in the candidate font, and compare.
+
+```js
+const testString = 'mmmmmmmmmmlli';
+const baseFont = 'monospace';
+const probeFont = 'Helvetica Neue';
+const span = document.createElement('span');
+span.style.font = `72px ${baseFont}`;
+span.textContent = testString;
+document.body.appendChild(span);
+const baseWidth = span.offsetWidth;
+span.style.font = `72px '${probeFont}', ${baseFont}`;
+const probeWidth = span.offsetWidth;
+document.body.removeChild(span);
+const installed = baseWidth !== probeWidth;
+```
+
+Loop over a list of 5,000 candidate fonts (the PerfectDesign / FingerprintJS curated list) and you get a bitmap. The string `mmmmmmmmmmlli` is chosen because it exercises both wide and narrow glyphs, making the width signal robust across font families.
+
+**Technique 2**: the CSS Font Loading API (`document.fonts.check()`). It answers "is this font available" directly, faster than the measurement trick. Browsers have not restricted it.
+
+**Technique 3**: `queryLocalFonts()` (the new Local Font Access API, 2021). This one **does** require a permission prompt — the right design — and is available only in Chrome desktop. Because it requires permission, most fingerprinters still use technique 1.
+
+Laperdrix 2020 ranks installed fonts as the **highest-entropy single vector** on desktop — higher than WebGL on some populations — at 17-22 bits. Fifield & Egelman's 2015 USENIX paper *Fingerprinting Web Users through Font Metrics* measured 95% unique identification using font metrics alone on a 1,000-browser corpus.
+
+Fonts are unusually stable: unlike canvas (which shifts with GPU driver updates), the installed-font list only changes when software is installed or uninstalled, which happens in bursts. A user with 250 fonts this week probably has 252 fonts next week, and the 250 shared entries are the durable identifier.
+
+## Who uses this, and why
+
+FingerprintJS ships a font-measurement probe by default. ThreatMetrix, Iovation, MaxMind minFraud, Sift, Forter, SEON, and Kount all read font lists as a primary fingerprint. CDN bot-management reads it opportunistically. Ad-tech device-graph vendors (LiveRamp, ID5, Tapad) include font lists in their cookieless ID inputs.
+
+State-actor-adjacent use: the JavaScript-based font probe appears in leaked iSpy / Pegasus reconnaissance tooling; academic reverse-engineering of browser-based nation-state surveillance (Stevens et al. 2022, USENIX Security) documented font enumeration as a baseline reconnaissance step.
+
+Research: Nikiforakis et al. 2013 *Cookieless Monster* (CCS); Fifield & Egelman 2015 *Fingerprinting Web Users through Font Metrics* (USENIX); Englehardt & Narayanan 2016 (CCS, 1M-site crawl); Laperdrix 2020 survey; FPTrace 2025 (NDSS) for longitudinal stability.
+
+## What it reveals about you
+
+Your OS (font lists cluster sharply by OS — Windows has Arial, macOS has Helvetica Neue, each has distinct variants). Your locale (CJK fonts give you away; Arabic and Hebrew fonts narrow you further; Indian-language fonts narrow sharply). Every Office or design suite installed. Sometimes specific niche software — game fonts, accessibility fonts, academic-specific fonts (LaTeX installs Computer Modern; if the probe finds CMU it is a strong signal). On desktop populations, 17-22 bits of entropy — one in 130k to one in 4M users.
 
 ## How to defend
 
-- 🟢 Use Tor Browser, which restricts fonts to a hardcoded shortlist.
-- 🟢 Firefox FPP returns a fixed font list to scripts that probe.
-- 🟡 In Brave, fingerprinting protection farbles font measurements per session.
-- 🔴 On Linux, run a containerized browser (Bubblewrap, Flatpak) with only its bundled fonts.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Tor Browser. It restricts fonts to a hardcoded shortlist (no measurement probe finds more than that list). Mullvad Browser does the same. Firefox FPP (`privacy.fingerprintingProtection`) returns a fixed font list to scripts that probe.
 
-Uninstalling fonts you do not use. Even small lists are high-entropy and your OS-shipped defaults are not uniform across versions.
+### Level 2: Install a free tool 🟡
 
-## Try it
+Brave farbles font measurements per session — the measurement trick still runs but the widths are perturbed, so no stable list can be reconstructed across sessions. Librewolf ships Firefox with FPP on.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+On Linux, run a containerized browser (Bubblewrap, Flatpak) with only its bundled fonts — the host's 500-font list is invisible. On macOS and Windows, short of a VM, only a hardened browser makes a meaningful dent. For scripted automation, commercial anti-detect browsers (Multilogin, Kameleo) sell per-profile font-list spoofing that matches a real browser population distribution.
+
+### What doesn't help
+
+Uninstalling fonts you do not use. Even a small list is high-entropy, and your OS-shipped defaults are not uniform across versions — a Windows 11 Home user has slightly different defaults than a Windows 11 Pro user, and version differences create differentials. User-Agent spoofing — fingerprinters read fonts via text measurement, not UA. A VPN does not touch the font layer.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — hardcoded font shortlist, uniform across users.
+- **Firefox + FPP** — fixed returned font list to probing scripts.
+- **Brave** — per-session font-measurement farbling.
+- **Librewolf** — Firefox fork, FPP on by default.
+- **Flatpak / Bubblewrap** (Linux) — containerized browser with bundled-only fonts.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/fonts](https://browserleaks.com/fonts) — reference test
+- Fifield & Egelman, *Fingerprinting Web Users through Font Metrics* (USENIX Security 2015)
+- Nikiforakis et al., *Cookieless Monster: Exploring the Ecosystem of Web-based Device Fingerprinting* (IEEE S&P 2013)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+- [creepjs](https://abrahamjuliot.github.io/creepjs/) — font enumeration live
+
+## Known limits
+
+Even a 30-font shortlist leaks OS family — Tor's defence is uniformity, not erasure. Containerized browsers on Linux are the only way to truly hide the host font list. Disabling the CSS Font Loading API breaks every site that uses webfonts to detect loaded state, which is most of the modern web. Per-vector font defences lose; browser-level strategy wins.
