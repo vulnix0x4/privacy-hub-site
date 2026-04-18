@@ -11,31 +11,94 @@ related:
   - dns-leaks
 ---
 
-> **TL;DR.** WebRTC, the browser API for video calls, exposes your local network IP (10.x.x.x or 192.168.x.x) and sometimes your real public IP through a side channel called STUN. A VPN does not always block it.
+## also known as: WebRTC leak, ICE candidate leak, STUN leak, mDNS candidate disclosure
 
-The original sin was design: WebRTC needs to know your local IP to set up direct peer connections, and it does so with no permission prompt.
+> **TL;DR** — WebRTC, the browser API behind video calls, exposes your LAN IP (10.x, 192.168.x, 172.16.x) and sometimes your real public IP through STUN candidates. It runs without a permission prompt and, in older stacks, leaks through a VPN tunnel. Disabling it in browser settings or routing UDP through the VPN are the reliable fixes.
+> Severity: high
+> Prevalence: common
 
-## How it works
+The original sin was design: WebRTC needs to know every possible route for a direct peer-to-peer call, so it enumerates them to JavaScript with no permission prompt.
 
-Any script can ask the browser for an `RTCPeerConnection`, then read the ICE candidates the browser generates. Those candidates list every IP the browser thinks could route a call. That includes your LAN IP and, in older or misconfigured stacks, your real public IP behind the VPN tunnel.
+## How it works (plain English)
 
-Combined with a public IP, the LAN IP narrows you to a specific household: the same /24 plus the same NAT lease pattern is a strong join across cleared cookies.
+When you make a video call in the browser — a Google Meet, a Discord voice channel, a WhatsApp Web call — the two computers need to find each other. A central server helps at first, but for the actual audio and video, the browsers try to connect directly. That direct route is faster and cheaper than bouncing every frame through a server.
 
-## What it leaks about you
+To find a direct route, each browser asks, "what are all the IPs I might be reachable at?" That list includes your local network IP (the 192.168.x one your router assigns), your real public IP, and sometimes a VPN tunnel IP. The browser hands that list — called ICE candidates — to any script that asks, no prompt, no user interaction needed. A tracker only needs to instantiate an empty peer connection and read the candidates back.
 
-Your local subnet (and from it, your router model in many cases). Sometimes your real ISP-assigned IP even while a VPN is connected.
+The leak is uniquely nasty because a VPN does not always stop it. The browser can still enumerate the real network interface underneath the VPN. In older configurations, the public-facing "srflx" candidate from a STUN probe comes back with your real ISP-assigned IP even though all your other traffic is tunneled. Users on commercial VPNs used to routinely see their real IP leaked this way through 2018.
+
+## How it works (technical)
+
+The trigger is a single JavaScript call, and no user gesture or permission is required:
+
+```js
+const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+pc.createDataChannel('x');
+pc.onicecandidate = e => {
+  if (e.candidate) console.log(e.candidate.candidate);
+};
+await pc.setLocalDescription(await pc.createOffer());
+```
+
+The candidates come in four flavors. `host`: direct LAN interface IPs. `srflx` (server reflexive): what a STUN server sees your public IP as — leaks through misconfigured VPNs. `prflx` (peer reflexive): discovered during connection. `relay`: TURN-relayed address, which only appears if a TURN server is in the config.
+
+In 2019 Chromium landed a mitigation: mDNS obfuscation replaces LAN host candidates with a randomized `.local` hostname (`3f2e14c2-...local`) so sites see the rendezvous token but not the real `192.168.1.42`. Firefox followed in FF68. That closed the LAN-IP leak for most modern browsers in the default case, but many fingerprinting scripts still try, and the `srflx` candidate continues to reveal the real public IP unless the VPN wraps UDP correctly.
+
+Combined with a public IP, a LAN IP narrows you to a specific household: the same `/24` plus the same NAT lease pattern (same LAN IP prefix, same MAC suffix pattern in the ICE candidate) is a strong join key across cleared cookies and fresh browser profiles.
+
+## Who uses this, and why
+
+The majority of fingerprinting SDKs read WebRTC candidates as a routine step: FingerprintJS, AudioEye, MaxMind minFraud, ThreatMetrix, Iovation, SEON. Anti-fraud platforms use the LAN/public IP mismatch as a strong VPN detector — "this user claims to be in Germany but their srflx shows a US ISP" lights up the risk score. Ad-tech networks probe for the public IP as a cookieless device ID; the mDNS obfuscation blunted this but did not kill it.
+
+The Cover Your Tracks corpus (EFF) still reports WebRTC as an active vector in 2024. Bot-management (Cloudflare, Akamai) uses it as one input of many — a headless browser without WebRTC enabled is a giveaway.
+
+Researchers first published the leak in Daniel Roesler's 2015 proof-of-concept; Englehardt and Narayanan's 2016 Princeton study found it live on 715 of the top 100k sites' tracker-embedded pages.
+
+## What it reveals about you
+
+Your LAN subnet (and often your router model, from the subnet shape: 10.0.0.x is Linksys, 192.168.1.x is Netgear/TP-Link, 192.168.0.x is D-Link). Your public IP, sometimes the VPN-unmasked one. With mDNS obfuscation the LAN IP is replaced by a random hostname, but the candidate's presence still leaks "user is behind NAT" vs "user is direct-connected" which is a routing-class signal.
 
 ## How to defend
 
-- 🟢 In Firefox, set `media.peerconnection.enabled` to `false` if you do not use video calls in the browser.
-- 🟢 In Brave, Settings -&gt; Privacy and security -&gt; WebRTC IP handling policy -&gt; "Disable Non-Proxied UDP".
-- 🟡 Use a privacy extension that blocks WebRTC IP leaks (uBlock Origin has the toggle in advanced mode).
-- 🔴 Block UDP at the firewall outside your VPN tunnel.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Firefox: `about:config` → `media.peerconnection.enabled` → `false`. This kills WebRTC entirely. Acceptable if you do not need browser-based video calls.
 
-A VPN alone, if your browser exposes a non-proxied candidate. Always test after enabling the VPN.
+Brave: Settings → Privacy and Security → WebRTC IP handling policy → "Disable Non-Proxied UDP (force proxy)". Brave exposes the toggle in the settings UI, unlike Chrome.
 
-## Try it
+Chrome: no native toggle exists. Use the WebRTC Network Limiter extension (google-maintained) to enforce "default public interface only" or a Chrome policy-level setting via enterprise policy.
 
-[See your own value -&gt;](/en/scan)
+### Level 2: Install a free tool 🟡
+
+uBlock Origin exposes a WebRTC IP-leak toggle in Settings → Privacy → "Prevent WebRTC from leaking local IP addresses." Free, works across Firefox, Chrome, and Edge. The uMatrix and Privacy Badger toolkits handle this too.
+
+### Level 3: Advanced / paid 🔴
+
+Block outgoing UDP at the firewall when the VPN is not active (OPNsense, pfSense rules). Combined with VPN always-on kill-switch, this makes non-VPN WebRTC traffic physically impossible. Mullvad Browser and Tor Browser both disable non-proxied WebRTC by default; Mullvad Browser also sets a stricter IP-handling policy than any default Chromium.
+
+### What doesn't help
+
+A VPN alone, if your browser still exposes a non-proxied candidate. Always test at `browserleaks.com/webrtc` after enabling the VPN. Incognito/private mode in Chrome does not disable WebRTC. User-Agent spoofing extensions do not touch the RTCPeerConnection surface.
+
+## Tools that help
+
+- **uBlock Origin** — free, one toggle to suppress WebRTC IP leaks.
+- **Mullvad Browser / Tor Browser** — WebRTC non-proxied UDP disabled by default.
+- **Brave** — native IP-handling-policy toggle in settings.
+- **WebRTC Network Limiter** — Google's own Chrome extension, `policy=default_public_interface_only`.
+- **uMatrix / NoScript** — broader JS-gating that includes WebRTC.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/webrtc](https://browserleaks.com/webrtc) — the reference WebRTC leak test
+- [RFC 8828: WebRTC IP Address Handling](https://www.rfc-editor.org/rfc/rfc8828) (2021, defines `mode-1` through `mode-4` policies)
+- Englehardt & Narayanan, *Online Tracking: A 1-million-site Measurement and Analysis* (CCS 2016)
+- Roesler's 2015 public WebRTC leak proof-of-concept (archived on GitHub)
+
+## Known limits
+
+Blocking WebRTC breaks browser-based video calls. mDNS obfuscation does not stop the public-IP leak from the `srflx` candidate. A disciplined VPN kill-switch plus browser-level WebRTC disablement is the only robust posture; relying on any single layer leaks at least some of the time.

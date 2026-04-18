@@ -11,30 +11,99 @@ related:
   - user-agent-and-client-hints
 ---
 
-> **TL;DR.** Every TLS client (browser, OS, library) negotiates with a slightly different list of cipher suites, extensions, and curves in a slightly different order. Servers hash that order. The hash identifies the client, often down to a specific browser build on a specific OS.
+## also known as: JA3, JA3S, JA4+, JA4H, JA4L, JA4T, client-hello fingerprinting
 
-JA4 is the 2023 successor to JA3. It splits TCP, QUIC, and HTTP fingerprints, includes ALPN and signature algorithms, and is harder to spoof than JA3 was.
+> **TL;DR** — Every TLS client negotiates with a slightly different list of cipher suites, extensions, curves, and signature algorithms, in a client-stable order. Servers hash that shape before a single HTTP byte is sent and use the hash to identify what you really are running. A spoofed User-Agent without a matching JA4 is a bot-management red flag on every major CDN.
+> Severity: critical
+> Prevalence: very-common
 
-## How it works
+JA4 is the 2023 successor to JA3. It splits TCP, QUIC, and HTTP fingerprints, includes ALPN and signature algorithms in the hash, and is more resistant to the kind of spoofing that hollowed out JA3 in 2020-2022.
 
-When your browser opens a connection, the first packet (the ClientHello) lists everything your client supports: TLS versions, cipher suites, extensions, supported groups, signature algorithms, ALPN protocols. Most clients send these in a stable order. Cloudflare, Akamai, Imperva, and most bot-management vendors record JA3, JA4, and JA4_r and use them as a primary signal for "is this really Chrome on macOS, or a Python script lying about its User-Agent?"
+## How it works (plain English)
 
-A spoofed User-Agent without a matching JA4 is a red flag. So is an outdated JA4 from a fully-patched browser version string.
+When your browser opens an HTTPS connection, the very first packet — the ClientHello — is a detailed self-introduction. "Hello, I speak TLS 1.2 and 1.3, I can encrypt using these seventeen cipher algorithms in this order, I support these extensions, I negotiate HTTP/2 and HTTP/1.1 via ALPN, I prefer elliptic curve X25519 but also know P-256 and P-384." Every field is publicly visible — encryption has not started yet.
 
-## What it leaks about you
+Browsers, Go's crypto/tls, Python requests, curl, and Java's JSSE all send different lists in different orders. The server writes those choices into a deterministic string and hashes it. Two months later, the same browser from the same user produces the same hash. Even a private-mode, cookie-cleared, freshly-installed browser on a new machine still produces the Chrome-v130-on-macOS JA4.
 
-Your real client family and version, your OS family, and whether you are using a custom HTTP library, headless browser, or scraping framework.
+A real-world example: a scraper pretends to be Chrome by setting `User-Agent: Mozilla/5.0 ... Chrome/130.0.0.0`. But the script is written in Python requests, whose TLS stack is OpenSSL with a different cipher order than BoringSSL. The Cloudflare WAF sees a JA4 matching `Python-urllib/requests/BoringSSL-mismatch` and a UA claiming Chrome. Result: CAPTCHA or 403. The UA was a lie; the TLS handshake cannot lie without rewriting the stack.
+
+## How it works (technical)
+
+JA4 splits into a family of fingerprints covering different layers: `JA4` (TLS ClientHello), `JA4S` (ServerHello), `JA4H` (HTTP headers), `JA4L` (latency), `JA4T` (TCP options), `JA4X` (X.509 cert). The TLS ClientHello hash is the headline number and the only one readable by the site itself — the rest come from CDN-layer telemetry.
+
+The JA4 ClientHello format: `<protocol>_<version>_<cipher-count>_<extension-count>_<alpn>_<ciphers-hash>_<extensions-hash>`. A Chrome 130 on macOS produces something like `t13d1516h2_8daaf6152771_02713d6af862`. Two files: the "a" (hashed) form is ten hex chars per segment; the "r" (raw) form lists the exact bytes for forensic comparisons.
+
+```go
+// Conceptual computation — see FoxIO's ja4 library for the real one
+func JA4(hello *tlsClientHello) string {
+    proto := "t13"           // TLS 1.3
+    version := versionCode(hello.version)
+    ciphers := sortedHex(hello.cipherSuites)
+    extensions := sortedHex(hello.extensions)
+    alpn := hello.alpn[0]
+    raw := proto + version + ... + ciphers + "_" + extensions
+    return proto + version + "_" + truncSha256(ciphers) + "_" + truncSha256(extensions)
+}
+```
+
+JA4's improvements over JA3: cipher lists are now **sorted** before hashing (defeating GREASE randomization, which was a JA3 evasion). ALPN is included (HTTP/2 and HTTP/3 produce different hashes). Signature algorithms are separately hashed. Extensions that change per connection (e.g., pre-shared key) are excluded. The result is stable across connections and resistant to the no-ops that previously flipped JA3.
+
+Modern reality: Chrome, Firefox, Safari, Edge each produce a small handful of distinct JA4s per platform per version, so the client population clusters tightly. The BoringSSL (Chromium) JA4 is different from OpenSSL (Firefox/Android) is different from Schannel (Edge on Windows). Impersonation libraries (`curl-impersonate`, `tls-client`, `CycleTLS`) work by embedding forks of BoringSSL/NSS to emulate real browsers.
+
+## Who uses this, and why
+
+Every major CDN does JA4 triage at the edge: Cloudflare (Bot Management product, uses JA4 as a primary signal alongside HTTP/2 frame order), Akamai (Bot Manager, documented JA3/JA4), Imperva, Fastly (via customer-built WAF rules), Google Cloud Armor.
+
+Anti-fraud platforms (ThreatMetrix, Forter, Sift, SEON) consume JA4 as a stability check against declared UA. DataDome, PerimeterX/HUMAN, and Kasada all maintain proprietary TLS-fingerprint libraries that predate or extend JA4.
+
+For scrapers and researchers: JA4 is why a naive Python requests scraper gets blocked on e-commerce sites. The commercial anti-detection browsers (Multilogin, Kameleo, AdsPower) sell JA4 consistency as a core feature, and the anti-detect-browser arms race is largely about matching JA4 + Client Hints + canvas to the claimed UA.
+
+Academic/forensic uses: Mandiant (Google) published the original JA3 in 2017 for malware C2 fingerprinting. JA4+ was published by FoxIO in 2023 under an open license for commercial CDN adoption. Recent research like FPTrace (NDSS 2025) demonstrates longitudinal stability of JA4 fingerprints across multi-month tracking windows.
+
+## What it reveals about you
+
+Your real client family (Chrome, Firefox, Safari, Edge), your major version within a bucket of 2-4, your OS family (the Windows/macOS/Linux BoringSSL builds produce slightly different JA4s), and whether you are using a custom HTTP library, headless browser, or impersonation stack. If your declared User-Agent and JA4 disagree, that disagreement is itself a high-entropy signal ("claims Chrome on Windows, JA4 says Python requests on Linux" = very likely a scraper).
+
+Crucially, this happens before any cookie, any JavaScript, any header parsing — JA4 is the first impression.
 
 ## How to defend
 
-- 🟢 Use a mainstream browser version. The crowd is the cover.
-- 🟡 If you must script, use a stack that mimics a real browser's TLS stack (curl-impersonate, undetected-chromedriver).
-- 🔴 Tor Browser standardizes its TLS stack across all users by design.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use a mainstream, fully-patched browser — the crowd of Chrome-stable-on-Windows users is your cover. JA4 is a population-scale identifier, not a unique-per-machine one, as long as your stack is normal. Resist the temptation to install "stealth" or "anti-detect" browsers for casual browsing; they produce unusual JA4s that ironically stand out.
 
-User-Agent spoofing. The TLS layer happens before any HTTP header is sent.
+### Level 2: Install a free tool 🟡
 
-## Try it
+If you must script, switch to a stack that matches a real browser's TLS: [curl-impersonate](https://github.com/lwthiker/curl-impersonate) (a fork of curl linked against BoringSSL/NSS), [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) for Selenium, or [hrequests](https://github.com/daijro/hrequests) for Python. These produce real-Chrome JA4s at the network layer.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Tor Browser standardizes its TLS stack across all users by design — every Tor Browser user produces the same JA4. Mullvad Browser inherits that. For scraping at scale, commercial residential-proxy networks (Bright Data, Oxylabs, Smartproxy) pair residential IPs with TLS libraries matched to claimed browser versions; this is the industrial-grade anti-detection layer and is a paid product.
+
+### What doesn't help
+
+User-Agent spoofing. The TLS layer happens before any HTTP header is sent; mismatched UA vs JA4 is worse than a truthful UA. VPN-ing does not change your TLS stack; you still produce the same JA4 from the VPN tunnel. "Private mode" browsing does not alter the ClientHello. Disabling JavaScript does not change the TLS handshake.
+
+## Tools that help
+
+- **curl-impersonate** — curl linked against BoringSSL/NSS, matches real Chrome/Firefox/Safari JA4.
+- **undetected-chromedriver** — Selenium wrapper that patches webdriver flags and uses real browser TLS.
+- **hrequests / tls-client / CycleTLS** — Python/Go libraries with pluggable JA3/JA4 emulation.
+- **FoxIO ja4 library** — reference implementation for server-side JA4 extraction.
+- **Tor Browser / Mullvad Browser** — uniform TLS stack across all users.
+
+## Try it yourself
+
+[See your own value →](/en/scan) — the scanner connects to a dedicated endpoint that extracts your live JA4.
+
+## Further reading
+
+- [JA4+ specification (FoxIO)](https://github.com/FoxIO-LLC/ja4)
+- Mandiant, *JA3 — A Method for Profiling SSL/TLS Clients* (2017)
+- [Cloudflare Radar: Browser Market Share by JA4](https://radar.cloudflare.com/)
+- Vastel et al., *FP-Stalker: Tracking Browser Fingerprint Evolutions* (IEEE S&P 2018)
+- [FoxIO JA4+ blog introducing the format](https://blog.foxio.io/ja4%2B-network-fingerprinting)
+
+## Known limits
+
+JA4 is a **population** fingerprint, not a per-user one. It identifies your client stack, not you as an individual. It cannot be defended against by changes at the application layer — only by using the same TLS stack everyone else uses, or by accepting that you will produce an unusual JA4. Combined with IP reputation and Client Hints, a mismatched JA4 gets you CAPTCHA-walled; a normal JA4 gets you waved through.

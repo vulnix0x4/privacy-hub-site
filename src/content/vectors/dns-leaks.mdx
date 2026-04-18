@@ -11,30 +11,88 @@ related:
   - webrtc-local-ip
 ---
 
-> **TL;DR.** Before your browser fetches a page, it asks a DNS resolver "what IP runs example.com?" That resolver sees every domain you visit, even if the page itself is HTTPS-encrypted.
+## also known as: DNS leakage, plaintext DNS, DNS-over-HTTPS (DoH), DNS-over-TLS (DoT), Oblivious DNS (ODoH)
 
-By default that resolver is your ISP, who logs it, sells it in some markets, and hands it over on subpoena.
+> **TL;DR** — Before your browser fetches a page, it asks a DNS resolver for the domain's IP. That resolver sees every domain you visit, even though HTTPS encrypts the content. By default the resolver is your ISP or the Wi-Fi hotspot. Encrypted DNS (DoH/DoT) points queries at a resolver of your choosing; a "DNS leak" is when it still goes to the ISP.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-DNS predates HTTPS by a decade and was never encrypted. DNS-over-HTTPS (DoH) and DNS-over-TLS (DoT) wrap the query in TLS so only your chosen resolver sees it. Firefox, Chrome, and Edge ship DoH but not always on by default, and not always pointed where you think.
+Every domain you type — example.com, your bank, the embarrassing thing you searched last night — starts with a DNS lookup. Think of it as the browser quietly picking up the phone and asking a directory, "what number do I call to reach example.com?" The directory answers with an IP address, and the call goes through. That directory service is DNS.
 
-A "DNS leak" happens when your VPN routes traffic but DNS still goes to the ISP-provided resolver, or when your OS uses one resolver and your browser another. The site you visit can also probe your resolver directly using a third-party-loaded image and detect which resolver answered.
+The problem: historically, every call to the directory was in plaintext. Anyone on the wire — your ISP, an airport Wi-Fi operator, the guy running the router at your AirBnB — could see the domain. HTTPS encrypts the page contents afterward, but the lookup itself tells the eavesdropper which site you are visiting. DNS-over-HTTPS (DoH) and DNS-over-TLS (DoT) wrap that lookup in TLS so only the directory you chose can read it.
 
-## What it leaks about you
+A real-world example: your laptop is on home Wi-Fi behind a Mullvad VPN. You click a link. If Mullvad's client correctly routes DNS through its own resolver, Comcast sees one encrypted tunnel to Mullvad and nothing else. If it leaks — say, your browser's DoH is off and Windows decides to ask Comcast's resolver directly — Comcast sees the domain even though the rest of the traffic is VPN-wrapped. That is a DNS leak.
 
-Every domain you visit, in real time, with a timestamp. Cross-referencing that with billing data identifies you trivially.
+## How it works (technical)
+
+DNS predates HTTPS by a decade. Port 53 traffic was never encrypted by design. DoH (RFC 8484, 2018) and DoT (RFC 7858, 2016) wrap queries in TLS; Oblivious DoH (RFC 9230, 2022) adds a blinding proxy so the resolver cannot correlate query to source IP. Browsers implement DoH, operating systems implement DoT and DoH, and the two layers disagree about whose resolver wins.
+
+```bash
+# Confirm which resolver your OS actually uses
+# Linux:
+systemd-resolve --status | grep 'DNS Servers' -A1
+# macOS:
+scutil --dns | grep nameserver
+# Windows:
+Get-DnsClientServerAddress -AddressFamily IPv4
+```
+
+A leak has several flavors. `Leak type A`: OS resolver is ISP, browser DoH is off, application-level queries go to ISP. `Leak type B`: VPN is connected but the VPN client does not force DNS through its own resolver (Android has historically been bad at this — see the 2019 DnsLeakTest survey which found 23% of commercial VPNs leaked). `Leak type C`: IPv6 DNS is not tunneled even though IPv4 is. `Leak type D`: the site probes your resolver directly using a third-party loaded image at a wildcard subdomain, identifying which recursive resolver answered — a technique documented by the Cloudflare 1.1.1.1 team as "DNS reverse fingerprinting."
+
+Browsers implement DoH differently. Firefox enables it by default in the US via Trusted Recursive Resolver (TRR) mode 2. Chrome uses "Secure DNS" with automatic upgrade when your configured resolver supports it. Edge mirrors Chrome. Safari leaves it to the OS (macOS 11+ supports DoH via profile).
+
+## Who uses this, and why
+
+ISP DNS logs are commercial product in some markets. The 2017 US rollback of FCC broadband privacy rules legalized ISP-side DNS and browsing-history sale; since then AT&T, Comcast, and Verizon have all run data-broker partnerships citing resolver data as a revenue line. ThreatMetrix and similar anti-fraud platforms buy recursive-resolver data from bulk providers to build IP-to-behavior models.
+
+State actors watch DNS because it is the cheapest, highest-signal surveillance primitive. The Snowden-era NSA XKeyscore documents treat DNS metadata as a primary selector. In authoritarian jurisdictions, national DNS is the first censorship vector — China's Great Firewall poisons queries, Russia's "sovereign RuNet" routes them through state resolvers.
+
+Ad-tech uses are subtler but real. A tracker domain A/B tested against a resolver that null-routes it (Pi-hole, NextDNS) can detect blocking and fall back to first-party-looking alternatives. That is why large ad-tech moved toward "first-party" CNAME cloaking: the ad script resolves `track.example.com` that CNAMEs to `adtech-vendor.net`, and a naive blocklist misses it.
+
+## What it reveals about you
+
+Every domain you visit, in real time, timestamped, in query order. That is enough to reconstruct your browsing session almost completely. The resolver sees subdomain requests too — so not just that you visited amazon.com, but that you hit `smile.amazon.com/gp/product/...` through the pattern of subdomain and sni queries that follow. Cross-referenced with billing data or subscriber-IP logs, the identity attribution is trivial.
 
 ## How to defend
 
-- 🟢 Turn on DoH in your browser pointed at Quad9 (9.9.9.9) or Cloudflare (1.1.1.1).
-- 🟡 Use a VPN whose client forces all DNS through its own resolver. Mullvad and Proton do this by default.
-- 🔴 Run your own resolver on the network (Pi-hole, AdGuard Home, Unbound) and force every device to it via DHCP.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Turn on DoH in your browser. Firefox: `about:preferences#privacy` → "Enable DNS over HTTPS" → choose Cloudflare or NextDNS. Chrome/Edge: `chrome://settings/security` → "Use secure DNS" → pick a provider. Pointing at Quad9 (9.9.9.9, also blocks known-malicious domains) or Cloudflare (1.1.1.1) takes your ISP out of the query path immediately.
 
-A VPN alone, if its DNS toggle is off or broken. Always run a leak test from a fresh network.
+### Level 2: Install a free tool 🟡
 
-## Try it
+Run a VPN whose client forces all DNS through its own resolver — Mullvad, Proton, IVPN do this by default and publish a leak-test page. On mobile, install NextDNS (free tier generous), which runs OS-level DoH/DoT across all apps. Pi-hole on a Raspberry Pi at home gives you per-network filtering and query logging you control.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run your own resolver at the network edge: Unbound with DNSSEC validation, upstream to DoT (Quad9 or NextDNS), forced via DHCP to every device in the house. For the paranoid, Oblivious DoH decouples your IP from the query content entirely — Cloudflare and the Apple Private Relay both offer ODoH endpoints. DNSCrypt v2 (`dnscrypt-proxy`) adds signature validation over DoH.
+
+### What doesn't help
+
+A VPN alone if its DNS toggle is off, broken, or the provider was misconfigured. Always run a leak test from a fresh network. "DNS over HTTPS" toggled on inside your browser does nothing for background OS updates, cloud-storage sync, or any app that bypasses the browser — those still use OS resolver settings.
+
+## Tools that help
+
+- **NextDNS** — cloud DoH with filtering, logging, analytics; free tier of 300k queries/month.
+- **Quad9** — free public DoH, threat-blocking, Swiss-based non-profit.
+- **Cloudflare 1.1.1.1** — free public DoH, no-logs policy audited by KPMG annually.
+- **Pi-hole** — self-hosted DNS sinkhole on a Pi, bans tracker domains network-wide.
+- **AdGuard Home** — similar to Pi-hole, more polished UI, first-class DoH upstream support.
+- **dnscrypt-proxy** — client-side DoH/DoT/DNSCrypt proxy, works on every platform.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/dns](https://browserleaks.com/dns) and [dnsleaktest.com](https://www.dnsleaktest.com/) — reference test sites
+- [RFC 8484 (DoH)](https://www.rfc-editor.org/rfc/rfc8484) and [RFC 9230 (Oblivious DoH)](https://www.rfc-editor.org/rfc/rfc9230)
+- Hounsel et al., *Comparing the Effects of DNS, DoT, and DoH on Web Performance* (WWW 2020)
+- [Cloudflare Radar: DNS ecosystem](https://radar.cloudflare.com/)
+
+## Known limits
+
+Encrypting DNS does not hide the IP of the site you eventually connect to. Even with flawless DoH, the TLS SNI (pre-ECH) and destination IP are still visible to on-path observers. Encrypted Client Hello (ECH) closes the SNI gap but is not yet universally deployed. DNS privacy is necessary but insufficient for a full anonymity posture.

@@ -12,30 +12,88 @@ related:
   - tls-ja4
 ---
 
-> **TL;DR.** Every connection you open ships your IP address to the other end. That address maps to a city, an ISP, sometimes a household, and links every request you make from the same network.
+## also known as: IP geolocation, Geo-IP, ASN lookup, RIR data
+
+> **TL;DR** — Every connection ships a source IP. That IP maps to a city, an ISP, and sometimes a household through commercial geo-databases. Geo-IP plus network reputation feeds anti-fraud and ad-tech before any fingerprinting JavaScript runs. A shared VPN or Tor are the only robust defences.
+> Severity: critical
+> Prevalence: very-common
 
 This is the floor. Nothing else on this site matters if you have not handled it.
 
-## How it works
+## How it works (plain English)
 
-Your packets carry a source IP so the server knows where to send the reply. Geo-IP databases (MaxMind, IP2Location) translate that to a city, postal code area, ASN, and a confidence score. Anti-fraud vendors layer on residential-proxy detection, hosting-provider flags, and a reputation score derived from prior abusive traffic on the same /24.
+Think of your IP address the way the postal service thinks of your home address: the server replies by mailing the packet back, so it needs somewhere to send it. That address is stuck to every request. Unlike a real address it does not stay truly private — commercial databases buy allocation records from the Regional Internet Registries (ARIN, RIPE, APNIC, AFRINIC, LACNIC) and layer on crowd-sourced corrections from Wi-Fi SSID scans, weather apps, and captive-portal check-ins.
 
-A site that sees your IP for the first time has already pinned you to roughly a five-mile radius and to your ISP. A site you visit twice has a stable identifier for you across cleared cookies, fresh browser profiles, and switched accounts.
+By the time a site sees your IP once, it already knows what city you are likely in, which ISP you pay, whether you are on a mobile carrier or a residential fibre line, and often the CIDR block your router sits inside. Visit twice and the site has a durable identifier — no cookies required. Clearing cookies does not give you a new IP. Switching browser does not give you a new IP. Even logging into a different account from the same network does not give you a new IP.
 
-## What it leaks about you
+A concrete example: a Comcast subscriber in Sacramento opens a news site. That site loads a Taboola widget, a Facebook pixel, and an Amazon DSP tag. All three record the same `/24` subnet to their user databases. The next morning she reads a different news site. Same `/24`. Two data points and she is a linked user, still without a cookie being set.
 
-City, ISP, mobile-vs-residential, plausible employer if you connect from corporate IPs, and a join key across every site you visit from the same network.
+## How it works (technical)
+
+Geolocation is a two-step pipeline. Step one: resolve the IP to an ASN and network block using data from the RIRs, which is free and accurate to the allocation. Step two: resolve the block to a city by joining against MaxMind GeoIP2, IP2Location, DigitalElement NetAcuity, or Neustar IP Intelligence. These vendors sell tiered accuracy: `city` for about 85% of IPv4 addresses, `postal_code` for roughly 65%, and `lat/lon` within a 25km radius for about 80%, with worse numbers on IPv6 because of churn.
+
+```ts
+// Typical server-side lookup
+import { Reader } from '@maxmind/geoip2-node';
+const reader = await Reader.open('GeoLite2-City.mmdb');
+const r = reader.city(req.ip);
+// r.city.names.en, r.postal.code, r.location.latitude, r.subdivisions[0].isoCode
+```
+
+On top of geo, anti-fraud vendors (Sift, Forter, Kount, SEON, ThreatMetrix) add reputation: "is this IP a known residential proxy endpoint," "has this IP seen a burst of account creations in the last 48 hours," "is this a Tor exit." The IPQualityScore and IPInfo reputation APIs are the commodity version; every anti-fraud platform maintains a private model on top.
+
+ASN lookups also disclose whether you are behind a mobile carrier (T-Mobile, Vodafone), a VPN provider (Mullvad, Proton, NordVPN), a datacenter (AWS, Hetzner, OVH), a Tor exit, or a residential connection. Each bucket carries implicit trust scores at CDN-layer WAFs. Even a Chromium browser with a perfect JA4 score will trip Cloudflare bot-management rules if it originates from a `DC` ASN.
+
+## Who uses this, and why
+
+Almost everything on the web sees your IP, but the heavy commercial use splits into three camps. Ad-tech platforms (Google Ads, The Trade Desk, Criteo) use geo to run geographic-targeted bidding and to comply with regional consent rules. Anti-fraud vendors (Sift, Forter, Kount, SEON, Arkose Labs, ThreatMetrix, Ekata) use IP reputation as a primary device-agnostic signal. CDN bot-management (Cloudflare, Akamai, Imperva, PerimeterX / HUMAN) use ASN and geo for early request triage before they even examine the HTTP payload.
+
+State-adjacent uses exist too. Law enforcement subpoenas the ISP given the IP and a timestamp; the ISP returns the subscriber's name. That path is well-documented in the Electronic Frontier Foundation's surveillance primer and has been used in dragnet investigations since the late 2000s. For threat-actor tracking, FBI and national CERTs routinely seed attribution on IP allocation data.
+
+Research-wise, the Panopticlick/Cover Your Tracks corpus (EFF, 2010-2023) and the Laperdrix 2020 fingerprinting survey both treat IP as the starting identifier to which everything else is conditioned.
+
+## What it reveals about you
+
+City with city-level accuracy about 85% of the time (MaxMind 2024 published accuracy table). ISP, billing region, and whether your connection is residential, corporate, datacenter, or mobile. The `/24` is a near-perfect join key across cookie-cleared sessions, fresh browser profiles, and switched accounts — two requests from the same home network are cross-linkable even if everything else about them differs. Combined with a stable timezone string and any browser fingerprint, IP narrows unique identification to single-digit crowds within the first page load.
 
 ## How to defend
 
-- 🟢 Use a flat-fee audited VPN (Mullvad, IVPN, Proton). One toggle, the IP your sites see is shared across thousands of users.
-- 🟡 Run the VPN at the router level so leaks (a forgotten device, a Steam updater) cannot bypass it.
-- 🔴 Use Tor for the small fraction of activity where even a VPN provider knowing your destinations is too much.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use a mobile hotspot for throwaway browsing, or a coffee-shop Wi-Fi for sessions where you do not want your home ISP in the logs. Neither is private — the network operator still sees everything — but it breaks the durable IP-based linkage to your home connection.
 
-Incognito mode. Clearing cookies. Switching browser. None of those touch the IP layer; the server still sees the same address.
+### Level 2: Install a free tool 🟡
 
-## Try it
+A reputable flat-fee audited VPN: Mullvad, Proton VPN, IVPN. One toggle, and the IP your sites see is shared across thousands of users. Run the kill-switch always-on to prevent drops. Audit reports from Cure53 and Radically Open Security are published by Mullvad and Proton respectively; read the ones that pre-date your subscription.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run the VPN at the router level (OPNsense, pfSense, or a flashed OpenWrt device with WireGuard) so a forgotten device or a Steam updater cannot bypass it. For activity that even a VPN provider knowing your destinations is too much for, use Tor — the three-hop circuit means no single operator has both IP and destination. Mullvad Browser is a Tor-Project-designed browser for use over your own VPN that matches Tor Browser's fingerprint.
+
+### What doesn't help
+
+Incognito mode. Clearing cookies. Switching browser. Using a different Google account. None touch the IP layer — the server still sees the same source address. Proxies without encryption (open HTTP proxies, unaudited "free VPN" apps) frequently log and sell the exact traffic they claim to anonymize; the Center for Democracy & Technology 2020 audit of 283 free VPN apps found 72% contained third-party trackers.
+
+## Tools that help
+
+- **Mullvad VPN** — flat €5/month, no account system (account numbers only), accepts cash by mail. Audited by Cure53.
+- **Proton VPN** — free tier exists, Swiss jurisdiction, audited by Securitum.
+- **IVPN** — small team, per-device keys, publishes quarterly transparency reports.
+- **Tor Browser** — free, three-hop onion routing, Tor-Project-maintained browser bundle.
+- **Mullvad Browser** — Tor Browser fingerprint without Tor's exit-node tax; use with your own trusted VPN.
+- **OPNsense + WireGuard** — router-level always-on VPN for whole-network coverage.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [MaxMind GeoIP2 accuracy documentation](https://support.maxmind.com/hc/en-us/articles/4407630607131-Geolocation-Accuracy)
+- [browserleaks.com/ip](https://browserleaks.com/ip) — the reference site test
+- [EFF Cover Your Tracks](https://coveryourtracks.eff.org/) — Panopticlick's successor, fingerprint-plus-IP explorer
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB, 2020)
+
+## Known limits
+
+A VPN does not anonymize a logged-in session — once you sign in, the account ties your real identity to every IP you use from then on. Tor is slow and triggers CAPTCHA walls on Cloudflare-fronted sites. IP-based defences do nothing for fingerprinting vectors computed entirely in your browser.
