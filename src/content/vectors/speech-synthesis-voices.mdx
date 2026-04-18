@@ -11,30 +11,96 @@ related:
   - navigator-properties
 ---
 
-> **TL;DR.** A script calls `speechSynthesis.getVoices()` and gets an array of every text-to-speech voice your OS has installed. Apple, Google, Microsoft, and third-party packs each install their own; the list is unique per machine.
+## also known as: `speechSynthesis.getVoices()`, Web Speech API voice enumeration, TTS voice list
 
-Low entropy on its own, real entropy when joined to the others.
+> **TL;DR** — A script calls `speechSynthesis.getVoices()` and gets an array of every text-to-speech voice your OS has installed. Apple, Google, Microsoft, and third-party packs each add their own; the list is unique per machine. Low entropy on its own, real entropy when joined with other vectors.
+> Severity: medium
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-The Web Speech API exposes a list of voices: name, lang, default, localService. On macOS that is dozens of Apple voices plus any you downloaded for Accessibility. On Windows it is the SAPI voice list, which depends on installed language packs. On Linux it is whatever your speech-dispatcher backend has loaded.
+Your operating system ships with text-to-speech voices for accessibility. When macOS installs, it comes with voices like "Samantha," "Alex," "Daniel," "Tessa" — dozens of Apple voices in multiple languages. Windows ships with Microsoft SAPI voices that depend on installed language packs. Linux typically has only `espeak` and whatever speech-dispatcher has loaded.
 
-No permission gate. No prompt. The list is read via JavaScript on page load, no user action required.
+Users add more voices. A native Japanese speaker on a US-locale macOS installs Japanese voice packs from Accessibility Settings. A language learner installs Spanish and French voices. A content creator installs premium TTS tools that add commercial voices (Acapela, Nuance, ElevenLabs browser integrations).
 
-## What it leaks about you
+The Web Speech API — originally designed so browser-based accessibility tools could speak page content aloud — exposes the complete voice list to any website, no permission required. A user's voice list reveals their OS, their installed language packs, the accessibility tools they use, and sometimes specific professional software. It is a small-but-durable fingerprint.
 
-Your OS family and version, your installed language packs (so likely your real language), and any accessibility tools you have configured.
+A real example: a US user whose voice list includes `com.apple.voice.compact.ja-JP.Kyoko`, `Microsoft Haruka Desktop - Japanese`, `Google Japanese`. The presence of three Japanese voices from three different providers signals deliberate installation, not a clean OS default — the user works with Japanese text or listens to Japanese content.
+
+## How it works (technical)
+
+```js
+function getVoices() {
+  return new Promise(resolve => {
+    let voices = speechSynthesis.getVoices();
+    if (voices.length) return resolve(voices);
+    // voices are loaded async on Chromium; listen for the event
+    speechSynthesis.onvoiceschanged = () => resolve(speechSynthesis.getVoices());
+  });
+}
+
+const voices = await getVoices();
+// Each voice: { name, lang, default, localService, voiceURI }
+const fingerprint = voices.map(v => `${v.voiceURI}:${v.lang}:${v.default?'1':'0'}`).join('|');
+```
+
+Each voice has `name` (human-readable), `lang` (BCP-47 language tag), `default` (is this the OS default), and `localService` (true for OS-bundled voices, false for remote network voices like Google's cloud voices exposed to Chrome).
+
+macOS returns a large set — typically 50-170 voices depending on which downloaded voice packs are present. Windows returns a smaller set — the SAPI voice list is typically 3-8 voices in the base install, growing with language pack downloads. Linux returns fewer again — often a single `eSpeakNG` entry or a few `mbrola` voices. iOS Safari returns the Apple voice set. Android returns the Google TTS voices.
+
+Chrome on all platforms **also** exposes network voices from Google Cloud Speech when the browser is signed in to a Google account — so a Chrome/Windows user will see Windows SAPI voices plus Google Network voices prefixed with "Google ".
+
+Entropy is modest on its own — typically 3-5 bits in general populations because voice-list clusters are dominated by the OS default — but rises sharply when language packs are installed (an additional 3-5 bits for users with non-default voice sets).
+
+## Who uses this, and why
+
+Commercial fingerprinting libraries read voice lists as a low-cost cross-validation signal. FingerprintJS reads `getVoices()` as part of its baseline. ThreatMetrix, Iovation, MaxMind minFraud record voice lists in their device profile to catch UA-OS mismatches ("claims macOS, voice list is all SAPI" = inconsistent).
+
+Ad-tech and analytics rarely read voice lists directly — the entropy is too modest to justify the async load. Anti-fraud does use it as a headless-detection signal: headless Chromium on most Linux-based automation containers returns an empty voice list (`length === 0`), which is the "no speech backend" flag.
+
+Research: Acar et al. 2014 *The Web Never Forgets* listed speech synthesis as an emerging vector; Olejnik & Acar 2018 *The Price of Free* noted speech-API exposure as an under-studied accessibility-privacy trade. Laperdrix 2020 survey treats it as a secondary vector.
+
+## What it reveals about you
+
+Your OS family (macOS voices are Apple-prefixed, Windows voices are Microsoft-prefixed, Linux voices are eSpeak/mbrola). Installed language packs — a strong inference about your real primary language. Accessibility-tool usage — specific accessibility voices suggest disability software. Whether you are signed in to Google on Chrome (network voices present or not).
 
 ## How to defend
 
-- 🟢 Use Tor Browser or Mullvad Browser, which return an empty or fixed voice list.
-- 🟡 In Firefox, the `media.webspeech.synth.enabled` flag disables the API entirely (about:config).
-- 🔴 Run a containerized browser with no system speech backend.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Tor Browser and Mullvad Browser return an empty or uniform voice list to every user. No voice enumeration leaks.
 
-A VPN. The voice list is local OS state.
+### Level 2: Install a free tool 🟡
 
-## Try it
+In Firefox, the `media.webspeech.synth.enabled` flag in `about:config` disables the API entirely. No voices returned, no fingerprint. Downside: accessibility features that depend on browser TTS (screen readers integrating with page content) stop working — most modern AT uses OS-level TTS directly, so the impact is usually small.
 
-[See your own value -&gt;](/en/scan)
+Firefox FPP (`privacy.fingerprintingProtection`) will farble voice enumeration in a future build per the Fingerprinting Protection 2024 roadmap; not shipping yet as of 2026.
+
+### Level 3: Advanced / paid 🔴
+
+Run a containerized browser with no system speech backend — Flatpak/Bubblewrap isolation on Linux, VM with audio-disabled on Windows/macOS. Returns an empty voice list. Overkill for most users but available.
+
+### What doesn't help
+
+A VPN. The voice list is local OS state, not network state. Disabling the browser's speech output (muting the Web Speech API) does not affect `getVoices()`. User-Agent spoofing does not change the voice list the API returns.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — uniform voice output.
+- **Firefox** (disable flag) — `media.webspeech.synth.enabled = false`.
+- **Flatpak/Bubblewrap browser** (Linux) — isolated speech backend.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/javascript](https://browserleaks.com/javascript) — voice list under JavaScript section
+- [Web Speech API spec](https://www.w3.org/TR/webspeechapi/)
+- Olejnik & Acar, *The Price of Free: Privacy Leakage in Personalized Mobile In-App Ads* (NDSS 2018)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Disabling speech synthesis breaks browser-based accessibility tools that depend on it — most modern AT uses OS-level TTS, but some web-only accessibility widgets (reading tools for low-vision users) depend on the browser API. Voice-list entropy is low on its own; defending against voice enumeration without defending against canvas, WebGL, fonts, and audio is low-ROI. Browser-level strategy dominates per-vector defence here as everywhere.

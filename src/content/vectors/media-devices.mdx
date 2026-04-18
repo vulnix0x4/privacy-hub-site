@@ -11,30 +11,101 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** `navigator.mediaDevices.enumerateDevices()` returns the count of cameras, microphones, and speakers attached. Without permission it returns counts and types only; with permission it returns the labels (so "Logitech BRIO 4K", "AirPods Pro").
+## also known as: `mediaDevices.enumerateDevices`, getUserMedia device enumeration, deviceId hash leak
 
-Even the unprivileged response leaks "you have three microphones, two cameras, two output devices", which is rare.
+> **TL;DR** — `navigator.mediaDevices.enumerateDevices()` lists your cameras, microphones, and speakers. Without permission it returns types and counts; with permission it returns labels ("Logitech BRIO 4K", "AirPods Pro"). Even unlabeled counts ("3 microphones, 2 cameras, 2 output devices") are rare enough to identify.
+> Severity: medium
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-The API was originally meant for a video-call app to populate a device picker. The early version returned full labels to anyone. Browsers later restricted labels to origins that already had `getUserMedia` permission, but the count and the deviceId hash remain readable to all sites.
+When a video-calling app (Zoom, Google Meet, Discord) asks the browser for your camera and mic, it needs to know which camera and mic. A laptop has a built-in webcam and a built-in mic, but you might have plugged in a USB headset, a podcasting mic, a ring light with its own camera, or external speakers. The browser's `enumerateDevices` API lists everything it can see.
 
-The deviceId is supposed to be per-origin and per-session. In practice, several browsers leak a stable identifier across sessions until you clear site data.
+Originally, the API returned **labels** by default — so any page could read "Logitech BRIO 4K" without your permission. Browsers tightened that up around 2016-2018. Now labels are returned only to sites that have already been granted camera or microphone permission. Sites that have not been granted permission see only the **count** and **type** — "you have three input devices of type 'audioinput' and one of type 'videoinput'."
 
-## What it leaks about you
+That still leaks. Three microphones is a specific setup — maybe a built-in mic, a USB headset, and a ring-light mic. Two cameras is a streamer setup. A single audio output is a laptop without external speakers. Each count is small entropy on its own, but the combination narrows the user's machine class to a small cluster.
 
-Number and type of audio/video devices. With camera/mic permission once granted, the model name. Indirectly your machine class (laptops have one camera, streamers have three).
+And once a site **does** get camera or mic permission — for a single video call — the labels become visible: `"Logitech BRIO 4K"`, `"AirPods Pro"`, `"Samson Q2U Microphone"`. Those labels are product-level IDs. They remain readable as long as the permission is granted, even if the user is not actively using the camera or mic.
+
+## How it works (technical)
+
+```js
+const devices = await navigator.mediaDevices.enumerateDevices();
+// Each device: { deviceId, groupId, kind, label }
+
+// Without camera/mic permission granted:
+// [
+//   { deviceId: "", groupId: "", kind: "audioinput",  label: "" },
+//   { deviceId: "", groupId: "", kind: "audioinput",  label: "" },
+//   { deviceId: "", groupId: "", kind: "videoinput",  label: "" },
+//   { deviceId: "", groupId: "", kind: "audiooutput", label: "" },
+// ]
+
+// With camera+mic permission granted:
+// [
+//   { deviceId: "abc123...", groupId: "xyz789...", kind: "audioinput",  label: "MacBook Pro Microphone" },
+//   { deviceId: "def456...", groupId: "mno012...", kind: "audioinput",  label: "AirPods Pro" },
+//   { deviceId: "ghi789...", groupId: "",          kind: "videoinput",  label: "FaceTime HD Camera (Built-in)" },
+//   { deviceId: "jkl012...", groupId: "mno012...", kind: "audiooutput", label: "AirPods Pro" },
+// ]
+```
+
+`deviceId` is supposed to be per-origin and per-session — different origins see different IDs for the same device, and IDs rotate when the user clears site data. `groupId` groups devices that belong together (an AirPods Pro microphone and speaker share a groupId). In practice, several browsers have been found to leak a stable `deviceId` across sessions until the user clears site data — Spiekermann et al. 2019 documented this for Chrome-on-Linux.
+
+Without permission, `label` is empty but the array length and `kind` distribution are visible. The pattern `[audioinput × 3, videoinput × 2, audiooutput × 2]` is unusual enough to narrow the user's machine to a small cluster — a likely streamer/podcaster setup, not a default laptop.
+
+Once camera/mic permission is granted once — for a single Zoom call — label strings are exposed to that origin forever. If that origin is a tracking-heavy site that embeds third-party trackers in first-party context, the hardware identification leaks further.
+
+## Who uses this, and why
+
+Commercial fingerprinting libraries read `enumerateDevices` as a baseline. FingerprintJS reads counts in its free tier and labels where permission was previously granted. ThreatMetrix, Iovation, MaxMind minFraud, Sift all include it.
+
+Video-call platforms (Zoom, Google Meet, Discord, Whereby) consume it legitimately — they need device selection. But device labels are also leaked via the camera/mic picker UI to the sites' own analytics, so the data ends up in device-graph-style databases.
+
+CDN bot-management uses media-device enumeration as a headless-detection signal: headless Chromium typically returns zero or one devices (no real audio/video hardware). Commercial anti-detect browsers spoof the device list per profile.
+
+Research: Englehardt & Narayanan 2016 (CCS) catalogued `enumerateDevices` as a tracking primitive. Spiekermann et al. 2019 measured cross-session `deviceId` leakage. Laperdrix 2020 survey covers it under "audio/video device fingerprinting."
+
+## What it reveals about you
+
+Number and type of audio/video devices (3-5 bits of entropy in general populations). With camera/mic permission ever granted, the exact product labels — which identify your hardware down to the specific model (`"Logitech BRIO 4K"`, `"Elgato Stream Deck XL"`, `"Shure MV7"`). Indirectly your machine class: laptops have one camera and one mic in the default state; streamers have three cameras and multiple input devices; corporate machines have headsets that match company provisioning.
 
 ## How to defend
 
-- 🟢 Revoke camera and mic permission when you do not actively use them.
-- 🟢 Brave and Firefox both gate labels behind a granted permission.
-- 🟡 Tor Browser blocks `enumerateDevices` outright.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Revoke camera and microphone permission on sites that do not actively need it (browser Settings → Privacy → Site Settings → Camera/Microphone). Without permission, labels are empty — only counts leak.
 
-Disabling the camera at the OS level on Windows. The browser still sees the device exists; it just cannot stream from it.
+### Level 2: Install a free tool 🟡
 
-## Try it
+Use Brave or Firefox — both gate labels behind a granted permission. Firefox resets `deviceId` per session by default. Brave's shields block device enumeration from iframes that do not have `allow="camera; microphone"`.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Tor Browser blocks `enumerateDevices` outright — the API returns an empty array to every call. Mullvad Browser inherits the same. For scripted automation, set browser launch flags to disable media-device enumeration (`--disable-features=MediaSession` and related).
+
+### What doesn't help
+
+Disabling the camera at the OS level on Windows or covering the lens. The browser still sees the device exists — the enumeration returns the metadata, just not a working stream. Clearing cookies does not always clear stored `deviceId` values on all browsers. A VPN does not touch media-device state.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — empty `enumerateDevices` result.
+- **Firefox** — labels gated behind permission, per-session deviceId rotation.
+- **Brave** — iframe-scoped enumeration restrictions via shields.
+- **Browser site-permission revocation** — the clean hygiene move.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/javascript](https://browserleaks.com/javascript) — device enumeration live
+- [Media Capture and Streams spec](https://www.w3.org/TR/mediacapture-streams/)
+- Englehardt & Narayanan, *Online Tracking* (CCS 2016)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Once camera/mic permission is granted even briefly, the site can stash device labels in localStorage and use them across future visits — revocation does not retroactively clear what was already read. Count-only enumeration is still revealing for unusual setups (streamers, recording engineers). The clean answer is to grant camera/mic permission only in transient fresh-profile browsing, not to rely on per-vector defences.

@@ -12,30 +12,103 @@ related:
   - timezone-locale
 ---
 
-> **TL;DR.** `navigator.hardwareConcurrency`, `navigator.deviceMemory`, `navigator.plugins`, `navigator.languages`, `navigator.maxTouchPoints`, `navigator.cookieEnabled`, `navigator.pdfViewerEnabled`, `navigator.connection`. Each leaks 1-3 bits. Together they leak you.
+## also known as: navigator object fingerprint, hardware concurrency probe, device-memory probe, `navigator.*` enumeration
 
-This is the long tail of fingerprinting: dozens of innocuous properties, summed.
+> **TL;DR** — `navigator.hardwareConcurrency`, `navigator.deviceMemory`, `navigator.languages`, `navigator.maxTouchPoints`, `navigator.plugins`, `navigator.cookieEnabled`, `navigator.connection`. Each leaks 1-3 bits. Together, with no permission prompt, they leak you. The long tail of fingerprinting.
+> Severity: high
+> Prevalence: very-common
 
-## How it works
+## How it works (plain English)
 
-Every property is a getter. A script reads them in a loop, concatenates, hashes. CPU core count narrows you to "8-core machines" (still many millions, but a big cut). Device memory rounds to powers of two but reflects the real machine. Connection type ("4g", "wifi") plus downlink and rtt round to discrete buckets that change with network.
+When a JavaScript program wants to know things about the browser it is running in, it asks the `navigator` object. This object has been around since the Netscape 2 era; it started small and has grown dozens of properties over three decades, each answering a slightly different question: how many CPU cores, how much RAM, what languages, what network, what input devices.
 
-Most are not protected by a permission prompt. Most are stable across reloads.
+Individually, most of these properties are boring. "You have eight cores" narrows you to a pretty common cluster. "You have 8 GB of RAM" is the most common RAM tier for 2026. "You speak English" is half the internet. None of these is surprising on its own.
 
-## What it leaks about you
+The catch is that nobody looks at these individually. A fingerprinter reads a dozen or more, concatenates them into a single string, and hashes that string. The joint is far more unique than the parts. "8-core machine with 8 GB RAM, English and Spanish, touch capable, metered connection, PDF viewer enabled" is a narrow cluster. Add timezone, screen, user-agent: narrower still. None of this requires a permission prompt. None of this shows any UI.
 
-CPU core count, RAM tier, GPU presence (via plugins on some platforms), whether you can do touch, your declared language preferences, whether your connection is metered.
+## How it works (technical)
+
+The commonly-read properties, in rough order of entropy:
+
+```js
+const fp = {
+  // Hardware
+  hardwareConcurrency: navigator.hardwareConcurrency, // CPU core count — 2, 4, 6, 8, 12, 16, 24
+  deviceMemory: navigator.deviceMemory,               // rounded to 0.25, 0.5, 1, 2, 4, 8
+  maxTouchPoints: navigator.maxTouchPoints,           // 0 for desktop, 5 or 10 for touch
+  // Network
+  connectionEffective: navigator.connection?.effectiveType, // 'slow-2g' | '2g' | '3g' | '4g'
+  connectionDownlink:  navigator.connection?.downlink,      // Mbps
+  connectionRtt:       navigator.connection?.rtt,           // ms
+  connectionSaveData:  navigator.connection?.saveData,      // bool
+  // Locale & language
+  languages:           navigator.languages.join(','),       // ['en-US','es']
+  // Misc
+  cookieEnabled:       navigator.cookieEnabled,
+  pdfViewerEnabled:    navigator.pdfViewerEnabled,          // true on Chrome/Edge desktop
+  doNotTrack:          navigator.doNotTrack,                // '1' | '0' | null
+  webdriver:           navigator.webdriver,                 // true = headless automation
+  plugins:             [...navigator.plugins].map(p => p.name).join('|'),
+};
+const fpHash = await sha256(JSON.stringify(fp));
+```
+
+`hardwareConcurrency` reports logical threads, not cores, so Intel hyperthreaded chips return 2×the physical count. `deviceMemory` rounds to powers of two (0.25, 0.5, 1, 2, 4, 8) and is capped at 8 to provide *some* anti-fingerprinting mitigation — a 32 GB desktop and a 16 GB laptop both show `8`. On modern browsers, `navigator.plugins` returns a short fixed list (PDF viewer entries) rather than the old Flash/Java/Silverlight arrays, but the list is not empty — browsers differ in their canonical entries.
+
+`navigator.connection` (the Network Information API) is Chromium-specific — Firefox does not implement it. That alone is a browser-family signal.
+
+Laperdrix 2020 measures navigator-property entropy at 6-10 bits combined, depending on which properties the fingerprinter reads and which browser population you are in. Not the highest-entropy vector, but it is **stable**, reads without permission, and cross-validates with other vectors (an 8-core CPU with a claimed mobile UA is inconsistent).
+
+## Who uses this, and why
+
+Every major fingerprinting library reads navigator properties as part of its baseline. FingerprintJS reads ~20 of them. ThreatMetrix, Iovation, MaxMind minFraud, Sift, Forter, SEON, Kount all do the same. CDN bot-management cross-checks these against declared UA and TLS JA4 — `hardwareConcurrency === 8` with a claimed mobile UA is suspicious.
+
+`navigator.webdriver` is the headless-detection one-liner. Any site that checks `if (navigator.webdriver) return reject()` catches the naive `selenium` / `puppeteer` runs. Chromium exposes this per the WebDriver spec (since Chrome 88). Commercial anti-detect automation tools (`undetected-chromedriver`, `playwright-stealth`) patch it.
+
+Research: Mowery 2011 *Cookieless Monster* (CCS 2013 Nikiforakis follow-up) catalogued 18 navigator properties fingerprinters read. Laperdrix 2020 survey; Vastel *FP-Stalker* (S&P 2018) demonstrated navigator-property stability across month-scale windows. The 2023 Lukasik et al. *Privacy and Fingerprinting in the EU* measured 92% of top-1k sites reading at least `hardwareConcurrency`, `languages`, and `deviceMemory`.
+
+## What it reveals about you
+
+CPU core count — narrows to a hardware tier (low-end laptops at 4, mid-range at 8, high-end at 16+). RAM tier — narrows similarly. Network connection type — "wifi vs 4g vs ethernet" is a coarse location-behavior signal. Declared languages — narrows aggressively in multilingual populations (en-US vs en-GB vs en-CA); a user who speaks `fr-CA, en-US, zh-CN` is in a very small crowd. Touch support — distinguishes desktop from tablet from phone. PDF viewer enablement — Chrome/Edge vs Firefox vs Safari. Combined, 6-10 bits of entropy with no permission prompt.
 
 ## How to defend
 
-- 🟢 Tor Browser and Mullvad Browser return uniform values for all of these.
-- 🟢 Firefox FPP normalizes hardwareConcurrency and deviceMemory to standard values.
-- 🟡 Brave lies about specific high-entropy properties (deviceMemory rounds to 8, hardwareConcurrency to 2).
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Tor Browser and Mullvad Browser return uniform values for these — `hardwareConcurrency` is fixed at 2, `deviceMemory` at some fixed value, `languages` at `['en-US']`. Every user looks the same.
 
-Disabling JavaScript on the page; you turn it back on for the next site and re-leak the same values.
+### Level 2: Install a free tool 🟡
 
-## Try it
+Firefox FPP (`privacy.fingerprintingProtection`) normalizes `hardwareConcurrency` and `deviceMemory` to standard values. Brave lies about specific high-entropy properties (deviceMemory rounds to 8, hardwareConcurrency to 2) under its shields. Librewolf ships Firefox with FPP on by default.
 
-[See your own value -&gt;](/en/scan)
+### Level 3: Advanced / paid 🔴
+
+Run in a VM with a controlled hardware profile — allocate exactly 4 vCPUs, 8 GB RAM, and your navigator properties match a common population cluster. For scripted automation, patch the navigator properties directly before load (puppeteer-extra-plugin-stealth does this).
+
+### What doesn't help
+
+Disabling JavaScript on the page. You turn it back on for the next site and re-leak. Spoofing the UA while leaving navigator properties truthful creates a mismatch that is **more** detectable, not less. A VPN does not touch any of these — they are local-machine state.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — uniform navigator values across users.
+- **Firefox + FPP** — normalization of hardware and memory properties.
+- **Brave** — shields-based farbling.
+- **Librewolf** — Firefox fork, FPP on by default.
+- **puppeteer-extra-plugin-stealth** — for scripted automation, patches navigator props.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/javascript](https://browserleaks.com/javascript) — enumerates navigator properties live
+- Nikiforakis et al., *Cookieless Monster: Exploring the Ecosystem of Web-based Device Fingerprinting* (IEEE S&P 2013)
+- Vastel et al., *FP-Stalker: Tracking Browser Fingerprint Evolutions* (IEEE S&P 2018)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+- [creepjs](https://abrahamjuliot.github.io/creepjs/) — lists every navigator property with entropy estimates
+
+## Known limits
+
+Individual navigator-property defences (patching `hardwareConcurrency`, for example) are trivial to bypass because fingerprinters cross-check against other signals (WebGL, CPU timing benchmarks, TLS JA4). Uniform values (Tor approach) work only at population scale; a Firefox with FPP off and a browser extension patching one property creates a unique signature. Browser-level strategy is again the only robust answer.

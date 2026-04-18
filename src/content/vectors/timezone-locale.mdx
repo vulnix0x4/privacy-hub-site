@@ -11,31 +11,104 @@ related:
   - navigator-properties
 ---
 
-> **TL;DR.** `Intl.DateTimeFormat().resolvedOptions().timeZone` returns "America/Chicago". `navigator.languages` returns `["en-US", "es"]`. The Accept-Language header on every request announces the same. Together they put you in a city and tell every site what languages you read.
+## also known as: `Intl.DateTimeFormat` timezone, Accept-Language header, `navigator.languages`, locale chain, Olson tz database name
 
-These look harmless. They are not, because they cross-reference with IP for free.
+> **TL;DR** — `Intl.DateTimeFormat().resolvedOptions().timeZone` returns your IANA timezone (`America/Chicago`, `Asia/Tokyo`). `navigator.languages` returns your declared language preference list. `Accept-Language` header ships the same with every request. Together they put you in a city and announce what languages you read. They look harmless and cross-reference with IP for free.
+> Severity: critical
+> Prevalence: very-common
 
-## How it works
+## How it works (plain English)
 
-The timezone string comes from the OS, accurate to the Olson database name (so "America/Indiana/Indianapolis" not just "GMT-5"). Languages come from the OS preferences, ordered. Accept-Language is sent on every HTTP request automatically.
+Your operating system knows two things that turn out to be unusually personal. First, what timezone you are in — because the clock has to be right. Second, what languages you prefer — because the OS needs to know what to show you in. Your browser reads both from the OS and hands them to every website and every server you connect to.
 
-A site that sees Mullvad's German exit IP plus a US Pacific timezone plus en-US,es as your languages knows you are an American on a VPN, browsing from your usual setup. No fingerprinting library needed.
+Timezone is not "GMT-5" — that would be ambiguous (Toronto, Bogotá, Havana, and Lima are all GMT-5 with different DST rules). It is a specific IANA identifier: `America/New_York`, `America/Toronto`, `America/Bogota`, `America/Havana`, `America/Lima`. The identifier encodes not just the current offset but the full historical DST rule set, which differs city-to-city. A user in `America/Indiana/Indianapolis` is already in a narrow slice.
 
-## What it leaks about you
+Languages are similar: not just "English" but `['en-US', 'es-MX', 'fr-CA']` — the ordered list reveals both your primary language and your secondary exposure. An American who lived in Mexico shows a different language list than an American who lived in Canada. An immigrant from Vietnam whose kids grew up in California shows `['en-US', 'vi-VN']` in a specific order.
 
-Your real city (timezone), your declared mother tongue and second languages, your immigrant status in some cases, your VPN-vs-real-location consistency.
+A real example: a user opens a site via a Mullvad VPN exit node in Germany. Everything about the connection looks German — until the site reads `Intl.DateTimeFormat().resolvedOptions().timeZone = "America/Los_Angeles"` and `navigator.languages = ["en-US","es"]`. The discrepancy is itself a signal: "American on a VPN, California resident, speaks Spanish." No fingerprinting library needed.
+
+## How it works (technical)
+
+The timezone comes from the `Intl` API:
+
+```js
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// "America/Chicago"
+
+const langs = navigator.languages;
+// ["en-US", "es"]
+
+// The timezone offset (in minutes) is also reachable without Intl:
+const offsetMin = new Date().getTimezoneOffset(); // -360 for CST, -300 for CDT
+
+// And the full locale:
+const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+// "en-US"
+```
+
+On the server side, every HTTP request carries `Accept-Language: en-US,en;q=0.9,es;q=0.8` — the same ordered language list the JavaScript surface shows, with q-values indicating priority. The server also receives `Accept` (MIME types), and from the timestamps of requests versus the user's local clock, it can infer offsetMin indirectly.
+
+The timezone string is the high-entropy piece. IANA tzdata has ~400 canonical zones; `America/Indiana/Indianapolis` and `America/Indiana/Knox` are separate zones because Indiana historically had county-level DST irregularities. A user in `Pacific/Chatham` (New Zealand, 12:45 UTC offset) is in a population of tens of thousands.
+
+Language list entropy varies by region. In a US-English-only population, `navigator.languages === ["en-US"]` is the median and low-entropy. In a multilingual corpus, the **ordered** list becomes discriminating — `["en-US", "zh-TW", "es"]` is a small crowd.
+
+The Laperdrix 2020 survey reports timezone+language combined at 3-6 bits of entropy in general populations, rising to 10+ bits when joined with IP geolocation as a cross-check signal (the mismatch between IP-inferred location and declared timezone). Gomez-Boix WWW 2018 treats timezone as a top-5 entropy contributor on multilingual corpora.
+
+## Who uses this, and why
+
+Every site reads `Accept-Language` — analytics platforms (GA4, Plausible, Matomo) use it for audience segmentation. Ad-tech serves localized creatives based on language preferences. Content platforms (Netflix, YouTube) use timezone to default-schedule releases.
+
+Anti-fraud: ThreatMetrix, Sift, Forter, SEON, Kount all compute a "VPN-plus-timezone-mismatch" signal where declared timezone does not align with IP geo. That mismatch is a fraud-indicator feature in every device-risk model.
+
+CDN bot-management: A headless browser with `TZ=UTC` (the Docker default) connecting from an IP in Ontario is an automation tell. Commercial anti-detect browsers (Multilogin, Kameleo) let you set the browser's timezone per profile.
+
+Research: the Panopticlick 2010 measurement found timezone at ~3 bits average. Gomez-Boix 2018 found it rising in multilingual populations. The mismatch-based detection is covered in Vastel 2018 *FP-Stalker* and Laperdrix 2016 *Beauty and the Beast*.
+
+## What it reveals about you
+
+Your real city (timezone, accurate to IANA zone). Your declared primary language. Your secondary languages, in order of preference — reveals biography (immigration, multilingual upbringing, study-abroad exposure). VPN-vs-real-location consistency: a German IP with a US timezone is an active flag.
+
+In the Laperdrix 2016 *Beauty and the Beast* measurement, 84% of users were uniquely identified by the combination of language list, timezone, and screen resolution — three values readable without a permission prompt.
 
 ## How to defend
 
-- 🟢 Use Tor Browser, which forces UTC and en-US for every user.
-- 🟢 Mullvad Browser does the same.
-- 🟡 Firefox FPP forces the timezone to UTC and overrides Accept-Language to en-US.
-- 🔴 Match your VPN exit country to your OS timezone manually if you cannot use one of the above.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Tor Browser forces UTC timezone and en-US language for every user. All Tor users have the same timezone and language list.
 
-Switching IP without switching timezone. The mismatch flags you as VPN-using and the timezone betrays where you actually are.
+Mullvad Browser does the same — UTC timezone, en-US language, regardless of OS locale.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Firefox with FPP (`privacy.resistFingerprinting`) forces the timezone to UTC and overrides `Accept-Language` to `en-US,en;q=0.5`. Librewolf ships this on by default. Brave does partial normalization via shields.
+
+### Level 3: Advanced / paid 🔴
+
+If you must run a mainstream browser (Chrome, Edge), match your VPN exit country to your OS timezone manually before connecting. Set the OS to the same timezone as your VPN exit region. Set language preferences to the dominant language of that region. This is brittle and requires discipline — a single misaligned reboot leaks.
+
+### What doesn't help
+
+Switching IP (via VPN) without switching timezone. The mismatch flags you as VPN-using, and the timezone betrays where you actually are. Turning on "do not track" does nothing — servers still read `Accept-Language` and timezone. Installing a VPN browser extension that claims to change locale — most do not actually touch `Intl` or `navigator.languages`.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — UTC + en-US enforced, no alignment work needed.
+- **Firefox + FPP** — timezone forced to UTC, Accept-Language to en-US.
+- **Librewolf** — Firefox fork, FPP on by default.
+- **Brave** — shields-based normalization.
+- **Manual OS locale match** — advanced users willing to maintain discipline.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/javascript](https://browserleaks.com/javascript) — lists timezone and language
+- Laperdrix et al., *Beauty and the Beast: Diverting Modern Web Browsers to Build Unique Browser Fingerprints* (IEEE S&P 2016)
+- Gomez-Boix et al., *Hiding in the Crowd* (WWW 2018)
+- [IANA tz database](https://www.iana.org/time-zones) — canonical zone list
+
+## Known limits
+
+Forcing UTC timezone breaks calendar apps and any site that wants to show you local time. Forcing en-US breaks localized websites. The trade is uniformity vs usability, and Tor/Mullvad accept the usability hit. For most daily browsing, the IP-plus-timezone match signal is worth accepting because the alternative (careful manual discipline) fails at least once a month.

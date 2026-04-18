@@ -11,30 +11,103 @@ related:
   - canvas-fingerprinting
 ---
 
-> **TL;DR.** `screen.width`, `screen.height`, `screen.availWidth`, `screen.availHeight`, `window.innerWidth`, `window.innerHeight`, `window.devicePixelRatio`, `screen.colorDepth`. Together: roughly 15 bits of entropy.
+## also known as: screen fingerprint, viewport fingerprint, devicePixelRatio probe, letterboxing target
 
-The combination of "1920x1080 monitor with a 1.25 DPR and a window 1356x712" is rare enough to identify you among a few thousand peers.
+> **TL;DR** — `screen.width`, `screen.height`, `screen.availWidth`, `screen.availHeight`, `window.innerWidth`, `window.innerHeight`, `window.devicePixelRatio`, `screen.colorDepth`. Together: roughly 12-15 bits of entropy. The combination of "1920×1080 monitor with 1.25 DPR and a window 1356×712" is rare enough to identify you among a few thousand peers.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-Each value is a JavaScript getter, no permission needed. Available width/height excludes the OS taskbar (Windows knows it is at the bottom; macOS knows it is at the top), so the difference between screen.height and screen.availHeight reveals your OS.
+Monitors come in a few dozen common resolutions. Browser windows come in effectively infinite sizes, because users resize them by dragging corners. Device pixel ratio — the ratio of physical pixels to CSS pixels — is 1.0 on a standard desktop, 1.5 or 1.75 on a mid-range laptop, 2.0 on a Retina or HiDPI screen, 3.0 on some phones. Color depth is almost always 24 (or 30 on HDR-capable monitors).
 
-Maximizing a window leaks your taskbar setting. Resizing it constantly across the day leaks behavioral patterns.
+None of that is individually secret. But the **combination** is unusually unique. A 2560×1440 monitor with DPR 1.5 narrows you to a specific laptop class. An exact inner-window size of `1356×712` narrows you much further — that is the size **you** happened to drag the window to, and the number of people who resized their window to exactly those dimensions is small.
 
-## What it leaks about you
+A real example: a user on a 1920×1080 monitor with Windows 11 taskbar at the bottom. `screen.height = 1080`, `screen.availHeight = 1040` (1080 minus the 40-pixel taskbar). Move the window to a second monitor, `availHeight` changes. Move the taskbar to the top or side, `availHeight` changes again. The difference between `screen.height` and `screen.availHeight` reveals OS family (Windows vs macOS vs Linux produce different taskbar-height differentials).
 
-Monitor resolution, taskbar layout (so OS family), whether you use a high-DPR display, your window-management habits.
+## How it works (technical)
+
+Each value is a JavaScript getter, no permission required:
+
+```js
+const fp = {
+  width:        screen.width,          // physical screen width in CSS pixels
+  height:       screen.height,
+  availWidth:   screen.availWidth,     // minus taskbar/dock
+  availHeight:  screen.availHeight,
+  innerWidth:   window.innerWidth,     // current viewport
+  innerHeight:  window.innerHeight,
+  outerWidth:   window.outerWidth,     // includes chrome
+  outerHeight:  window.outerHeight,
+  dpr:          window.devicePixelRatio,
+  colorDepth:   screen.colorDepth,     // almost always 24
+  pixelDepth:   screen.pixelDepth,
+  orientation:  screen.orientation?.type, // 'landscape-primary' | ...
+};
+```
+
+The `availWidth/availHeight` discrepancy from `width/height` is the taskbar/dock fingerprint:
+- Windows 10/11 default: 40 px subtracted from height (taskbar at bottom).
+- macOS default: 24 px subtracted from height (menu bar at top), Dock may eat more.
+- Linux GNOME: typically 0 px subtracted (top-bar is compositor-drawn).
+
+So `screen.height === screen.availHeight` narrows to "Linux with compositor" or "fullscreen browser on Windows with auto-hide taskbar." `screen.height - screen.availHeight === 24` narrows to "macOS with Dock on auto-hide."
+
+DPR is usually limited to a small set — 1, 1.25, 1.5, 1.75, 2, 2.5, 3. Fractional values like 1.7777... appear on Chromium when a user sets a non-standard Windows scaling factor in Display Settings. Those fractional values are high-entropy.
+
+Maximized-vs-windowed adds another bit: a maximized window has `outerWidth === screen.availWidth`, which is not true for a free-floating window. Resizing continuously across a browsing session reveals behavioural patterns. Gomez-Boix WWW 2018 measured the screen cluster at 4-6 bits of entropy on populations where the inner-window size was not included, and 12+ bits when it was.
+
+## Who uses this, and why
+
+Every fingerprinting library reads screen properties. FingerprintJS, ThreatMetrix, Iovation — all include screen, inner-window, and DPR as joint inputs. CDN bot-management reads them as a UA consistency check ("claims iPhone 15, but screen is 1920×1080" = liar). Ad-tech creative servers use them to pick the right creative size (ATF vs BTF ads) and end up recording them as a secondary ID.
+
+Browser-testing services (BrowserStack, Sauce Labs, LambdaTest) are routinely detected by anti-fraud platforms via uncommon screen/DPR combinations — each virtual-browser SKU has a distinct screen profile.
+
+Research: Laperdrix 2020 survey; Panopticlick (EFF 2010) called out `screen.width` as a top-5 entropy source on its first measurement. The Tor Project's letterboxing work (2020) is the canonical response.
+
+## What it reveals about you
+
+Monitor resolution (one of ~40 common values). Taskbar layout, which reveals OS family (Windows vs macOS vs Linux). DPR, which narrows to a laptop class (high-DPR = recent MacBook or ThinkPad X1 or Dell XPS). Current inner-window size, which is the user's idiosyncratic drag state — the highest-entropy single screen value. Whether the window is maximized. Over many requests, window-resize behaviour patterns.
 
 ## How to defend
 
-- 🟢 Tor Browser uses "letterboxing": a fixed inner window size with empty bands to hide the real one.
-- 🟢 Firefox FPP rounds the inner window to 200x100 grid steps.
-- 🟡 Always browse maximized; "windowed at 1247x683" is unique to you.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Browse maximized always. "Windowed at 1247×683" is unique; "maximized at 1920×1080" is shared with tens of millions of users.
 
-A VPN. The screen API is local-machine state, not network state.
+Tor Browser uses **letterboxing**: a fixed inner-window size with empty bands between content and window edge, hiding the real window shape. All Tor users show a small set of standardized inner-window sizes.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Firefox with FPP (`privacy.resistFingerprinting` or `privacy.fingerprintingProtection`) rounds the inner window to 200×100 grid steps and sets `devicePixelRatio` to 1. Mullvad Browser inherits Firefox's letterboxing.
+
+### Level 3: Advanced / paid 🔴
+
+Use Tor Browser or Mullvad Browser for sessions where the screen cluster matters. For scripted automation, set viewport size to a common round number (1920×1080 or 1366×768) explicitly.
+
+### What doesn't help
+
+A VPN — the screen API is local-machine state, not network state. Disabling JavaScript on the site — you turn it back on for the next site and re-leak. Changing taskbar position — still a unique configuration, just a different one.
+
+## Tools that help
+
+- **Tor Browser** — letterboxing, fixed inner-window sizes across all users.
+- **Mullvad Browser** — same letterboxing as Tor.
+- **Firefox + FPP** — 200×100 grid rounding, DPR normalized.
+- **Librewolf** — Firefox fork, FPP on by default.
+
+## Try it yourself
+
+[See your own value →](/en/scan)
+
+## Further reading
+
+- [browserleaks.com/screen](https://browserleaks.com/screen) — reference test
+- [Tor Browser letterboxing design](https://gitlab.torproject.org/legacy/trac/-/wikis/doc/Letterboxing)
+- Gomez-Boix et al., *Hiding in the Crowd* (WWW 2018)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+- EFF Panopticlick 2010 original measurements
+
+## Known limits
+
+Letterboxing adds visible empty bands to the browser window — some users dislike the look. Grid-rounding leaves coarse buckets (rounded to nearest 200×100) which is still distinguishing in small populations. Max-DPR normalization breaks high-DPR native image rendering. Screen-layer defences are a trade between uniformity (better for anonymity, worse for UX) and individual expression.
