@@ -15,3 +15,11 @@ Thumbs.db
 .next/
 coverage/
 *.tsbuildinfo
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Lighthouse
+lighthouse-reports/

@@ -93,8 +93,8 @@ const categoryDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : 
       <slot />
     </div>
 
-    <section aria-labelledby="hero-pick" class="rounded-lg border border-accent/30 bg-surface p-5">
-      <h2 id="hero-pick" class="text-sm font-semibold uppercase tracking-wider text-accent">
+    <section aria-labelledby="category-hero-pick" class="rounded-lg border border-accent/30 bg-surface p-5">
+      <h2 id="category-hero-pick" class="text-sm font-semibold uppercase tracking-wider text-accent">
         This just works
       </h2>
       <p class="mt-2 text-lg font-semibold text-text">{data.hero_pick}</p>
@@ -103,8 +103,8 @@ const categoryDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : 
       </p>
     </section>
 
-    <section aria-labelledby="alternatives" class="space-y-3">
-      <h2 id="alternatives" class="text-sm font-semibold uppercase tracking-wider text-text-muted">
+    <section aria-labelledby="category-alternatives" class="space-y-3">
+      <h2 id="category-alternatives" class="text-sm font-semibold uppercase tracking-wider text-text-muted">
         Alternatives
       </h2>
       <ul class="grid gap-2 sm:grid-cols-2">
@@ -115,8 +115,8 @@ const categoryDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : 
     </section>
 
     {data.related.length > 0 && (
-      <section aria-labelledby="related-vectors" class="border-t border-white/10 pt-6">
-        <h2 id="related-vectors" class="text-sm font-semibold uppercase tracking-wider text-text-muted">
+      <section aria-labelledby="category-related-vectors" class="border-t border-white/10 pt-6">
+        <h2 id="category-related-vectors" class="text-sm font-semibold uppercase tracking-wider text-text-muted">
           Related vectors
         </h2>
         <ul class="mt-3 grid gap-2 sm:grid-cols-2">
