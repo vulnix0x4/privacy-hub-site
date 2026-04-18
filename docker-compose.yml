@@ -6,8 +6,6 @@
 #   - scanner-nsd      : NSD authoritative DNS for *.scan.privacy.whattheflip.lol (Phase 3)
 #   - scanner-nonce    : Go sidecar coordinating nonces + NSD zone rewrites (Phase 3)
 #
-# Only `web` is active in this first commit. Scanner services land in Phase 3.
-#
 # External access assumption:
 #   Internet -> your server (Caddy HTTPS) -> WireGuard -> this host -> exposed ports below.
 #
@@ -17,6 +15,18 @@
 #                        TCP passthrough (layer4 plugin) for ja4.scan.* → here
 #   DNS_PORT (5353)    — authoritative DNS; your server's public port 53 UDP+TCP
 #                        must DNAT-forward to here via WireGuard
+#
+# Shared volumes:
+#   scan-nonces-vol    — the SQLite nonce DB lives in tmpfs on `web` and is
+#                        NOT shared across containers anymore. The sidecar
+#                        reads nonces via HTTP from `web` (see
+#                        /api/scan/nonces-active), which keeps the boundary
+#                        clean and the sidecar dep-free.
+#   nsd-zones-vol      — zone file(s) written by scanner-nonce, read by
+#                        scanner-nsd. Lives on a named volume so both
+#                        containers see the same view.
+#   nsd-control-vol    — nsd-control UNIX socket shared between scanner-nsd
+#                        (owner) and scanner-nonce (client).
 
 services:
   web:
@@ -33,8 +43,9 @@ services:
       HOST: 0.0.0.0
       PORT: 4321
       PUBLIC_SITE_URL: https://privacy.whattheflip.lol
-      SCAN_JA4_URL: ${SCAN_JA4_URL:-https://ja4.scan.privacy.whattheflip.lol}
-      SCAN_DNS_DOMAIN: ${SCAN_DNS_DOMAIN:-scan.privacy.whattheflip.lol}
+      PUBLIC_SCAN_JA4_URL: ${PUBLIC_SCAN_JA4_URL:-https://ja4.scan.privacy.whattheflip.lol}
+      PUBLIC_SCAN_DNS_DOMAIN: ${PUBLIC_SCAN_DNS_DOMAIN:-scan.privacy.whattheflip.lol}
+      SCAN_NONCE_DB: /tmp/scan-nonces.db
     read_only: true
     tmpfs:
       - /tmp:size=64m
@@ -55,48 +66,105 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Phase 3 services — defined here but commented out until implemented.
-  # Uncomment after Phase 3 Tasks 3.2–3.5 land.
-  #
-  # scanner-ja4:
-  #   build: ./scanner/ja4
-  #   container_name: privacy-hub-scanner-ja4
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${JA4_PORT:-8443}:8443"
-  #   read_only: true
-  #   tmpfs:
-  #     - /tmp:size=16m
-  #   cap_drop: [ALL]
-  #   security_opt: [no-new-privileges:true]
-  #
-  # scanner-nsd:
-  #   build: ./scanner/nsd
-  #   container_name: privacy-hub-scanner-nsd
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${DNS_PORT:-5353}:53/udp"
-  #     - "${DNS_PORT:-5353}:53/tcp"
-  #   volumes:
-  #     - ./scanner/nsd/zones:/etc/nsd/zones:ro
-  #   read_only: true
-  #   tmpfs:
-  #     - /var/db/nsd:size=8m
-  #     - /tmp:size=8m
-  #   cap_add: [NET_BIND_SERVICE]
-  #   cap_drop: [ALL]
-  #
-  # scanner-nonce:
-  #   build: ./scanner/nonce
-  #   container_name: privacy-hub-scanner-nonce
-  #   restart: unless-stopped
-  #   depends_on: [scanner-nsd]
-  #   volumes:
-  #     - ./scanner/nsd/zones:/etc/nsd/zones
-  #   read_only: true
-  #   tmpfs:
-  #     - /tmp:size=8m
-  #   cap_drop: [ALL]
+  scanner-ja4:
+    build:
+      context: ./scanner/ja4
+    image: privacy-hub-scanner-ja4:latest
+    container_name: privacy-hub-scanner-ja4
+    restart: unless-stopped
+    ports:
+      - "${JA4_PORT:-8443}:8443"
+    environment:
+      JA4_SERVER_NAME: ${PUBLIC_SCAN_JA4_HOST:-ja4.scan.privacy.whattheflip.lol}
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # TLS self-signed — wget needs --no-check-certificate. Behind upstream
+      # Caddy the cert is bypassed anyway (TCP passthrough), so this local
+      # check just confirms the listener is alive.
+      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "https://localhost:8443/echo"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "local"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  scanner-nsd:
+    build:
+      context: ./scanner/nsd
+    image: privacy-hub-scanner-nsd:latest
+    container_name: privacy-hub-scanner-nsd
+    restart: unless-stopped
+    ports:
+      - "${DNS_PORT:-5353}:53/udp"
+      - "${DNS_PORT:-5353}:53/tcp"
+    volumes:
+      - nsd-zones-vol:/etc/nsd/zones
+      - nsd-control-vol:/var/run/nsd
+    read_only: true
+    tmpfs:
+      - /var/db/nsd:size=8m
+      - /tmp:size=8m
+    # NSD does NOT need NET_BIND_SERVICE here — port 53 is bound inside the
+    # container's own netns to :53, and Docker's port publishing forwards
+    # DNS_PORT on the host. Keep cap_drop: ALL.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "local"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  scanner-nonce:
+    build:
+      context: ./scanner/nonce
+    image: privacy-hub-scanner-nonce:latest
+    container_name: privacy-hub-scanner-nonce
+    restart: unless-stopped
+    depends_on:
+      - web
+      - scanner-nsd
+    environment:
+      WEB_NONCES_URL: http://web:4321/api/scan/nonces-active
+      ZONE_FILE: /etc/nsd/zones/scan.zone
+      ZONE_TEMPLATE: /etc/nsd/zone-template.txt
+      POLL_INTERVAL: 2s
+    volumes:
+      - nsd-zones-vol:/etc/nsd/zones
+      - nsd-control-vol:/var/run/nsd
+      # The template ships in the nsd image; the sidecar needs its own copy.
+      # Bind-mount the source so both containers see the same file.
+      - ./scanner/nsd/zone-template.txt:/etc/nsd/zone-template.txt:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "local"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  nsd-zones-vol:
+    driver: local
+  nsd-control-vol:
+    driver: local
 
 networks:
   default:
