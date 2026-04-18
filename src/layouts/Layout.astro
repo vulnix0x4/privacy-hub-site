@@ -6,10 +6,23 @@ interface Props {
   description: string;
   canonical?: string;
   noIndex?: boolean;
+  /**
+   * Absolute or root-relative OG image URL. Falls back to the static
+   * `/og-default.png` fallback shipped in `public/` when unset. See
+   * `src/pages/og/[slug].png.ts` for the dynamic generator (opt-in per
+   * layout).
+   */
+  ogImage?: string;
 }
 
-const { title, description, canonical, noIndex = false } = Astro.props;
+const { title, description, canonical, noIndex = false, ogImage } = Astro.props;
 const canonicalUrl = canonical ?? Astro.url.href;
+const site = Astro.site?.href?.replace(/\/$/, '') ?? 'https://privacy.whattheflip.lol';
+const resolvedOgImage = ogImage
+  ? ogImage.startsWith('http')
+    ? ogImage
+    : `${site}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`
+  : `${site}/og-default.png`;
 ---
 <!doctype html>
 <html lang="en">
@@ -28,8 +41,11 @@ const canonicalUrl = canonical ?? Astro.url.href;
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={resolvedOgImage} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={resolvedOgImage} />
     <meta name="theme-color" content="#0a0a0a" />
+    <slot name="head" />
   </head>
   <body class="min-h-screen flex flex-col">
     <a href="#main" class="sr-only focus:not-sr-only">Skip to content</a>

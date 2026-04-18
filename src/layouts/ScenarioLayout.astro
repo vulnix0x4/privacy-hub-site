@@ -10,6 +10,7 @@
  */
 import type { CollectionEntry } from 'astro:content';
 import Layout from './Layout.astro';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '../lib/seo/jsonLd';
 
 interface Props {
   entry: CollectionEntry<'scenarios'>;
@@ -19,6 +20,19 @@ const { entry } = Astro.props;
 const { data } = entry;
 
 const lastVerified = data.last_verified.toISOString().slice(0, 10);
+
+const canonicalPath = `/en/scenarios/${entry.id}`;
+const articleLd = buildArticleJsonLd({
+  title: data.title,
+  description: data.description,
+  lastVerified: data.last_verified,
+  canonicalUrl: canonicalPath,
+});
+const breadcrumbLd = buildBreadcrumbJsonLd([
+  { name: 'Home', url: '/en/' },
+  { name: 'Scenarios', url: '/en/scenarios' },
+  { name: data.title, url: canonicalPath },
+]);
 
 const playlistTypeBase: Record<string, string> = {
   basics: '/en/basics/',
@@ -36,6 +50,10 @@ const difficultyLabel: Record<string, { glyph: string; label: string }> = {
 const scenarioDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : null;
 ---
 <Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleLd)} is:inline></script>
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>
+  </Fragment>
   <article class="max-w-3xl py-6 space-y-8">
     <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
       <a href="/en/scenarios" class="hover:text-text">Scenarios</a>

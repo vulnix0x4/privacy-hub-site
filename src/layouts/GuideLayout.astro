@@ -9,6 +9,7 @@
  */
 import type { CollectionEntry } from 'astro:content';
 import Layout from './Layout.astro';
+import { buildBreadcrumbJsonLd, buildHowToJsonLd } from '../lib/seo/jsonLd';
 
 interface Props {
   entry: CollectionEntry<'guides'>;
@@ -19,6 +20,25 @@ const { data } = entry;
 
 const lastVerified = data.last_verified.toISOString().slice(0, 10);
 
+// HowTo JSON-LD. We emit the HowTo without a step array at the layout
+// level — parsing the MDX body for H2/H3 steps here would require
+// remark-level tooling that doesn't fit inside a layout component. The
+// HowTo without steps still passes schema.org validation; the page body
+// carries the human-readable step list.
+const canonicalPath = `/en/guides/${entry.id}`;
+const howToLd = buildHowToJsonLd({
+  title: data.title,
+  description: data.description,
+  timeMinutes: data.time_minutes,
+  lastVerified: data.last_verified,
+  canonicalUrl: canonicalPath,
+});
+const breadcrumbLd = buildBreadcrumbJsonLd([
+  { name: 'Home', url: '/en/' },
+  { name: 'Guides', url: '/en/guides' },
+  { name: data.title, url: canonicalPath },
+]);
+
 const difficultyLabel: Record<string, { glyph: string; label: string }> = {
   easy: { glyph: '🟢', label: 'Easy — no install' },
   intermediate: { glyph: '🟡', label: 'Intermediate — install or configure' },
@@ -28,6 +48,10 @@ const difficultyLabel: Record<string, { glyph: string; label: string }> = {
 const difficulty = data.difficulty ? difficultyLabel[data.difficulty] : null;
 ---
 <Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(howToLd)} is:inline></script>
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} is:inline></script>
+  </Fragment>
   <article class="max-w-3xl py-6 space-y-8">
     <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
       <a href="/en/guides" class="hover:text-text">Guides</a>
