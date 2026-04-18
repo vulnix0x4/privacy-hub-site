@@ -1,0 +1,64 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  noIndex?: boolean;
+}
+
+const { title, description, canonical, noIndex = false } = Astro.props;
+const canonicalUrl = canonical ?? Astro.url.href;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noIndex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en" href={canonicalUrl} />
+    <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0a0a0a" />
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <a href="#main" class="sr-only focus:not-sr-only">Skip to content</a>
+    <header class="border-b border-white/10">
+      <nav class="container mx-auto flex items-center justify-between px-4 py-4 text-sm" aria-label="Primary">
+        <a href="/en/" class="font-semibold tracking-tight">privacy.whattheflip.lol</a>
+        <ul class="flex items-center gap-4 text-text-muted">
+          <li><a href="/en/scan">Scan</a></li>
+          <li><a href="/en/vectors">Vectors</a></li>
+          <li><a href="/en/categories">Tools</a></li>
+          <li><a href="/en/guides">Guides</a></li>
+          <li><a href="/en/about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main id="main" class="flex-1 container mx-auto px-4 py-8">
+      <slot />
+    </main>
+    <footer class="border-t border-white/10 py-8 text-sm text-text-muted">
+      <div class="container mx-auto px-4 space-y-3">
+        <p>This is not legal advice. We don't use cookies, analytics, or third-party scripts.</p>
+        <nav aria-label="Legal" class="flex flex-wrap gap-x-3 gap-y-1">
+          <a href="/en/legal/privacy">Privacy</a> <span aria-hidden="true">·</span>
+          <a href="/en/legal/affiliate">Affiliate disclosure</a> <span aria-hidden="true">·</span>
+          <a href="/en/legal/accessibility">Accessibility</a> <span aria-hidden="true">·</span>
+          <a href="/en/legal/dmca">DMCA</a> <span aria-hidden="true">·</span>
+          <a href="/en/changelog">Changelog</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

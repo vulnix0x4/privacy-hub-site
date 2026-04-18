@@ -1,0 +1,49 @@
+{
+  "name": "privacy-hub-site",
+  "version": "0.0.1",
+  "private": true,
+  "description": "privacy.whattheflip.lol — opinionated privacy hub with live fingerprint scanner",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vulnix0x4/privacy-hub-site.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vulnix0x4/privacy-hub-site/issues"
+  },
+  "homepage": "https://privacy.whattheflip.lol",
+  "author": "vulnix0x4",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@astrojs/cloudflare": "^13.1.10",
+    "@astrojs/mdx": "^5.0.3",
+    "@astrojs/react": "^5.0.3",
+    "@astrojs/sitemap": "^3.7.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.1.7",
+    "idb": "^8.0.3",
+    "lucide-react": "^1.8.0",
+    "motion": "^12.38.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "pagefind": "^1.5.2",
+    "typescript": "^6.0.3"
+  }
+}
