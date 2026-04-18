@@ -43,3 +43,25 @@ Then your upstream Caddy on the public-facing server reverse-proxies `privacy.wh
 Astro 6 · React 19 · TypeScript 5 · Tailwind CSS v4 · Motion v12 · MDX · Pagefind · `@astrojs/node` · Docker · Caddy (upstream, not bundled) · Go (scanner backend) · NSD (authoritative DNS) · self-hosted WOFF2 fonts · zero third-party scripts
 
 See `docs/plans/` for full detail.
+
+## IndexNow
+
+Bing/Yandex/Seznam/Naver accept `IndexNow` pings for instant reindex of changed URLs. The key file is already published at
+`public/c7aa43b8abe34668bf459415f270fd97.txt`, so the key proves domain ownership. After a deploy, submit changed URLs with:
+
+```bash
+# Uncomment in CI after a build that ships new/changed content.
+# curl -sS -X POST 'https://api.indexnow.org/IndexNow' \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#     "host": "privacy.whattheflip.lol",
+#     "key": "c7aa43b8abe34668bf459415f270fd97",
+#     "keyLocation": "https://privacy.whattheflip.lol/c7aa43b8abe34668bf459415f270fd97.txt",
+#     "urlList": [
+#       "https://privacy.whattheflip.lol/en/",
+#       "https://privacy.whattheflip.lol/en/scan"
+#     ]
+#   }'
+```
+
+The placeholder is intentional; when a deploy workflow lands in `.github/workflows/`, this block moves there and gets un-commented.
