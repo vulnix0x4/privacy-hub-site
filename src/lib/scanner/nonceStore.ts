@@ -56,6 +56,12 @@ export interface NonceStore {
    * @param now Unix ms timestamp. Defaults to `Date.now()`.
    */
   sweep(now?: number): number;
+  /**
+   * List currently-active nonces (expires_at > now). Returns an array of nonce
+   * strings, capped at `limit` (default 1000). Used by the scanner-nonce
+   * sidecar to drive NSD zone rewrites without exposing any resolver-IP data.
+   */
+  listActive(limit?: number, now?: number): string[];
   /** Close the underlying SQLite connection. */
   close(): void;
 }
@@ -83,6 +89,9 @@ export function openNonceStore(dbPath?: string): NonceStore {
     'SELECT resolver_ip AS resolverIp FROM nonces WHERE nonce = ? AND expires_at > ?'
   );
   const sweepStmt = db.prepare('DELETE FROM nonces WHERE expires_at <= ?');
+  const listActiveStmt = db.prepare(
+    'SELECT nonce AS nonce FROM nonces WHERE expires_at > ? ORDER BY nonce LIMIT ?'
+  );
 
   return {
     issue(ttlMs: number = DEFAULT_TTL_MS): { nonce: string; expiresAt: number } {
@@ -112,6 +121,11 @@ export function openNonceStore(dbPath?: string): NonceStore {
     sweep(now: number = Date.now()): number {
       const info = sweepStmt.run(now);
       return Number(info.changes);
+    },
+
+    listActive(limit: number = 1000, now: number = Date.now()): string[] {
+      const rows = listActiveStmt.all(now, limit) as Array<{ nonce: string }>;
+      return rows.map((r) => r.nonce);
     },
 
     close(): void {

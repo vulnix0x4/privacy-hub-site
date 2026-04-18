@@ -160,6 +160,52 @@ describe('nonceStore', () => {
     });
   });
 
+  describe('listActive()', () => {
+    it('returns the empty array when the store is empty', () => {
+      const store = open();
+      expect(store.listActive()).toEqual([]);
+    });
+
+    it('returns all currently-active nonces', () => {
+      const store = open();
+      const a = store.issue().nonce;
+      const b = store.issue().nonce;
+      const c = store.issue().nonce;
+      const got = store.listActive();
+      expect(new Set(got)).toEqual(new Set([a, b, c]));
+    });
+
+    it('excludes expired nonces', async () => {
+      const store = open();
+      const fresh = store.issue(60_000).nonce;
+      store.issue(0); // will expire immediately
+      await new Promise((r) => setTimeout(r, 2));
+      const got = store.listActive();
+      expect(got).toEqual([fresh]);
+    });
+
+    it('respects the limit argument', () => {
+      const store = open();
+      store.issue();
+      store.issue();
+      store.issue();
+      expect(store.listActive(2)).toHaveLength(2);
+    });
+
+    it('returns results in a deterministic (sorted) order', () => {
+      const store = open();
+      store.issue();
+      store.issue();
+      store.issue();
+      const first = store.listActive();
+      const second = store.listActive();
+      expect(first).toEqual(second);
+      // And the order is lexicographic on the nonce string (sorted).
+      const sorted = [...first].sort();
+      expect(first).toEqual(sorted);
+    });
+  });
+
   describe('scheduleSweep()', () => {
     it('returns a handle with .stop()', () => {
       const store = open();
