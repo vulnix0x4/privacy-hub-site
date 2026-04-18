@@ -1,0 +1,147 @@
+---
+/**
+ * DMCA notice + counter-notice template. The policy statement is the
+ * load-bearing bit: we do not silently amend under legal threat. Every
+ * takedown attempt is documented in the changelog. This is the
+ * canary-in-reverse — if this page ever quietly softens, readers should
+ * notice.
+ *
+ * Template wraps in <details> for progressive disclosure per design doc
+ * §11.5.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+---
+<Layout
+  title="DMCA policy — privacy.whattheflip.lol"
+  description="How to submit a DMCA takedown notice. Counter-notice template. Policy: we document every takedown attempt in the changelog. We do not silently amend under legal threat."
+>
+  <article class="max-w-3xl py-6 space-y-6 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">DMCA</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">DMCA policy</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Policy</h2>
+      <p>
+        We respect copyright. If you believe content on this site infringes yours, the steps below
+        describe how to submit a valid DMCA takedown notice under 17 U.S.C. § 512.
+      </p>
+      <p>
+        We also respect the people who read this site. <strong>We do not silently amend content
+        under legal threat.</strong> Every takedown attempt — valid or not — is documented in
+        <a href="/en/changelog" class="underline">the public changelog</a> with the date, the
+        content affected, and the resolution. If you see a post quietly change without a changelog
+        entry, that is a bug and we want to hear about it.
+      </p>
+      <p>
+        Abusive or obviously invalid notices are published in full (with contact info redacted for
+        individuals; corporate senders get no redaction). Perjury claims under § 512(f) will be
+        considered when warranted.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Designated agent</h2>
+      <p>
+        <span
+          class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged"
+        >TODO(pre-launch)</span>{' '}
+        DMCA designated agent is in the process of being registered with the US Copyright Office.
+        Until registered, submit notices to the contact address below. Once registered, the agent
+        name, address, and Copyright Office URL will replace this paragraph.
+      </p>
+      <p>
+        Interim contact:
+        <a href="mailto:claude.aiactuallall.disregard729@passmail.com" class="underline">claude.aiactuallall.disregard729@passmail.com</a>.
+        Subject line: <code>DMCA notice</code>.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Required elements of a notice</h2>
+      <p>Per 17 U.S.C. § 512(c)(3), a valid notice must include:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Physical or electronic signature of the owner or authorized agent.</li>
+        <li>Identification of the copyrighted work claimed to be infringed.</li>
+        <li>Identification of the infringing material, with enough specificity to locate it (URL).</li>
+        <li>Your contact info (address, phone, email).</li>
+        <li>A statement that you have a good-faith belief that the use is not authorized.</li>
+        <li>A statement, under penalty of perjury, that the information is accurate and that you are authorized to act.</li>
+      </ul>
+      <p>
+        Notices missing any of these six elements will be acknowledged but not actioned until
+        corrected.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Counter-notice template</h2>
+      <p>
+        If content you posted was removed under a DMCA notice you believe is invalid, you may
+        submit a counter-notice. Under § 512(g), a valid counter-notice restores the material
+        unless the claimant files suit within 10–14 business days.
+      </p>
+      <details class="rounded border border-white/10 bg-surface px-4 py-3">
+        <summary class="cursor-pointer text-sm font-semibold text-text">
+          Expand counter-notice template
+        </summary>
+        <pre class="mt-3 overflow-x-auto whitespace-pre-wrap rounded border border-white/10 bg-bg p-4 text-xs text-text"><code>{`To: [DMCA agent address]
+Subject: DMCA counter-notification
+
+I am responding to a notice of alleged infringement under 17 U.S.C.
+§ 512 that caused the following material to be removed or disabled:
+
+  URL(s) affected:
+    - [paste the exact URLs removed]
+
+  Description of the material:
+    - [brief description of the content]
+
+I have a good-faith belief that the material was removed or disabled
+as a result of mistake or misidentification of the material to be
+removed or disabled.
+
+I consent to the jurisdiction of the Federal District Court for the
+judicial district in which my address is located, or if my address
+is outside the United States, to the judicial district in which the
+service provider may be found, and I will accept service of process
+from the claimant or their agent.
+
+I swear, under penalty of perjury, that the information in this
+counter-notice is accurate.
+
+Signed,
+
+  Full legal name: _______________________________________
+  Address:          _______________________________________
+  Phone:            _______________________________________
+  Email:            _______________________________________
+  Signature:        _______________________________________
+  Date:             _______________________________________`}</code></pre>
+      </details>
+      <p class="text-sm text-text-muted">
+        The template is informational. It is not legal advice. Consult a lawyer if you are unsure
+        whether to submit a counter-notice.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Repeat infringer policy</h2>
+      <p>
+        Per § 512(i), we terminate accounts of repeat infringers. This site has no user accounts,
+        so in practice this means repeat submitters of valid DMCA notices against third-party
+        content we host (none yet) would see that content removed and future uploads blocked. The
+        policy exists; the operational surface does not.
+      </p>
+    </section>
+  </article>
+</Layout>

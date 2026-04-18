@@ -1,0 +1,144 @@
+---
+/**
+ * Affiliate disclosure — full FTC 16 CFR Part 255 compliance with the
+ * extra step of naming every partner and naming every declined partner.
+ * Design doc §8.3 rule 2 (category pages must link to the disclosure),
+ * §11.5 (explicit partner list plus "declined" list).
+ *
+ * The "free/OSS first, paid/affiliate second" rule is load-bearing — it is
+ * the reason readers can trust category picks. This page states it.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+
+const partners = [
+  {
+    name: 'Proton',
+    scope: 'Proton Mail, Proton VPN, Proton Drive, Proton Pass',
+    note: 'Swiss, E2EE mail, audited, has a real free tier.',
+  },
+  {
+    name: 'Privacy.com',
+    scope: 'Virtual payment cards',
+    note: 'US only. Single-use numbers that defeat most cross-merchant profiling.',
+  },
+  {
+    name: 'smspool',
+    scope: 'Disposable phone numbers',
+    note: 'For signup flows that demand SMS. Not for 2FA on anything you care about.',
+  },
+  {
+    name: 'Bitwarden',
+    scope: 'Password manager (paid tier)',
+    note: 'Open source. Free tier is usable. Paid unlocks TOTP, 1GB attachments, family.',
+  },
+  {
+    name: 'Brave',
+    scope: 'Browser + Brave Search Premium',
+    note: 'We are cautious here — we link Brave, but we flag its crypto baggage on the category page.',
+  },
+  {
+    name: 'Kagi',
+    scope: 'Paid search engine',
+    note: 'Search that works for you, not for advertisers. Paid only, by design.',
+  },
+  {
+    name: 'Obsidian',
+    scope: 'Sync + Publish',
+    note: 'Local-first notes. The app is free; Sync is the paid product.',
+  },
+  {
+    name: 'Ente',
+    scope: 'Photo + Auth',
+    note: 'E2EE photo vault and a clean open-source TOTP app.',
+  },
+];
+---
+<Layout
+  title="Affiliate disclosure — privacy.whattheflip.lol"
+  description="Full list of affiliate partners and the rules we follow. Free and OSS options come first on every category page. Affiliate links come second and are disclosed in-context."
+>
+  <article class="max-w-3xl py-6 space-y-6 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Affiliate disclosure</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Affiliate disclosure</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">The rule</h2>
+      <p>
+        Every category on this site lists a free or open-source option first. Affiliate links come
+        second. We will never recommend a paid-only option when a free one does the same job well
+        enough for most readers. When we link a paid product we earn a commission on, the category
+        page carries an explicit disclosure banner above the fold.
+      </p>
+      <p>
+        Commissions do not influence ranking. Hero picks are chosen on privacy posture, audit
+        history, threat model fit, and UX — in that order. If a non-affiliate alternative is
+        genuinely better, it is the hero pick and the affiliate partner is relegated to alternatives.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Current partners</h2>
+      <ul class="space-y-3">
+        {partners.map((p) => (
+          <li class="rounded border border-white/10 bg-surface px-4 py-3">
+            <p class="font-semibold text-text">{p.name}</p>
+            <p class="text-sm text-text-muted">Scope: {p.scope}</p>
+            <p class="mt-1 text-sm text-text">{p.note}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Declined partnerships</h2>
+      <p>
+        We have declined partnerships with several VPNs and affiliate aggregators that wanted to pay
+        for rankings. If we decline in the future, we will name them here. The list is empty of
+        specifics at launch only because we have not yet been asked in writing — not because it is
+        not already happening.
+      </p>
+      <p class="text-sm text-text-muted">
+        <em>
+          Editorial note: this section will be filled in with names and dates as offers come in. No
+          NDAs, no quiet refusals.
+        </em>
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">How commissions work</h2>
+      <p>
+        When you click an affiliate link and sign up for a paid plan with a partner, the partner
+        pays us a one-time or recurring commission. The amount varies per partner and is not
+        disclosed individually because contracts change. Aggregate commission data will be included
+        in the first <a href="/en/changelog" class="underline">audit report</a> committed for the
+        six-month mark.
+      </p>
+      <p>
+        Commissions fund hosting, time, and the scanner backend. If commissions ever cover more
+        than operating costs, the surplus is disclosed and reinvested in open-source privacy tools
+        (TBD — as of launch, we are a long way from that problem).
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">FTC 16 CFR Part 255</h2>
+      <p>
+        Per US FTC endorsement rules, we disclose affiliate relationships in-context (on the page
+        where the link appears, above the fold) and globally (here). We do not use "#ad" hashtags
+        because this is not a social platform, but the intent is the same: you know when we are
+        being paid.
+      </p>
+    </section>
+  </article>
+</Layout>

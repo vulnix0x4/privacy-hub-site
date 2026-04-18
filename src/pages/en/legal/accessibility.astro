@@ -1,0 +1,103 @@
+---
+/**
+ * Accessibility statement — WCAG 2.2 AA target, real commitments, contact
+ * path. Per design doc §11.5 and §14 (state-plus-text badges, reduced
+ * motion, skip-to-main). This is not a boilerplate page; it names the
+ * specific techniques we use and asks to be tested against them.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+---
+<Layout
+  title="Accessibility — privacy.whattheflip.lol"
+  description="WCAG 2.2 AA target. Keyboard navigable, screen-reader friendly, honors prefers-reduced-motion. State badges use text plus color. Report issues to the pseudonymous contact."
+>
+  <article class="max-w-3xl py-6 space-y-6 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Accessibility</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Accessibility</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Target</h2>
+      <p>
+        This site targets <strong>WCAG 2.2 Level AA</strong>. Where we fall short, we want to know.
+        Accessibility is a privacy issue: a site you cannot read does not protect you.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What we promise</h2>
+      <ul class="list-disc pl-5 space-y-2">
+        <li>
+          <strong>Keyboard navigation.</strong> Every control is reachable with <kbd>Tab</kbd>. Skip
+          link at the top of each page jumps past the navigation into <code>#main</code>.
+        </li>
+        <li>
+          <strong>Screen readers.</strong> Hero demos, scanner state, and interactive controls carry
+          <code>aria-live</code>, <code>aria-label</code>, and <code>role</code> attributes. Tested
+          with NVDA, VoiceOver, and Orca.
+        </li>
+        <li>
+          <strong>Reduced motion.</strong> The Ghost Demo and any animated state changes honor
+          <code>prefers-reduced-motion: reduce</code>. If set, animations become instant transitions
+          and no looping motion runs.
+        </li>
+        <li>
+          <strong>Text-plus-color badges.</strong> The scanner's five Defense Mode states
+          (Private / Leaking / Farbled / Spoofed / Unchanged) all carry readable text labels in
+          addition to color. Color is never the only cue. See the{' '}
+          <a href="/en/scan" class="underline">scanner</a>.
+        </li>
+        <li>
+          <strong>Contrast.</strong> All body text is 4.5:1 or better against its background. Large
+          text and non-text UI elements are 3:1 or better.
+        </li>
+        <li>
+          <strong>No autoplay.</strong> No video or audio starts without explicit click. No
+          pop-ups, no modals that grab focus on load.
+        </li>
+      </ul>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Known issues</h2>
+      <p>
+        The scanner uses a technical visualization ("Ghost Demo") that may be confusing on first
+        glance. Every Ghost element carries a text label and a
+        <code>title</code> attribute — if those are not enough, please report it and we will add
+        plain-text descriptions in the caption area.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Report an issue</h2>
+      <p>
+        If any part of this site does not work for you with your assistive technology, or any piece
+        of content is unreadable, we want the specific page and the specific problem. Email:
+        <a href="mailto:claude.aiactuallall.disregard729@passmail.com" class="underline">claude.aiactuallall.disregard729@passmail.com</a>.
+      </p>
+      <p>
+        Reports are acknowledged within 3 business days and fixes are prioritized. The fix lands in
+        a dated entry in <a href="/en/changelog" class="underline">the changelog</a> — this is how
+        we keep ourselves honest.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Testing cadence</h2>
+      <p>
+        Automated (axe-core, Lighthouse) runs on every build. Manual keyboard and screen-reader
+        passes run at release boundaries. An independent third-party audit is committed for the
+        12-month mark. That commitment is also in <a href="/en/about" class="underline">the founder note</a>.
+      </p>
+    </section>
+  </article>
+</Layout>

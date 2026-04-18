@@ -1,0 +1,144 @@
+---
+/**
+ * Privacy policy — the short one. No cookies, no analytics, no third-party
+ * scripts. The only "data" we handle is the 60-second-TTL nonce a scan uses
+ * to bind a session to a probe batch; it vanishes after. This page spells
+ * that out in plain English and names the legal frameworks we meet
+ * (GDPR / CCPA / LGPD / PIPEDA) without the cosplay.
+ *
+ * Voice: direct. Per design doc §11.5 and §2.1, this is not a cookie-farm
+ * "we respect your privacy" lie.
+ */
+import Layout from '../../../layouts/Layout.astro';
+
+const lastUpdated = '2026-04-18';
+---
+<Layout
+  title="Privacy policy — privacy.whattheflip.lol"
+  description="We don't use cookies, analytics, or third-party scripts. Your scan runs in your browser. Data controller identity, DSR path, and applicable frameworks."
+>
+  <article class="max-w-3xl py-6 space-y-6 prose-zinc prose-invert">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/" class="hover:text-text">Home</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Privacy policy</span>
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Privacy policy</h1>
+      <p class="text-sm text-text-muted">Last updated <time datetime={lastUpdated}>{lastUpdated}</time>.</p>
+    </header>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">The short version</h2>
+      <p>
+        We do not use cookies. We do not use analytics. We do not load third-party scripts. We do not
+        sell data because we do not collect data. The scanner runs in your browser. The one piece of
+        state the backend keeps is a one-time nonce that lives 60 seconds in memory and is then
+        destroyed.
+      </p>
+      <p>
+        If you read nothing else on this page, that is the whole posture.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What we do not do</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>No cookies (session, tracking, consent banner, or otherwise).</li>
+        <li>No analytics (no Google Analytics, no Plausible, no Fathom, no self-hosted Umami).</li>
+        <li>No third-party scripts. No Google Fonts. No YouTube embeds. No Disqus.</li>
+        <li>No A/B testing, no heatmaps, no session replay.</li>
+        <li>No advertising networks. No remarketing pixels.</li>
+        <li>No "privacy-friendly" telemetry. "Privacy-friendly telemetry" is still telemetry.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">What actually happens when you visit</h2>
+      <p>
+        Your browser requests HTML, CSS, JS, and fonts from our origin. Our reverse proxy
+        (Cloudflare, DNS-only mode — no proxying, no analytics) hands your DNS lookup off to our
+        origin server, which returns the static assets. Cloudflare retains DNS query metadata per
+        their own policy; we have no access to it and no visibility into it. No cookies are set.
+      </p>
+      <p>
+        Origin server (self-hosted) keeps standard short-lived access logs for abuse response:
+        timestamp, IP, method, path, status, user-agent. Logs rotate on a 7-day ring and are not
+        retained further. They are not aggregated, not shared, not sold, not used for analytics.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">The scanner</h2>
+      <p>
+        The scanner runs in your browser. Probes read your browser's fingerprintable surface and
+        compute a per-probe verdict locally. Two backend endpoints participate:
+      </p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>
+          <code>/api/scan/nonce</code> — returns a one-time 16-byte token, held in memory (SQLite on
+          tmpfs) with a 60-second TTL. Not associated with your IP, not logged, not retained past
+          expiry.
+        </li>
+        <li>
+          <code>/api/scan/headers</code> — echoes the HTTP headers your browser sent so the scanner
+          can compare them against the in-page JS-reported values. Headers are not stored; the
+          response is computed from the request and discarded.
+        </li>
+      </ul>
+      <p>
+        See <a href="/en/about/scanner-privacy" class="underline text-accent">Scanner privacy</a>
+        for the long-form infrastructure disclosure, audit commitments, and backend source link.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Data controller</h2>
+      <p>
+        Site operator: <strong>vulnix0x4</strong> (pseudonym). Identity-lock is deliberate per
+        design doc §13.5. Contact for privacy questions:
+        <a href="mailto:claude.aiactuallall.disregard729@passmail.com" class="underline">claude.aiactuallall.disregard729@passmail.com</a>.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Your rights (GDPR, CCPA, LGPD, PIPEDA)</h2>
+      <p>
+        Under GDPR (EU/UK), CCPA/CPRA (California), LGPD (Brazil), and PIPEDA (Canada) you have
+        rights to access, correction, deletion, and portability of personal data we hold about you.
+      </p>
+      <p>
+        The honest answer: we do not hold personal data about you. You have no account. We set no
+        cookies. The scanner does not transmit fingerprint values to our server. There is nothing
+        for us to access, correct, delete, or port.
+      </p>
+      <p>
+        If you still want to confirm this — submit a data-subject request (DSR) to the address
+        above. We will respond within 30 days confirming we have nothing on you. That is the whole
+        process.
+      </p>
+      <p>
+        "Sale of personal information" (CCPA): we do not sell personal information. We have no
+        personal information to sell.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Children</h2>
+      <p>
+        This site is general-audience. We do not knowingly collect information from anyone, children
+        included, because we do not collect information at all.
+      </p>
+    </section>
+
+    <section class="space-y-3 text-text leading-relaxed">
+      <h2 class="text-xl font-semibold text-text">Changes</h2>
+      <p>
+        Changes to this policy are logged in <a href="/en/changelog" class="underline">the
+        changelog</a>. We do not silently amend. If the posture ever changes (it will not), the
+        diff is public.
+      </p>
+    </section>
+  </article>
+</Layout>
