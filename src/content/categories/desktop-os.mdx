@@ -14,20 +14,55 @@ related:
   - supercookies-hsts-etag-favicon
 ---
 
-> **TL;DR.** Use Linux Mint if you want a usable desktop OS today with almost no telemetry out of the box. Cinnamon looks and works like Windows, the installer is friendly, and updates are calm and predictable.
+> **TL;DR.** Use Linux Mint if you want a usable desktop OS today with almost no telemetry out of the box. Cinnamon looks and works like Windows, the installer is friendly, and updates are calm and predictable. Fedora for the latest kernel and Wayland stack; Pop!_OS for NVIDIA and tiling; Debian for the "learn once, forget" camp. No affiliate — everything here is FOSS.
 
 ## What this category protects
 
-Baseline telemetry, ad-targeting pipelines, and auto-enrolled cloud-sync (OneDrive, iCloud). Linux distributions routinely ship zero telemetry by default. Windows 11 ships with a lot and adds more every update.
+Baseline telemetry, ad-targeting pipelines, and auto-enrolled cloud sync. Linux distributions routinely ship zero telemetry by default. Windows 11 ships with a lot and adds more every update — Cortana, Copilot, Recall, Advertising ID, required-Microsoft-account signup, Defender cloud submission. macOS is better but not neutral: Apple ID, Siri analytics, Advertising Attribution, Spotlight Suggestions that shipped queries to Apple until you noticed.
 
-## Hero pick: Linux Mint
+The [permissions bitmap](/en/vectors/permissions-bitmap) story also differs by OS. Windows lets apps access mic and camera freely until you revoke; macOS uses TCC with granular prompts; Linux depends on the app (Flatpak portals, random `.deb`s run with user-level access). [Supercookie](/en/vectors/supercookies-hsts-etag-favicon) browser residue sits in system folders the OS may or may not encrypt. The OS is the floor.
 
-Long-term-support Ubuntu base, Cinnamon desktop, and the "Mint tools" layer for driver and timeshift-backup niceties. Snap store disabled by default (uses Flatpak). What you give up: gaming runs well (Steam on Proton is mature) but a handful of anti-cheat titles still refuse to run on Linux. Adobe suite and MS Office need alternatives or a Windows VM.
+## This just works: Linux Mint
+
+Long-term-support Ubuntu base, Cinnamon desktop (the most Windows-familiar layout in the Linux world), and the "Mint tools" layer for driver management, system reports, and Timeshift backups. Snap store disabled by default — Mint preloads Flatpak and its own Software Manager instead. Printer drivers, multimedia codecs, and Wi-Fi firmware "just work" on most hardware out of the box. Update manager is opinionated about which updates to prioritize (security first, then bug fixes, then optional features).
+
+Installer has a single "Encrypt the new Linux Mint installation for security" checkbox for LUKS full-disk encryption. Tick it. What you give up: gaming runs well (Steam on Proton is mature, pushed forward by the Steam Deck) but anti-cheat titles still refuse Linux. Adobe Creative Suite and native MS Office need alternatives (GIMP, Darktable, LibreOffice) or a Windows VM. Accessibility tooling lags Windows.
 
 ## Alternatives
 
-**Fedora Workstation** — Red Hat sponsored, cutting-edge packages, Wayland by default. GNOME-first. Pick if you want the newest kernel and mesa stack.
+- **Fedora Workstation** — Red Hat sponsored, cutting-edge packages, Wayland default, GNOME-first, SELinux enforcing. Newest kernel and Mesa stack, six-month cadence. Silverblue is the immutable-root flavor.
+- **Pop!_OS** — System76's Ubuntu fork. Excellent NVIDIA drivers (separate ISO), Pop Shell tiling, COSMIC desktop in alpha. Good for developers, ML, NVIDIA gaming.
+- **Debian** — the bedrock. Stable to a fault, runs unchanged for a decade on a release. Learn once, forget for years. `debian-12-live` ships GNOME/KDE/Xfce/Cinnamon variants.
+- **Qubes OS** — advanced: compartmentalized VMs per trust domain. Not a mainstream desktop; security-focused, real threat model needed. Dedicated hardware plus a mental-model shift.
+- **Windows 11 debloated** — can't leave Windows? Run Raphire's `Win11Debloat` plus O&O Shutup10++. Closes the worst telemetry; doesn't make Windows "private." Covered in [Harden Windows 11](/en/guides/harden-windows-11).
 
-**Pop!_OS** — System76's Ubuntu fork. Excellent NVIDIA driver story, tiling window manager integration. Good choice for developers and ML folks.
+## Comparison matrix
 
-**Debian** — The bedrock. Stable to a fault, minimal surprise, runs unchanged for a decade. Pick if you want to learn once and forget.
+| OS | Telemetry default | Update cadence | Package manager | FOSS |
+|---|---|---|---|---|
+| **Linux Mint** | None | Rolling within LTS (2 years base) | apt + Flatpak | Yes |
+| Fedora Workstation | Minimal (rpm-ostree) | 6 months | dnf + Flatpak | Yes |
+| Pop!_OS | Minimal | Rolling within LTS | apt + Flatpak | Yes |
+| Debian | None | 2 years | apt | Yes |
+| Qubes OS | Minimal | Rolling | dnf (per-VM) | Yes |
+| Windows 11 (even debloated) | Extensive | Monthly + feature 2x/yr | MS Store + winget | No |
+| macOS | Moderate | Annual | Homebrew (unofficial) | Partial (kernel XNU is) |
+
+## Common mistakes
+
+- **Dual-booting Windows and trusting the Linux side is private.** Windows Fast Startup doesn't fully shut down NTFS; the Windows side can also read the Linux drive without encryption. Encrypt both sides.
+- **Running Linux without LUKS.** An unencrypted Linux laptop is as exposed as an unencrypted Windows one. Check the install-time box.
+- **Installing random AUR packages.** AUR is user-contributed and unreviewed. A `yay` one-liner can land arbitrary code. Audit the PKGBUILD.
+- **Adding trackers back via Flatpak or Snap.** `snap install spotify` is still Spotify's telemetry pipe in a sandbox.
+- **Leaving GNOME Online Accounts linked to Google.** Reintroduces Google as a daily upstream via IMAP/CalDAV. Skip if you care.
+- **Running Proton on macOS with iCloud Keychain.** Apple sees the credential material. Use a separate password manager.
+
+## Setup
+
+[Linux privacy basics](/en/guides/linux-privacy-basics) covers Mint/Ubuntu first-run tuning, Flatpak permissions, and the common-trap settings (`unattended-upgrades`, firewall, telemetry toggles). [Harden Windows 11](/en/guides/harden-windows-11) covers the "can't leave Windows" path.
+
+## Related categories
+
+- **[Disk encryption](/en/categories/disk-encryption)** — LUKS on Linux, BitLocker on Windows, FileVault on macOS — all live here.
+- **[Browser](/en/categories/browser)** — the OS is the floor; the browser is the walls. Both matter.
+- **[Phone OS](/en/categories/phone-os)** — the mobile equivalent of this category.

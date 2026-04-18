@@ -14,20 +14,52 @@ related:
   - ip-geolocation
 ---
 
-> **TL;DR.** Use GrapheneOS on a Pixel. Best-in-class Android security hardening, strictly opt-in Google Play services in a sandbox, and no relationship with Google as the OS vendor. Requires a Pixel 8 or newer.
+> **TL;DR.** Use GrapheneOS on a Pixel. Best-in-class Android security hardening, strictly opt-in Google Play services in a sandbox with no special permissions, and no OS-vendor relationship with Google. Requires a Pixel 8 or newer. If a Pixel isn't an option, a hardened stock iOS (with Lockdown Mode, ADP, Private Relay) is the next-best. No affiliate — the FOSS projects don't pay referrals and we don't take them.
 
 ## What this category protects
 
-The thousand ambient telemetry streams your phone OS produces. Android pings Google every few minutes with location, device info, and behavioral signals unless you disable it — and a lot of it cannot be disabled. iOS does the same with Apple, though the flavor is different.
+The thousand ambient telemetry streams your phone produces even when you aren't touching it. Stock Android pings Google every few minutes with location, device info, SafetyNet, Wi-Fi BSSIDs, app-launch counters, behavioural signals. Most of it can't be disabled because the OS is the product. iOS does the same with Apple — different flavour, same category.
 
-## Hero pick: GrapheneOS
+Phones also dominate the [permissions bitmap](/en/vectors/permissions-bitmap) surface — mic, camera, location, notifications, contacts, storage, Bluetooth, photos. A hardened phone OS gives you working denied-by-default semantics. It also plugs the always-on [IP geolocation](/en/vectors/ip-geolocation) leak from Google/Apple A-GPS, Wi-Fi BSSID lookups, and carrier passive positioning.
 
-Hardened fork of AOSP. Sandboxes Google Play services as a regular app with no special permissions (most apps still work). Hardware-enforced verified boot, hardened memory allocator, strict permission model. What you give up: Pixel hardware only, one-time 20-minute install, and some banking apps that block GrapheneOS's attestation (use their web app or a separate profile).
+## This just works: GrapheneOS
+
+Hardened fork of AOSP with no Google services in the base install. Sandboxes Google Play Services as a regular user-level app with no special permissions — most apps still work, but Play Services can't see what isn't granted. Hardware-enforced verified boot, hardened memory allocator, per-app network permission (since 2024), per-profile network isolation. User Profiles let you run a "Google profile" and a "clean profile" side-by-side; apps in one can't see the other.
+
+Install from `install.grapheneos.org` — a 20-minute flash over USB-C from any laptop. What you give up: Pixel 8+ (hardware attestation requires Titan M2 and the supported bootloader-relock). Some banking apps block GrapheneOS's Play Integrity — use their web app or a second profile with Play Services. Carrier MMS sometimes needs manual APN.
 
 ## Alternatives
 
-**CalyxOS** — Sister project, similar threat model, slightly different tradeoffs (includes MicroG by default). Pick if you want Google-API compatibility without GrapheneOS's strict sandbox approach.
+- **CalyxOS** — sister project, similar threat model, different tradeoffs. Includes MicroG by default for Google-API compatibility without sandboxed Play services. Fewer hardening patches than GrapheneOS, slightly more compatible with apps that check "is Play Services present." Pick this if MicroG compatibility matters more than maximum hardening.
+- **Hardened iOS** — stock iOS with Lockdown Mode, Advanced Data Protection, Private Relay, Advanced Tracking Protection, Analytics off. High convenience ceiling; lower privacy ceiling — Apple is still the OS vendor and baseline Apple ID telemetry can't be disabled. Fine default for iPhone lifers.
+- **LineageOS** — wide device coverage (older Pixels, Samsung, OnePlus, Motorola, Xiaomi). Less hardening — no hardened allocator, no verified boot on most devices. Pick if your phone isn't a recent Pixel. Add MicroG for Google-API compat.
+- **DivestOS** — LineageOS plus hardening patches. Solo-maintainer project; worth considering if LineageOS alone doesn't meet your threat model.
 
-**Hardened iOS** — Stock iOS with Lockdown Mode, Advanced Data Protection, and private relay turned on. Convenience floor is high; ceiling is lower than GrapheneOS.
+## Comparison matrix
 
-**LineageOS** — More device coverage than Graphene or Calyx, less security hardening. Pick if your phone is not a recent Pixel and you cannot upgrade.
+| OS | Google services | Update cadence | Hardware support | FOSS |
+|---|---|---|---|---|
+| **GrapheneOS** | Sandboxed (user-install, no special privileges) | Same-day AOSP + monthly patches | Pixel 8+ (required for full attestation) | Yes |
+| CalyxOS | MicroG (Google-API reimpl) | Monthly + quarterly minor | Pixel 4a 5G+ | Yes |
+| Hardened iOS | Required (Apple ID) | Apple's quarterly + monthly | iPhone (current + ~5 years) | No |
+| LineageOS | Optional (MicroG add-on) | Monthly on supported devices; lag on others | Wide (~180 devices) | Yes |
+| DivestOS | Optional (MicroG add-on) | Monthly (solo maintainer) | LineageOS subset | Yes |
+
+## Common mistakes
+
+- **Installing GrapheneOS on a non-Pixel.** GrapheneOS only supports Pixels because the hardware-attestation and verified-boot model requires the Titan M2 chip and Google's "unlock, flash, re-lock" bootloader feature. Other phones physically can't do that.
+- **Adding Google Services into the main profile on GrapheneOS.** The entire point is the sandbox. If you install Play Services in the default profile with network permission, you've undone most of the privacy story. Make a second User Profile for Google-dependent apps.
+- **Using Lockdown Mode on iOS and thinking Apple can't see anything.** Lockdown Mode reduces attack surface against mercenary spyware (NSO-class threats); it doesn't stop Apple's own telemetry. Pair with ADP and Private Relay, and turn off analytics.
+- **Leaving Wi-Fi scanning on when the Wi-Fi radio is off.** Both Android and iOS scan for Wi-Fi BSSIDs for location services even when Wi-Fi is "off." Disable in Location → Wi-Fi scanning + Bluetooth scanning.
+- **Installing random F-Droid repositories.** Default F-Droid is curated; third-party repos aren't. A malicious app there is a root-equivalent compromise.
+- **Forgetting to re-lock the bootloader.** GrapheneOS requires re-lock for verified boot. The installer handles it; manual flashes that skip the step leave you less secure than stock.
+
+## Setup
+
+[GrapheneOS install guide](/en/guides/grapheneos-install) walks through the web installer, first boot, profile setup, and the first-week app-install hygiene. [Android private space guide](/en/guides/android-private-space) covers a related feature on stock Android 15+. [iPhone Lockdown Mode guide](/en/guides/iphone-lockdown-mode) for the iOS path.
+
+## Related categories
+
+- **[VPN](/en/categories/vpn)** — the phone's cellular data path is where the ISP sees the most; VPN in Always-On mode matters here.
+- **[Two-factor auth](/en/categories/2fa)** — the TOTP app lives on the phone; the phone's OS is the root of its security.
+- **[Encrypted messaging](/en/categories/messaging)** — Signal on GrapheneOS is the strongest mainstream phone setup.
