@@ -11,31 +11,96 @@ related:
   - referrer-federated-login
 ---
 
-> **TL;DR.** "Supercookies" are identifiers smuggled into caches the browser treats as configuration rather than storage. HSTS pins, ETag headers, favicon caching, and HTTP/2 connection state all survive a "Clear cookies" click.
+## also known as: evercookie, HSTS supercookie, ETag supercookie, favicon supercookie, zombie cookies, cache supercookies
 
-Researchers have demonstrated cross-site identifiers out of each of these since 2015. Browsers have patched most of the worst ones, but the favicon trick still works in Chromium.
+> **TL;DR** — "Supercookies" are identifiers smuggled into caches the browser treats as configuration rather than storage. HSTS pins, ETag headers, favicon caching, and HTTP/2 connection state all survive a "Clear cookies" click. Researchers have demonstrated cross-site identifiers out of each since 2010; browsers have patched most of the worst, but the favicon trick still works in Chromium.
+> Severity: medium
+> Prevalence: rare
 
-## How it works
+## How it works (plain English)
 
-The HSTS supercookie trick: a tracker serves 32 subdomains of its own, each either HSTS-pinned (bit=1) or not (bit=0). Reading which subdomains your browser now prefers over HTTP reconstructs a 32-bit ID that outlives cookie clears. ETag caches do the equivalent using conditional-GET metadata.
+A cookie is the browser's official storage-for-servers; you can clear it. Supercookies exploit parts of the browser that *look* like configuration but can be written to and read back across sites. Clearing cookies does not touch them — they were never cookies in the first place.
 
-The 2021 "Supercookie" demo by Jonas Strehle used the favicon cache: Chromium caches each origin's favicon independently, so a tracker can encode bits by whether each of 20 subdomains served a favicon on first visit.
+Three common techniques: HSTS, ETag, and favicon-cache.
 
-## What it leaks about you
+HSTS is a security feature — a site says "always use HTTPS for this domain" and the browser remembers. A tracker controlling 32 subdomains (`bit0.track.com`, `bit1.track.com`, ...) serves an HSTS header on some subset based on a bit pattern that encodes a user ID. On future visits, pinned subdomains auto-upgrade to HTTPS; unpinned ones do not. Reading which is which reconstructs the ID.
 
-A persistent ID that survives "Clear cookies" and "Clear site data" in most browsers, for days to weeks.
+ETag uses HTTP conditional-GET. Every cached resource has an ETag telling the browser "this is the version you have." The server can write a user ID into an ETag on first response, and the browser sends it back with every subsequent `If-None-Match`. Clear cookies — browser still sends the ETag.
+
+The favicon cache: the tab icon is cached per-origin independently of cookies. Jonas Strehle's 2021 demo used 20+ subdomains to encode a 20-bit ID in whether each subdomain served a favicon on first visit. Chromium's favicon store does not clear when cookies clear.
+
+## How it works (technical)
+
+**HSTS supercookie.** Per [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797), a site sends `Strict-Transport-Security: max-age=63072000`. A tracker controlling 32 subdomains selectively sends the header on some subset. A tracker probes each one (`http://bit0.track.com/pixel.gif` — redirect or no redirect?) to read back the bit pattern.
+
+**ETag supercookie.** Described in Ayenson et al. 2011 *Flash Cookies and Privacy II*. Server writes a unique ETag on first response; subsequent `If-None-Match: <etag>` headers return the ID. Acar et al. 2014 *The Web Never Forgets* (CCS) measured 3% of top-10k sites using ETag respawning in the wild.
+
+**Favicon supercookie.** Strehle's [supercookie.me](https://supercookie.me) demo (2021) exploited Chromium's favicon cache: fetched once per origin, cached indefinitely, survives `Clear browsing data` in most Chromium versions. A tracker serves 20 subdomains, some with favicons, some without; subsequent favicon-request observation decodes the bit pattern. Chrome 91 partially mitigated; [Chromium bug 1000129](https://bugs.chromium.org/p/chromium/issues/detail?id=1000129) documents edge cases.
+
+Firefox partitions HSTS by top-level site under Total Cookie Protection. Safari partitions HSTS and favicon-cache per top-level site. Brave partitions all three. Chrome partially partitions HSTS (third-party subresource HSTS is constrained) but not the favicon cache.
+
+Research: Acar et al. 2014 *The Web Never Forgets* (CCS) surveys evercookie techniques. Lerner et al. 2016 *Internet Jones and the Raiders of the Lost Trackers* (USENIX Security) measured HSTS and ETag tracking.
+
+## Who uses this, and why
+
+Rare today in mainstream ad-tech because the primary cookie path works well enough on Chrome (which still ships 3P cookies by default). Historically: KISSmetrics analytics was documented in Ayenson 2011 using ETag respawning. Aggressive ad-retargeting networks used Samy Kamkar's 2010 "evercookie" library (which combined HSTS, ETag, LocalStorage, Flash LSOs, IndexedDB, and favicon-cache into a single respawn library) for roughly three years before most browsers closed the major paths.
+
+Anti-bot systems (PerimeterX, Akamai Bot Manager) occasionally use short-lived cache-based tokens for challenge-response tracking; not strictly supercookies, but the same partitioning-failure principle.
+
+## What it reveals about you
+
+A persistent identifier that survives `Clear cookies` and `Clear site data` in most browsers, typically for days to weeks. Cross-site linkability up to the browser's partitioning level — in Chromium without partitioning, a full cross-origin identifier; in Firefox/Safari with partitioning, only within-top-site.
+
+Combined with other signals (IP, TLS JA4, canvas), the supercookie serves as the persistence anchor while the other vectors provide the cross-session identity. The value of supercookies to a tracker is not that they leak personal data on their own — it is that they survive the actions a privacy-conscious user takes ("clear cookies") and silently reconnect a cleared session to its pre-clear identity.
 
 ## How to defend
 
-- 🟢 Use Firefox or Brave; both partition HSTS by top-site (no cross-site reconstruction).
-- 🟢 Use "Clear all site data" explicitly, which nukes the cache along with cookies.
-- 🟡 Run Tor Browser for sessions where you need a fresh identity on every launch.
-- 🔴 Nuke your favicon cache manually (Chrome stores it in `Favicons` inside the user-data dir).
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox (Total Cookie Protection partitions HSTS, ETag, and favicon cache per top-level site) or Safari (ITP partitions all cache surfaces).
 
-Incognito mode. It shares the favicon cache with your regular session in Chrome.
+Instead of "Clear cookies," use "Clear all site data" — in Chrome, Settings → Privacy → Clear browsing data → Advanced → Cached images and files + Cookies + Site settings. This wipes the favicon cache and HSTS state along with cookies.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Brave — partitions HSTS, ETag, and favicon cache per top-level site as part of shields.
+
+Librewolf — Firefox fork, TCP on by default, supercookie partitioning inherited.
+
+### Level 3: Advanced / paid 🔴
+
+Run Tor Browser for sessions where you need a fresh identity on every launch. Tor wipes all cache surfaces on exit and isolates every top-level origin.
+
+Manually clear the favicon cache: Chrome stores it in the `Favicons` SQLite file in the user-data directory. Delete it and every favicon cache-based supercookie is gone.
+
+### What doesn't help
+
+Incognito mode. In Chrome, the favicon cache is shared with your regular session. HSTS state is inherited from the regular profile in some versions.
+
+"Clear cookies" alone. It leaves the favicon cache and HSTS state intact in Chromium.
+
+A VPN. The supercookie is browser-cache state; the network layer is irrelevant.
+
+## Tools that help
+
+- **Firefox / Safari / Brave** — cache surfaces partitioned per top-level site by default.
+- **Librewolf** — Firefox fork with TCP on by default.
+- **Tor Browser** — full cache wipe on exit; first-party isolation.
+- **Chrome "Clear all site data"** — wipes favicon and HSTS along with cookies.
+- **Manual `Favicons` SQLite delete** — nukes Chromium's favicon supercookie surface directly.
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- Acar et al., *The Web Never Forgets: Persistent Tracking Mechanisms in the Wild* (CCS 2014)
+- [Strehle's supercookie.me demo](https://supercookie.me)
+- Ayenson et al., *Flash Cookies and Privacy II: Now with HTML5 and ETag Respawning* (2011)
+- [RFC 6797: HTTP Strict Transport Security](https://datatracker.ietf.org/doc/html/rfc6797)
+- [Chromium favicon partitioning bug tracker](https://bugs.chromium.org/p/chromium/issues/detail?id=1000129)
+
+## Known limits
+
+Partitioning by top-level site (Firefox TCP, Safari ITP, Brave shields) closes cross-site supercookies but does not change same-site supercookies — a site can still re-identify you across visits to *itself* even after you clear cookies. That is often not a meaningful privacy problem, but it is not zero. The favicon-cache vector remains partially open on mainstream Chromium as of 2026 despite the Chrome 91 mitigation.

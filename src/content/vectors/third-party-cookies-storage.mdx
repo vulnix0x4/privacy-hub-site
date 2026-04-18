@@ -11,31 +11,110 @@ related:
   - referrer-federated-login
 ---
 
-> **TL;DR.** When site A embeds a script or iframe from tracker.com, tracker.com can set a cookie scoped to tracker.com. Visit site B with the same tracker embed and that cookie is sent back. One identifier follows you everywhere the tracker is present.
+## also known as: 3P cookies, cross-site cookies, `SameSite=None` cookies, third-party localStorage, third-party IndexedDB, cookie ghosts
 
-Google's Privacy Sandbox promised to kill this in Chrome and then quietly shelved the deprecation. As of 2026 third-party cookies are still on by default for most Chrome users.
+> **TL;DR** — When site A embeds a script or iframe from tracker.com, tracker.com can set a cookie scoped to tracker.com. Visit site B with the same tracker embed and that cookie is sent back. One identifier follows you everywhere the tracker is present. Safari and Firefox block or partition this by default; Chrome does not.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-A tracker iframe from analytics.example sets `Set-Cookie: id=abc123; SameSite=None; Secure`. Any cross-site context embedding that tracker then sends the cookie back with every request. The same trick works for `localStorage` and `IndexedDB` when the tracker is an iframe rather than a script, since each iframe gets its own partitioned-or-not storage depending on browser.
+Every page is a stack of resources from different servers. The main page is `example.com`; fonts from `fonts.googleapis.com`; analytics from `google-analytics.com`; ads from `doubleclick.net`. Each third-party server can set a cookie scoped to its own domain.
 
-Safari blocked this in 2020 (Intelligent Tracking Prevention). Firefox did the same in 2019 (Total Cookie Protection made it default in 2022). Chrome still does not.
+That cookie travels with every subsequent request to that domain. If `doubleclick.net` sets `uid=abc123` when you visit `example.com`, then visits to `news-site.com`, `shopping-site.com`, `weather-site.com` all send `uid=abc123` back whenever those sites embed DoubleClick resources. DoubleClick now knows which sites you visited and in what order.
 
-## What it leaks about you
+This predates any W3C standard or privacy regulation. It worked because browsers originally treated every domain's cookies as unrestricted. The industry called it "retargeting" when you noticed the ad for the shoes you looked at yesterday; under the hood, it was cross-site cookie tracking.
 
-A cross-site user ID. Every site you visit that embeds the same tracker learns a new intersection point on you.
+Google's Privacy Sandbox promised to kill third-party cookies in Chrome and quietly shelved the deprecation in July 2024. As of 2026, third-party cookies are still on by default for most Chrome users. Safari blocked them in 2020 under ITP; Firefox did the same in 2019 (Total Cookie Protection became default in 2022).
+
+## How it works (technical)
+
+```http
+# Request to example.com — page loads an embedded DoubleClick iframe
+GET https://example.com/
+Cookie: sessionid=xyz789
+
+# Browser sees <iframe src="https://doubleclick.net/...">, loads it:
+GET https://doubleclick.net/pagead/...
+# First visit — no cookie header sent.
+# DoubleClick responds:
+Set-Cookie: IDE=abc123; Domain=.doubleclick.net; Path=/; Secure; SameSite=None
+```
+
+Every subsequent cross-site request to `doubleclick.net` from any top-level context carries `Cookie: IDE=abc123`. Setting `SameSite=None; Secure` is now required for cross-site cookies (post-Chrome 80, February 2020); absent that, the cookie is treated as `SameSite=Lax` and only sent in top-level navigations.
+
+The same trick works for `localStorage`, `IndexedDB`, and `CacheStorage` when the tracker embeds an iframe rather than a script. Each iframe gets its own origin storage; without partitioning, that storage is the same across every top-level site that embeds the iframe. A tracker writes a user ID into its iframe's `localStorage`, and the same ID is readable on every other top-level site where the iframe loads.
+
+Safari's ITP (WebKit 2017+) blocks third-party cookies unilaterally. Firefox's Total Cookie Protection (Firefox 103, 2022 default) partitions third-party storage per top-level site — the tracker iframe gets a different `localStorage` on each top site, so cross-site joining fails. Chrome's CHIPS (Cookies Having Independent Partitioned State, Chrome 114+) is opt-in per cookie: most tracker cookies do not set `Partitioned`.
+
+Englehardt & Narayanan 2016 *Online Tracking: A 1-Million-Site Measurement and Analysis* (CCS) documented ~90% of top sites embedding at least one third-party tracker setting a cross-site cookie.
+
+## Who uses this, and why
+
+Ad-tech: DoubleClick (Google), Taboola, Outbrain, Criteo, Adobe Advertising, The Trade Desk, LiveRamp all depend on third-party cookies for retargeting and cross-site identity joining. Analytics: Adobe Analytics, Mixpanel, and Amplitude when embedded as third-party scripts (GA4 moved to first-party but cross-links via referrer and Google-account state).
+
+Social: Facebook Pixel, LinkedIn Insight Tag, X (Twitter) Pixel all set third-party cookies that carry a user ID back to the parent social graph. A user logged in to Facebook who visits a site with the Pixel has their visit joined to their Facebook identity even without interacting with any Facebook content.
+
+Anti-fraud: ThreatMetrix, Iovation, MaxMind minFraud, Cloudflare Bot Management use first-party cookies at the CDN edge — functionally cross-site because the CDN serves millions of sites. See the `cdn-bot-cookies` vector.
+
+State actors: third-party cookie-sourced graphs have surfaced in DOJ/FBI legal-process cooperation and in the Vice/Motherboard 2022 Mobilewalla and location-broker reporting.
+
+## What it reveals about you
+
+Your browsing history across every site that embeds the same tracker. For ad-tech, this means hundreds to thousands of domains per user per week. For anti-fraud, it means a device-linkability signal across purchase contexts.
+
+Combined with other signals (IP geolocation, Accept-Language, screen resolution), the tracker builds a durable "device graph" — a record of this browser-this-person-this-IP, linkable over months even as cookies rotate. Gomez-Boix 2018 measurement showed 33% of desktop users had a unique fingerprint from browser signals alone; with cookie-based joining, near-100% joinability across a session.
 
 ## How to defend
 
-- 🟢 Use Firefox, Brave, or Safari: all three block or partition third-party cookies by default.
-- 🟢 In Chrome, turn on "Block third-party cookies" in Settings -&gt; Privacy and security. You will break a few shopping-cart flows.
-- 🟡 Install uBlock Origin, which kills most tracker iframes before they can set cookies.
-- 🔴 Run Pi-hole or NextDNS to null-route tracker domains at the network level.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Use Firefox (TCP on by default) or Safari (ITP on by default). Both block or partition third-party cookies without configuration.
 
-Incognito mode. It clears cookies when you close the window but happily accepts third-party cookies during the session.
+In Chrome, turn on "Block third-party cookies" in Settings → Privacy and security. You may break a few legacy checkout iframes; most sites have moved past that pattern.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Brave — shields block third-party cookies by default and partition storage per top-level site.
+
+uBlock Origin — kills tracker iframes before they can set cookies.
+
+Librewolf — Firefox fork with TCP and stricter defaults.
+
+### Level 3: Advanced / paid 🔴
+
+Run Pi-hole or NextDNS to null-route tracker domains at the DNS layer. Cookies are never set because the domain never resolves.
+
+Tor Browser enforces first-party isolation — every top-level origin gets its own cookie jar, shared with nothing.
+
+### What doesn't help
+
+Incognito mode (Chrome). It clears cookies when the window closes but happily accepts third-party cookies *during* the session. A tracker that identifies you in one tab carries across all other sites in the same incognito session.
+
+A VPN. The cookie is set on your real identity once you log in anywhere; the IP layer is irrelevant.
+
+Declining the EU cookie banner. Most sites load third-party scripts regardless of the click (documented in CMP-compliance audits), and many cookies are already set by the time the banner renders.
+
+## Tools that help
+
+- **Firefox / Safari / Brave** — third-party cookies blocked or partitioned by default.
+- **uBlock Origin** — kills tracker iframes before they load.
+- **Librewolf** — Firefox fork with TCP.
+- **Pi-hole / NextDNS** — network-level tracker domain blocking.
+- **Tor Browser** — first-party isolation, strongest defence.
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- Englehardt & Narayanan, *Online Tracking: A 1-Million-Site Measurement and Analysis* (CCS 2016)
+- [Mozilla: Total Cookie Protection](https://blog.mozilla.org/security/2022/06/14/firefox-rolls-out-total-cookie-protection-by-default-to-all-users-worldwide/)
+- [WebKit: Intelligent Tracking Prevention](https://webkit.org/tracking-prevention/)
+- [W3C PING on third-party cookies](https://www.w3.org/TR/fingerprinting-guidance/)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Blocking third-party cookies does not block the tracker's ability to read your IP, User-Agent, TLS JA4, or any other fingerprint on a per-request basis — the ad-tech graph reconstructs identity from fingerprint-plus-behavior even without cookies. The mature tracking pipeline now treats cookies as a fallback, not a primary. Breaking cookie-based tracking is necessary but not sufficient; browser-level fingerprint defence (Tor, Mullvad, Brave shields, Firefox FPP) is the complementary piece.
