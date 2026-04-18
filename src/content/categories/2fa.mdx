@@ -14,20 +14,52 @@ related:
   - permissions-bitmap
 ---
 
-> **TL;DR.** Use Aegis for TOTP codes on Android, 2FAS on iOS, or Ente Auth cross-platform. Add a YubiKey (or two) for your email, password manager, and exchange accounts. Avoid SMS 2FA on anything that matters.
+> **TL;DR.** Use Aegis for TOTP codes on Android, 2FAS on iOS, or Ente Auth cross-platform. Add a YubiKey (buy two, keep one in a safe) for your email, password manager, domain registrar, and any crypto or finance accounts. Avoid SMS 2FA on anything that matters. No affiliate — Aegis, 2FAS, and Ente Auth are all FOSS or close to it, and YubiKey doesn't run a consumer referral.
 
 ## What this category protects
 
-Account takeover when a password leaks. Reusing passwords is still common, breaches are routine, and a second factor closes almost all of the damage when one happens. SMS is weak because SIM-swap attacks are cheap and real.
+Account takeover when a password leaks, which happens routinely. Breaches dump credentials. Phishing kits harvest them in real time. Credential stuffing reuses last year's leak against this year's login page. A second factor closes almost all of the damage when one of those hits — the password is necessary but no longer sufficient.
 
-## Hero pick: Aegis Authenticator
+The catch: not all second factors are equal. SMS is weak because SIM-swap attacks are cheap, the SS7 telephony signaling network leaks codes to whoever pays for access, and carriers' customer service routinely gets social-engineered. TOTP apps are dramatically better because the secret never leaves your device. Hardware keys with FIDO2/WebAuthn are stronger still because they sign the origin, not just the code — which makes them phishing-resistant by construction, the only factor that defeats real-time attacker-in-the-middle kits. Many login flows also expose [federated-login probes](/en/vectors/referrer-federated-login); hardware keys shortcut those entirely since the origin is verified cryptographically.
 
-Android, fully open-source, encrypted local vault, export to plain JSON for backups. No cloud, no account, no lock-in. What you give up: Android only. On iOS, Raivo is abandoned; use 2FAS or Ente Auth instead.
+## This just works: Aegis Authenticator
+
+Android, fully open-source (GPL-3), encrypted local vault with a separate unlock password, export to plain-JSON or encrypted-JSON for backup. No cloud, no account, no lock-in. Takes a screenshot of the QR from the setup page and imports; no typing a 32-character secret by hand. Icon pack support if you care about a tidy list. What you give up: Android only. On iOS, Raivo is abandoned and should be migrated away from; use 2FAS or Ente Auth instead.
+
+Back up the vault on setup. Aegis exports an encrypted `.json` you can stash in encrypted cloud storage (Proton Drive works) or on a USB key in a drawer. Test the import on a second device before you decide the backup works. The single most common "lost access to 2FA" story is "I had it backed up but never tested the restore."
 
 ## Alternatives
 
-**2FAS** — iOS and Android, optional encrypted iCloud/Google-Drive backup. Good for people who want cross-device sync without setting up their own backup strategy.
+- **2FAS** — iOS and Android, open-source clients, optional encrypted iCloud/Google-Drive backup. Good for cross-device sync without rolling your own backup. Browser extension for desktop autofill if you want it. Funded by a Polish non-profit.
+- **Ente Auth** — same company as Ente Photos. Cross-platform (iOS, Android, desktop, CLI, web), end-to-end encrypted sync, free. Clean app on every OS. Pick this if you want sync-to-every-device with zero-knowledge crypto.
+- **YubiKey (or Nitrokey, SoloKey)** — hardware FIDO2 key. Buy two: primary and safe backup. Use them on irreversible-if-taken-over accounts: email, password manager, exchange, domain registrar, GitHub, AWS, Cloudflare. No battery, phishing-resistant by protocol design.
+- **Bitwarden / Proton Pass built-in TOTP** — if you use those managers' paid tiers, TOTP storage is included. Convenient; concentrates risk. Acceptable if the alternative is "never enabling TOTP because it's annoying."
 
-**Ente Auth** — Same company as Ente Photos. Cross-platform, end-to-end encrypted sync, free. Clean app on every OS.
+## Comparison matrix
 
-**YubiKey (or Nitrokey)** — Hardware FIDO2 key. Buy two (one primary, one in a safe). Use them for irreversible accounts: email, password manager, exchange, domain registrar.
+| Tool | FOSS | Cloud sync | Encrypted backup | Phishing resistant | Platforms |
+|---|---|---|---|---|---|
+| **Aegis** | Yes (GPL-3) | No (local + your backup) | Yes (encrypted JSON export) | No (TOTP is replayable) | Android |
+| 2FAS | Yes | Optional (iCloud / Google Drive) | Yes | No | iOS, Android |
+| Ente Auth | Yes | Yes (E2EE) | Yes | No | Every platform |
+| YubiKey | No (firmware) | N/A | N/A | Yes (FIDO2) | Every platform with USB-A/C or NFC |
+| Bitwarden / Proton Pass TOTP | Clients yes | Yes | Yes | No | Every |
+
+## Common mistakes
+
+- **SMS on a high-value account.** Turn it off where the service allows it. If the service forces SMS-only, the account's security ceiling is its carrier's customer service desk. Assume it will be breached and plan rotation.
+- **Enrolling a single hardware key and losing it.** Two-key minimum: primary on keychain, backup in a safe. Register both at every service up front; retrofitting later is tedious.
+- **Sharing a TOTP vault with the password vault.** Concentrates risk. For high-value accounts, keep them separate.
+- **Not testing the backup.** Every three months, pretend your phone is lost and restore Aegis to an old device or emulator. Find out the restore fails now, not during a crisis.
+- **Ignoring recovery codes.** Every service prints them at enrollment. Paste into your manager under a "recovery codes" entry — they're the break-glass when other factors fail.
+- **Assuming YubiKey covers account recovery.** Some services let phone-number recovery bypass a hardware key. Disable the weak recovery path where you can.
+
+## Setup
+
+[Aegis setup guide](/en/guides/set-up-2fa-aegis) walks through install, vault creation, first account import, and backup. [YubiKey setup guide](/en/guides/yubikey-setup) covers FIDO2 enrollment across email, password manager, and GitHub.
+
+## Related categories
+
+- **[Password manager](/en/categories/password-manager)** — your manager account is the highest-value TOTP target; put a hardware key on it day one.
+- **[Email](/en/categories/email)** — same logic, one step further up the dependency tree.
+- **[Phone OS](/en/categories/phone-os)** — GrapheneOS with Aegis is the strongest TOTP posture; a compromised phone defeats the app no matter how clean the vault.

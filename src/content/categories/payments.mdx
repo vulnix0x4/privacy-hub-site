@@ -14,24 +14,52 @@ related:
   - referrer-federated-login
 ---
 
-> **TL;DR.** Use Privacy.com (US only). Free. Funds from your bank, creates a unique virtual card per merchant, lock-to-merchant so a breach cannot charge anywhere else. If you live outside the US, Revolut's disposable virtual cards are the closest equivalent.
+> **TL;DR.** Use Privacy.com (US only). Free. Funds from your bank, creates a unique virtual card per merchant, locks to that merchant so a breach cannot charge anywhere else. Outside the US, Revolut's disposable virtual cards are the closest equivalent. For genuinely sovereign cash-equivalent digital spending, Monero. We earn a commission when you sign up via our Privacy.com links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
 
 ## What this category protects
 
-The flow of your real card number across the web. Every time you paste your card into a checkout, the number lives in that merchant's PCI scope, their risk vendor's logs, their bot-management vendor's model, and eventually their breach. A per-merchant virtual card contains the blast radius to one site.
+The flow of your real card number across the web. Every checkout where you paste a card sits in that merchant's PCI scope, their risk-scoring vendor's logs, their bot-management vendor's model, and eventually their breach. The breach list then pairs the card number with your email, your IP, your [third-party ad-graph ID](/en/vectors/third-party-cookies-storage), and every other piece of signup data in the record.
 
-## Hero pick: Privacy.com
+A per-merchant virtual card contains that blast radius to one merchant. When the inevitable dump happens, the card is locked to one vendor, won't charge more than the pre-authorized cap, can't charge elsewhere, and is trivially replaceable. It also breaks cross-merchant tracking by card hash — some ad networks key on the last-four or a tokenized card ID.
 
-Free for up to 12 cards a month. Each card can be single-use or merchant-locked with a spend cap. US bank required. What you give up: US only; international coverage is not on the roadmap.
+## This just works: Privacy.com
+
+Free for up to 12 cards a month (more on paid tiers). Each card can be single-use (burns after first charge) or merchant-locked with a spend cap. Pull funds from a US checking account; the card is a Visa debit that works anywhere Visa debit works. Close a card with one click when you stop using the service. What you give up: US only, US bank required, international coverage is not on the roadmap.
+
+The merchant-locked model is the interesting one. Create a card with "$19/mo" cap locked to "Netflix." Netflix can charge $19 on the 15th. They can't bill $40 because "you upgraded"; can't charge anywhere else at all. Price-hike email? Delete the card, restart on new terms. Forgotten subscription? Delete the card; the service can't keep charging. Right mental model for every online subscription.
 
 ## Alternatives
 
-**Revolut virtual cards** — Disposable virtual cards rotate per use, works across Europe, UK, and Australia. Free tier includes five disposable cards per month.
+- **Revolut virtual cards** — disposable virtual cards rotate per use, works across Europe, UK, and Australia. Free tier includes five disposable cards per month; premium raises the limit. Not quite merchant-locked but close. Good fit outside the US where Privacy.com isn't available.
+- **Monero** — actual cryptocurrency with native privacy guarantees (ring signatures, stealth addresses, confidential amounts — on-chain you cannot trace sender, receiver, or amount). Use for vendors that accept it directly: VPN providers, some hosts, niche e-commerce. Acquisition without KYC has gotten harder since 2024 but `kycnot.me` tracks working paths.
+- **Cash** — still the most private payment method. Works in person, no digital trail, refused by most online merchants but still a live option for a lot of things including in-person services, thrift stores, and some markets.
+- **Bitcoin via CoinJoin** — fungibility-improved BTC through a mixing service (Samourai's Whirlpool was seized; JoinMarket still works). Much weaker than Monero but works on more merchants.
 
-**Monero** — Actual cryptocurrency with native privacy guarantees (ring signatures, stealth addresses, confidential amounts). Use for vendors that accept it directly; acquisition without KYC has gotten harder.
+## Comparison matrix
 
-**Cash** — Still the most private payment method. Works in person, no digital trail, refused by most online merchants but still a live option for many things.
+| Option | Jurisdiction | KYC required | International | FOSS | Privacy model |
+|---|---|---|---|---|---|
+| **Privacy.com** | US only | Yes (US bank link) | No | No | Merchant-locked virtual card (protects merchant side, not issuer) |
+| Revolut virtual | EU / UK / AU | Yes (Revolut account) | Yes | No | Rotating virtual card |
+| Monero | None (P2P) | ~ (at on/off-ramp) | Yes | Yes | On-chain private (ring sigs + stealth addr) |
+| Cash | Local | No | No (local currency only) | N/A | Fully offline |
+| Bitcoin + CoinJoin | None | ~ | Yes | Yes | Chain-analysis resistant (partial) |
 
-## Affiliate disclosure
+## Common mistakes
 
-We earn a commission if you sign up for Privacy.com through our links. See [/en/legal/affiliate](/en/legal/affiliate).
+- **Treating a "virtual card" as anonymous to the issuer.** Privacy.com sees every transaction and complies with US law. What it protects is the merchant-side surface — the merchant can't link your card across sites, and a breach can't charge you. Issuer-side anonymity is only Monero or cash.
+- **Using Privacy.com for anything that needs address verification.** AVS checks the billing ZIP; a mismatched ZIP fails the transaction. Use your real ZIP on the card.
+- **Paying Monero on a KYC-attached account.** The merchant still ties the payment to your account record. Monero protects the chain; it doesn't protect your merchant relationship.
+- **Reusing one virtual card across merchants.** Defeats the merchant-locked model. New card per merchant is the point.
+- **Storing card PANs in browser autofill.** Every browser has been phishable via DOM tricks. Use password-manager autofill with domain binding instead.
+- **Subscription-dashboard rot.** Keep a list of what you actually pay for. "Forgot I had it" is the real adversary.
+
+## Setup
+
+[Privacy.com virtual card guide](/en/guides/privacy-com-virtual-card) walks through signup, bank linking, first card, and the merchant-lock workflow for subscriptions.
+
+## Related categories
+
+- **[Email](/en/categories/email)** — use an alias per service you pay; the alias plus the virtual card means breaches leak nothing linkable.
+- **[Temp numbers](/en/categories/temp-numbers)** — the SMS-verification angle of the same "burner identity per service" pattern.
+- **[VPN](/en/categories/vpn)** — pay the VPN provider with a virtual card (or Monero, Mullvad-style) so the payment trail doesn't link to your home bank.
