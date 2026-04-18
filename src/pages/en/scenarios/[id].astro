@@ -1,0 +1,23 @@
+---
+/**
+ * Threat-model scenario route — one per file in `src/content/scenarios`.
+ */
+import { getCollection, render } from 'astro:content';
+import ScenarioLayout from '../../../layouts/ScenarioLayout.astro';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const entries = await getCollection('scenarios');
+  return entries.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<ScenarioLayout entry={entry}>
+  <Content />
+</ScenarioLayout>

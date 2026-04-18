@@ -1,0 +1,28 @@
+---
+/**
+ * Basics essay route — one per file in `src/content/basics`.
+ *
+ * Note: `glossary` is its own page (`/en/basics/glossary`) and not part
+ * of this dynamic match. Astro routes literal files before dynamic
+ * params, so `glossary.astro` always wins when the URL is exactly
+ * `/en/basics/glossary`.
+ */
+import { getCollection, render } from 'astro:content';
+import BasicsLayout from '../../../layouts/BasicsLayout.astro';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const entries = await getCollection('basics');
+  return entries.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<BasicsLayout entry={entry}>
+  <Content />
+</BasicsLayout>

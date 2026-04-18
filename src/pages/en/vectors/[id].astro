@@ -1,0 +1,27 @@
+---
+/**
+ * Encyclopedia entry route — one per file in `src/content/vectors`.
+ *
+ * Pre-renders one path per entry at build time. The `id` param is the
+ * MDX filename without extension (matches the slug used in `related:`
+ * cross-links).
+ */
+import { getCollection, render } from 'astro:content';
+import VectorLayout from '../../../layouts/VectorLayout.astro';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const entries = await getCollection('vectors');
+  return entries.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<VectorLayout entry={entry}>
+  <Content />
+</VectorLayout>

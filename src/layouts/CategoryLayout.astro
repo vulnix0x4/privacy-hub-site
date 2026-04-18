@@ -39,6 +39,7 @@ const affiliateCopy: Record<typeof data.affiliate, string | null> = {
 };
 
 const affiliateNote = affiliateCopy[data.affiliate];
+const categoryDifficulty = data.difficulty ? difficultyLabel[data.difficulty] : null;
 ---
 <Layout title={`${data.title} — privacy.whattheflip.lol`} description={data.description}>
   <article class="max-w-3xl py-6 space-y-8">
@@ -51,10 +52,10 @@ const affiliateNote = affiliateCopy[data.affiliate];
     <header class="space-y-4">
       <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">{data.title}</h1>
       <p class="text-lg text-text-muted">{data.description}</p>
-      {data.difficulty && difficultyLabel[data.difficulty] && (
+      {categoryDifficulty && (
         <p class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-surface px-3 py-1 text-sm text-text-muted">
-          <span aria-hidden="true">{difficultyLabel[data.difficulty].glyph}</span>
-          <span>{difficultyLabel[data.difficulty].label}</span>
+          <span aria-hidden="true">{categoryDifficulty.glyph}</span>
+          <span>{categoryDifficulty.label}</span>
         </p>
       )}
       {affiliateNote && (
