@@ -14,20 +14,52 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Sign up for Have I Been Pwned notifications on every email you use. Free, run by Troy Hunt, trusted by browsers and password managers alike. You will get an email when your address appears in a new dump; you change the password, you move on.
+> **TL;DR.** Sign up for Have I Been Pwned notifications on every email you use. Free, run by Troy Hunt, trusted by browsers and password managers alike. You get an email when your address appears in a new dump; you change the password, you move on. Add Proton Sentinel if you already pay Proton for the phone-number and credit-card checks. No affiliate — HIBP doesn't take commissions and we don't take anything for pointing at it.
 
 ## What this category protects
 
-The gap between "breach happens" and "you do something about it." Attackers sell credential dumps on forums within days of a breach. The average defender finds out months or years later. Free monitoring closes that gap for almost no effort.
+The gap between "breach happens" and "you do something about it." Credential dumps sell on forums within days of a breach. The average defender finds out months or years later, usually when a reused password gets stuffed against an unrelated service. Free monitoring closes that gap — you hear within hours, rotate, move on.
 
-## Hero pick: Have I Been Pwned (HIBP)
+Breach alerts also feed adjacent moves: a leaked email on a site you'd forgotten is a candidate for full account deletion, shrinking the [federated-login probe](/en/vectors/referrer-federated-login) and [third-party cookie](/en/vectors/third-party-cookies-storage) surfaces a little each time. This is a small category with a clear winner — most free coverage is HIBP; everything else is a wrapper or a paid extension.
 
-Free for individuals. Register each email you use; HIBP emails you when a dump containing your address hits the database. Domain-level monitoring is also free for domain owners. What you give up: Troy Hunt sees the hash of your email. That is it.
+## This just works: Have I Been Pwned (HIBP)
+
+Free for individuals. Register each email you use; HIBP emails you when a dump containing that address hits the database. Run by Troy Hunt, funded by the HIBP API's commercial users (1Password, law enforcement) and donations. Notification model is "ping on new breach," the right default.
+
+Domain-level monitoring is free for domain owners — prove ownership via DNS TXT, then HIBP emails on any address at your domain. Valuable for custom-domain Proton Mail users whose alias-per-signup strategy spawns hundreds of addresses. HIBP sees the hash of your email only; it never stores passwords, only hashes.
 
 ## Alternatives
 
-**Firefox Monitor** — Mozilla's wrapper around HIBP, nicely integrated in Firefox. Same data source, slightly different UI.
+- **Firefox Monitor** (Mozilla Monitor) — Mozilla's wrapper around HIBP, nicely integrated in Firefox. Same breach data source, slightly different UI, additional data-broker-removal feature on paid tiers (see caveat in the [data broker removal](/en/categories/data-broker-removal) category about Mozilla's Onerep partnership).
+- **Proton Sentinel** — Proton's dark-web monitoring, included on Proton Unlimited and higher tiers. Adds phone-number and credit-card monitoring on top of HIBP-shaped email alerts. Good if you already pay for Proton.
+- **DeHashed** — paid research-grade ($5-$30/mo). Breach data plus forum leaks plus pastes plus stealer-log index. Investigator-level access: not just "your email is in breach X" but the captured password, IP, and stealer-log date. Overkill for most users; essential for security research.
+- **Password-manager HIBP integration** — Google Password Checkup, 1Password Watchtower, Bitwarden check your vault against HIBP's hash-range API. Doesn't replace email signup; catches reuse proactively.
 
-**Proton Sentinel / Dark Web Monitoring** — Paid (Proton Unlimited plan). Adds phone-number and credit-card monitoring on top of HIBP coverage.
+## Comparison matrix
 
-**DeHashed** — Paid research-grade service. Breach data plus forum leaks plus pastes. Use if you need investigator-level access to raw dumps.
+| Service | Data sources | API | Alerting | FOSS | Price |
+|---|---|---|---|---|---|
+| **Have I Been Pwned** | Breach dumps + pastes | Yes (paid) | Email notifications | No (clients yes) | Free (individual) |
+| Firefox Monitor | HIBP upstream + Onerep brokers (paid) | No | Email + in-browser | Client yes; Onerep no | Free + $9/mo paid |
+| Proton Sentinel | HIBP-shaped + phone + card | No (bundled) | In-app + email | No | Proton Unlimited tier |
+| DeHashed | Breaches + pastes + forum leaks + stealer logs | Yes (paid) | Email + webhook | No | $5-$30/mo |
+| Password manager HIBP checks | HIBP hash-range API | N/A | In-vault indicators | Varies | Included |
+
+## Common mistakes
+
+- **Registering only the primary email.** Aliases (SimpleLogin, addy.io, Hide My Email) also leak. Register each or use domain-level monitoring.
+- **Ignoring domain-level monitoring as a domain owner.** Free, catches every alias you've ever generated in one subscription.
+- **Treating the notification as the response plan.** The alert is the trigger; the response is rotating reused passwords, enabling 2FA, and considering whether the vendor deserves to keep the account.
+- **Trusting "dark web monitoring" from random vendors.** Half are HIBP wrappers with marketing markup; half are credential-stuffing services reselling what they collected. HIBP is the canonical free option.
+- **Assuming "no notification = safe."** HIBP only catches dumps that reach Troy's pipeline. Targeted or unpublished breaches may not surface. Floor, not ceiling.
+- **Using alerts as the only rotation trigger.** Rotate irreversible accounts (email, manager, registrar, financial) on a schedule.
+
+## Setup
+
+[Recover from a breach guide](/en/guides/recover-from-breach) walks through the post-alert sequence: triage, rotate, check for reuse, enable stronger 2FA.
+
+## Related categories
+
+- **[Password manager](/en/categories/password-manager)** — the vault's built-in HIBP check is the proactive companion to email alerts.
+- **[Data broker removal](/en/categories/data-broker-removal)** — broker leaks produce their own dump lists; overlap meaningfully with breach alerts.
+- **[Email](/en/categories/email)** — aliased addresses localize which service leaked.

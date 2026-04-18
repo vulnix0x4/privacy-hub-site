@@ -14,20 +14,54 @@ related:
   - third-party-cookies-storage
 ---
 
-> **TL;DR.** Do the opt-outs yourself with Yael Grauer's "Big Ass Data Broker Opt-Out List" (easy-opt-outs). Free, canonical, updated. Pay a removal service only if your time is worth more than the one-weekend DIY cost.
+> **TL;DR.** Do the opt-outs yourself with Yael Grauer's "Big Ass Data Broker Opt-Out List" (hosted at `inteltechniques.com/workbook.html` and mirrored at `easyoptouts.com`). Free, canonical, updated. Pay a removal service only if your time is worth more than the one-weekend DIY cost — then pick DeleteMe, Kanary, or Incogni. No affiliate — we don't earn on anything here; the DIY list is free and the paid services' affiliate deals come with pressure to rank by commission, which we refuse.
 
 ## What this category protects
 
-Every public-records scrape that ends up on WhitePages, Spokeo, BeenVerified, Intelius, Radaris, MyLife, and another 100 clones. These sites publish your address, age, relatives, and sometimes partial SSN. Opt-outs work; they just have to be filed at every site individually.
+Every public-records scrape on WhitePages, Spokeo, BeenVerified, Intelius, Radaris, MyLife, TruePeopleSearch, FastPeopleSearch, and 200-odd clones. These sites publish your current and former addresses, age, phone numbers, email addresses, relatives' names, sometimes partial SSN or DOB, and a "background check" upsell. Opt-outs work; they have to be filed at every site individually and re-filed periodically because brokers re-ingest from county records.
 
-## Hero pick: Easy Opt-Outs (DIY)
+Broker data feeds adjacent risk: stalking, doxxing, SIM-swap targeting, loan-fraud pretexting, harassment. It also correlates with the rest of the tracking graph — a broker record bridges [federated-login state](/en/vectors/referrer-federated-login) and the [third-party cookie graph](/en/vectors/third-party-cookies-storage). Removing it raises the cost of reaching you from "Google search" to "actual effort."
 
-Yael Grauer's free list at easyoptouts.com and inteltechniques.com. Step-by-step instructions per site. Weekend project. What you give up: a weekend. Realistically a second weekend six months later, because the brokers re-ingest after a while.
+## This just works: Easy Opt-Outs (DIY)
+
+Yael Grauer's free workbook at `inteltechniques.com/workbook.html` and the mirror `easyoptouts.com`. Step-by-step instructions per site — submit the form, email the address, or send the certified letter in a handful of cases. A weekend project the first time. What you give up: a weekend. And realistically a second weekend six months later, because brokers re-ingest after a while.
+
+The DIY approach works because you control which brokers get your attention. The list distinguishes "scraper" brokers (re-ingest from public sources — permanent removal is impossible, only suppression for N months) from "primary" brokers (actually own the data — can be permanently removed). The paid services don't always surface that distinction, which makes the "we removed N records" headlines feel better than they are.
 
 ## Alternatives
 
-**DeleteMe** — Paid removal service, ~$130/year, targets the biggest brokers. Genuinely removes listings; you get a quarterly report.
+- **DeleteMe** — paid removal, ~$130/yr individual. Targets the biggest ~30 US brokers. Genuinely removes listings; quarterly report shows what was cleaned. Good fit for US users with no time.
+- **Kanary** — similar to DeleteMe, sometimes better pricing, stronger per-broker transparency. List mostly overlaps.
+- **Incogni** — Surfshark's offering, bundled with Surfshark VPN. Wider list (200+) but less thorough per broker. Good value if already on Surfshark.
+- **Optery** — free tier surfaces where you appear; pay for the removal step. Similar US focus.
+- **Mozilla Monitor Plus** — partnered with Onerep until the Krebs on Security 2024 disclosure that Onerep's founder ran people-search sites himself. Ethical posture compromised; Mozilla ended that partnership later.
 
-**Kanary** — Competitor to DeleteMe. Similar coverage, sometimes better pricing promotions.
+## Comparison matrix
 
-**Incogni** — Surfshark's offering. Bundled with Surfshark VPN if you already pay for it. Wide broker list.
+| Option | Scope | Recurring | Scraper vs opt-out | Price | Manual fallback |
+|---|---|---|---|---|---|
+| **Easy Opt-Outs (DIY)** | US + international (workbook lists both) | No (you re-run) | Distinguishes scraper from primary | Free | You are it |
+| DeleteMe | US primarily | Yes (quarterly) | Mostly primary brokers | $130-$330/yr | Manual list supplemented |
+| Kanary | US | Yes | Mostly primary brokers | $150/yr | Similar to DeleteMe |
+| Incogni | US + EU | Yes | Broader list, less thorough | $90/yr (or bundled with Surfshark) | Lighter follow-up |
+| Optery | US | Yes (paid tiers) | Mix | Free / $40-$250/yr | Depends on tier |
+| Mozilla Monitor Plus (Onerep) | US | Yes | Uncertain | $11/mo | Onerep ethics compromised (2024 disclosure) |
+
+## Common mistakes
+
+- **Paying a removal service and stopping there.** The service removes what it finds. Brokers outside their list don't get touched. The DIY workbook covers the long tail; at minimum, run it once even if you pay a service.
+- **Expecting permanent removal.** Most brokers "suppress" rather than delete — the record is hidden for 6-12 months, then a re-ingest from county records puts it back. Removal is an ongoing maintenance task.
+- **Using a removal service then publishing new records.** Real WHOIS, $200+ political donations (public under FEC), buying a house, registering a car — all re-add entries. Use mail-forward, LLC intermediaries, keep the cycle going.
+- **Submitting opt-outs from a dirty email.** Some brokers add the opt-out email to their records. Use an alias per opt-out.
+- **Missing state-specific paths.** CCPA, VCDPA, CPA, CTDPA grant stronger delete rights. Cite the law; compliance rates rise.
+- **Skipping voter registration as a source.** Many brokers pull voter rolls; Ohio and Florida are especially egregious.
+
+## Setup
+
+[Opt out of data brokers guide](/en/guides/opt-out-data-brokers) walks through the workbook flow, shows the letter templates, and tracks which brokers respond to which channels.
+
+## Related categories
+
+- **[Email](/en/categories/email)** — use an alias for every opt-out submission; breached alias = burn it.
+- **[Temp numbers](/en/categories/temp-numbers)** — burner numbers keep your real line out of future broker ingests.
+- **[Breach monitoring](/en/categories/breach-monitoring)** — the downstream alert when broker data leaks get dumped.
