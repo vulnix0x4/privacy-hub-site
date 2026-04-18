@@ -1,0 +1,62 @@
+---
+/**
+ * Glossary page — flat alphabetical list of every term from the
+ * `glossary` data collection (one YAML file, not per-entry MDX). Each
+ * row carries a stable `id` for deep-linking from inline tooltips on
+ * other pages.
+ */
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+
+export const prerender = true;
+
+const entries = (await getCollection('glossary')).sort((a, b) =>
+  a.data.term.localeCompare(b.data.term),
+);
+---
+<Layout
+  title="Glossary — privacy.whattheflip.lol"
+  description="Every technical term we use, defined in one place. Deep-linked from inline tooltips across the site."
+>
+  <div class="max-w-3xl py-6 space-y-10">
+    <nav aria-label="Breadcrumb" class="text-sm text-text-muted">
+      <a href="/en/basics" class="hover:text-text">Basics</a>
+      <span aria-hidden="true" class="px-2">/</span>
+      <span class="text-text">Glossary</span>
+    </nav>
+
+    <header class="space-y-3">
+      <p class="text-sm uppercase tracking-wider text-text-muted">Basics</p>
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Glossary</h1>
+      <p class="text-lg text-text-muted">
+        Every technical term we use, plain-English. Cross-linked back from the dotted-underline
+        tooltips elsewhere on the site.
+      </p>
+    </header>
+
+    <dl class="space-y-6">
+      {entries.map((entry) => (
+        <div id={entry.id} class="scroll-mt-20 rounded-lg border border-white/10 bg-surface p-5">
+          <dt class="text-lg font-semibold text-text">{entry.data.term}</dt>
+          <dd class="mt-2 text-text leading-relaxed">{entry.data.definition}</dd>
+          {entry.data.see_also.length > 0 && (
+            <dd class="mt-3 text-sm text-text-muted">
+              See also:
+              {entry.data.see_also.map((slug, i) => (
+                <span>
+                  {i > 0 && <span aria-hidden="true">, </span>}
+                  <a
+                    href={`#${slug}`}
+                    class="ml-1 underline decoration-accent/40 underline-offset-2 hover:text-accent"
+                  >
+                    {slug}
+                  </a>
+                </span>
+              ))}
+            </dd>
+          )}
+        </div>
+      ))}
+    </dl>
+  </div>
+</Layout>

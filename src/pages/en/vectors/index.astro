@@ -1,0 +1,102 @@
+---
+/**
+ * Encyclopedia index page.
+ *
+ * Groups every vector entry by `family` in the design-doc §5.2 order
+ * (network → fingerprint → sensors → permissions → storage → behavioral
+ * → cross-site), then sorts within each family by severity
+ * (critical → high → medium → low) and prevalence (very-common → common
+ * → rare). Family blocks are skipped if empty so the page renders
+ * gracefully with as little as one seed entry.
+ */
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import { FAMILY_META } from '../../../components/scanner/familyMeta';
+import { FAMILY_PILL_CLASS } from '../../../components/scanner/badgeConfig';
+
+export const prerender = true;
+
+const entries = await getCollection('vectors');
+
+const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+const PREVALENCE_RANK = { 'very-common': 0, common: 1, rare: 2 } as const;
+
+const grouped = FAMILY_META.map((family) => ({
+  family,
+  items: entries
+    .filter((entry) => entry.data.family === family.id)
+    .sort((a, b) => {
+      const sev = SEVERITY_RANK[a.data.severity] - SEVERITY_RANK[b.data.severity];
+      if (sev !== 0) return sev;
+      return PREVALENCE_RANK[a.data.prevalence] - PREVALENCE_RANK[b.data.prevalence];
+    }),
+}));
+
+const severityClass: Record<string, string> = {
+  critical: 'bg-state-unchanged/15 text-state-unchanged border-state-unchanged/40',
+  high: 'bg-state-spoofed/15 text-state-spoofed border-state-spoofed/40',
+  medium: 'bg-surface-raised text-text-muted border-white/10',
+  low: 'bg-surface-raised text-text-muted border-white/10',
+};
+---
+<Layout
+  title="Tracking-vector encyclopedia — privacy.whattheflip.lol"
+  description="Every tracking technique we cover, grouped by family, ranked by severity. Read the encyclopedia or jump straight to the live scanner."
+>
+  <div class="max-w-5xl py-6 space-y-10">
+    <header class="space-y-3">
+      <p class="text-sm uppercase tracking-wider text-text-muted">Encyclopedia</p>
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Tracking vectors</h1>
+      <p class="max-w-2xl text-lg text-text-muted">
+        Seven families of tracking technique, plain-English explainers, and what actually defends.
+        Run the <a class="underline decoration-accent/40 underline-offset-4 hover:text-accent" href="/en/scan">live scanner</a>
+        to see your own browser's leaks.
+      </p>
+    </header>
+
+    <nav aria-label="Vectors index" class="space-y-12">
+      {grouped.map(({ family, items }) =>
+        items.length > 0 ? (
+          <section aria-labelledby={`family-${family.id}`} class="space-y-4">
+            <header class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span
+                  class={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium uppercase tracking-wider ${
+                    FAMILY_PILL_CLASS[family.id] ?? ''
+                  }`}
+                >
+                  {family.label}
+                </span>
+                <h2 id={`family-${family.id}`} class="text-xl font-semibold text-text">
+                  {family.label}
+                </h2>
+              </div>
+              <p class="text-sm text-text-muted">{family.subtitle}</p>
+            </header>
+            <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((entry) => (
+                <li>
+                  <a
+                    href={`/en/vectors/${entry.id}`}
+                    class="block h-full rounded-lg border border-white/10 bg-surface p-4 transition-colors hover:border-accent/50"
+                  >
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium ${severityClass[entry.data.severity] ?? ''}`}
+                      >
+                        {entry.data.severity}
+                      </span>
+                      <span class="text-text-muted">{entry.data.prevalence.replace('-', ' ')}</span>
+                    </div>
+                    <h3 class="mt-2 text-base font-semibold text-text">{entry.data.title}</h3>
+                    <p class="mt-1 text-sm text-text-muted">{entry.data.description}</p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null,
+      )}
+    </nav>
+  </div>
+</Layout>

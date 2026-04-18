@@ -1,0 +1,57 @@
+---
+/**
+ * Basics index — short list of foundation pages plus a top-of-page link
+ * to the full glossary (rendered separately at `/en/basics/glossary`).
+ */
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+
+export const prerender = true;
+
+const entries = (await getCollection('basics')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
+---
+<Layout
+  title="Basics — privacy.whattheflip.lol"
+  description="Foundation pages: what a threat model is, why privacy matters without the doom, and how to read the rest of the site."
+>
+  <div class="max-w-3xl py-6 space-y-10">
+    <header class="space-y-3">
+      <p class="text-sm uppercase tracking-wider text-text-muted">Basics</p>
+      <h1 class="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Foundations</h1>
+      <p class="text-lg text-text-muted">
+        Five-minute reads that frame the rest of the site. Skim them once; come back when a
+        new tool tempts you and you want to remember what you actually care about.
+      </p>
+    </header>
+
+    <nav aria-label="Basics index">
+      <ul class="grid gap-3 sm:grid-cols-2">
+        {entries.map((entry) => (
+          <li>
+            <a
+              href={`/en/basics/${entry.id}`}
+              class="block h-full rounded-lg border border-white/10 bg-surface p-4 transition-colors hover:border-accent/50"
+            >
+              <h2 class="text-base font-semibold text-text">{entry.data.title}</h2>
+              <p class="mt-1 text-sm text-text-muted">{entry.data.description}</p>
+            </a>
+          </li>
+        ))}
+        <li>
+          <a
+            href="/en/basics/glossary"
+            class="block h-full rounded-lg border border-white/10 bg-surface p-4 transition-colors hover:border-accent/50"
+          >
+            <h2 class="text-base font-semibold text-text">Glossary</h2>
+            <p class="mt-1 text-sm text-text-muted">
+              Every technical term we use, defined in one place. Linked back from any page that
+              uses the word.
+            </p>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</Layout>
