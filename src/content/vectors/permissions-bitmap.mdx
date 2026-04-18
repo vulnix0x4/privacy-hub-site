@@ -11,31 +11,111 @@ related:
   - media-devices
 ---
 
-> **TL;DR.** A script iterates `navigator.permissions.query()` across a dozen permission names and records which are `granted`, `denied`, or `prompt`. That tuple rarely changes and rarely matches anyone else's exactly.
+## also known as: `navigator.permissions.query()`, permissions bitmap, permission-state fingerprint, capability vector
 
-The spec was meant to let sites gracefully adapt when a user had already said no. It also hands a clean identifier to every site that asks.
+> **TL;DR** — A script iterates `navigator.permissions.query()` across a dozen permission names and records which are `granted`, `denied`, or `prompt`. That tuple rarely changes and rarely matches anyone else's exactly. The spec was meant to let sites gracefully adapt when a user had already said no; it also hands a clean identifier to every site that asks.
+> Severity: high
+> Prevalence: common
 
-## How it works
+## How it works (plain English)
 
-The Permissions API exposes `navigator.permissions.query({ name })` for a menu of capabilities: geolocation, notifications, camera, microphone, persistent-storage, midi, clipboard-read, clipboard-write, screen-wake-lock, accelerometer, gyroscope. Each returns `granted | denied | prompt`, readable without any prompt of its own.
+Your browser remembers, per site, what you have said yes or no to. Zoom has camera, Slack has notifications, Google Maps has geolocation. Each site normally only sees permissions *it* has been granted — until the Permissions API.
 
-The resulting 12-entry bitmap reflects your real usage patterns. The user who granted camera to Zoom, denied notifications on a news site, and left clipboard-read at default produces a distinct pattern compared to someone who blocks everything.
+The API had a good reason: if a site has already been denied notifications, it should not re-prompt, it should show a banner saying "notifications are blocked; enable them here." `navigator.permissions.query({ name: "notifications" })` returns `granted`, `denied`, or `prompt`, silently, with no UI.
 
-## What it leaks about you
+Any site can query any permission name. A tracker does not want to send notifications — it wants the *shape* of your yes/no history. A user who granted camera for Zoom, denied notifications on a news site, granted clipboard-read for a password manager, left geolocation at default, and denied persistent-storage produces a specific five-position bitmap. Most other users have a different bitmap. The tracker now has a second-order identifier that persists across cookie clears because permission state lives in the browser's site-settings store, not in cookies.
 
-Your cross-site permission posture: whether you are a "grant everything" user, a permission-minimizing user, or somewhere in between. Combined with other signals it becomes a strong second-order identifier.
+## How it works (technical)
+
+```js
+const names = [
+  'geolocation', 'notifications', 'camera', 'microphone',
+  'persistent-storage', 'midi', 'clipboard-read', 'clipboard-write',
+  'screen-wake-lock', 'accelerometer', 'gyroscope', 'background-sync',
+];
+
+const bitmap = await Promise.all(names.map(async name => {
+  try {
+    const s = await navigator.permissions.query({ name });
+    return { name, state: s.state }; // 'granted' | 'denied' | 'prompt'
+  } catch (e) { return { name, state: 'unsupported' }; }
+}));
+
+const fp = bitmap.map(b => `${b.name[0]}:${b.state[0]}`).join('|');
+// stable across sessions until the user re-permits
+```
+
+Each browser supports a different set of `name` values — a browser-family signal (Chrome supports `payment-handler`, Firefox does not). The returned `state` reflects the current site's recorded answer; values live in the browser's site-settings store, so `Clear cookies` does not reset them.
+
+The spec was authored when the platform was adding prompt-gated APIs at a rapid clip (camera, notifications, geolocation, MIDI, clipboard) and developers needed a way to distinguish "user has not answered" from "user said no." The privacy implications of a cross-site readable capability vector were not a first-class concern at the time.
+
+Firefox Total Cookie Protection partitions permissions per top-level site, so a third-party iframe sees its own permissions, not the top site's. But the **shape** of the first-party bitmap itself is still a per-session identifier. Typical entropy: 4-8 bits in general populations, rising to 10+ bits on users who have customized permissions across many sites.
+
+Research: Laperdrix 2020 survey treats the Permissions API as an emerging vector. Iqbal et al. *FP-Tracer* (PoPETs 2024) includes the Permissions API in modern detection pipelines. The cross-site readability of the bitmap was raised in the W3C PING privacy review for the spec during its 2016-2018 standardisation.
+
+## Who uses this, and why
+
+Commercial fingerprinting libraries read the bitmap as a stable secondary signal. FingerprintJS v3+ reads `camera`, `microphone`, `geolocation`, `notifications`, `persistent-storage` at minimum. ThreatMetrix, Sift, Kount, SEON, and Forter all record permissions state as an anti-fraud feature — a brand-new profile with all-`prompt` values looks like an automation tool spinning up a fresh container.
+
+Anti-fraud cares specifically about the `prompt`-everywhere pattern: real humans granted *something* to *something* eventually. A bitmap that is all `prompt` alongside `hardwareConcurrency: 2` and a SwiftShader WebGL renderer is a headless tell. CDN bot-management uses the same check.
+
+Ad-tech reads a smaller subset, mostly `notifications` (to gate re-prompting push-subscription banners), but uses the state as a cross-site stability signal across its retargeting network.
+
+## What it reveals about you
+
+Your cross-site permission posture — grant-everything user, permission-minimizing user, or somewhere in between. The specific shape (which permissions are `granted` vs `denied` vs `prompt`) reveals behavior: granting camera but denying notifications says you use video calls but block marketing pushes. Granting clipboard-read says you use a browser-based password manager. Granting persistent-storage says you use an offline-capable web app.
+
+Combined with other signals it becomes a strong second-order identifier. The bitmap's stability across cookie clears makes it one of the stealthier long-term trackers still available to an average site.
 
 ## How to defend
 
-- 🟢 Reset site permissions periodically (every browser has a "clear site data" option).
-- 🟢 Use Firefox Total Cookie Protection. State is already partitioned per top site, so a cross-site probe sees only its own grants.
-- 🟡 In Brave, permissions are partitioned by shield state; the bitmap changes per site.
-- 🔴 Use a fresh browser profile for high-stakes browsing so the bitmap starts empty.
+### Level 1: Easiest (no install) 🟢
 
-## What doesn't help
+Reset site permissions periodically via the per-site "clear site data" option in the address-bar lock icon. This nukes recorded permission answers along with cookies and storage.
 
-Declining one prompt while leaving the rest untouched. The bitmap is its shape that matters, not any single entry.
+Use Firefox with strict Enhanced Tracking Protection. Firefox partitions permissions per top-level site under Total Cookie Protection, so a third-party iframe across different top sites cannot read a consistent cross-site bitmap.
 
-## Try it
+### Level 2: Install a free tool 🟡
 
-[See your own value -&gt;](/en/scan)
+Brave — permissions are partitioned by shield state and per-site; the bitmap effectively changes per origin. Brave also auto-denies some rarely-legitimate permissions (MIDI, sensors), flattening a few bits of entropy.
+
+Librewolf — Firefox fork, FPP on, most esoteric permission prompts auto-denied.
+
+Proactively deny permissions you never intend to grant (MIDI, sensors, background-sync) so their state is `denied` rather than a meaningful `granted`/`prompt` mix.
+
+### Level 3: Advanced / paid 🔴
+
+Use a fresh browser profile for high-stakes browsing so the bitmap starts empty. Multi-account containers (Firefox) or per-site profiles (Arc) can carry this at lower friction.
+
+Tor Browser disables or stubs most permission APIs entirely — the bitmap returns uniform values across all Tor users.
+
+### What doesn't help
+
+Declining one prompt while leaving the rest untouched. The bitmap's **shape** matters, not any single entry — a user who denied notifications on a news site but granted clipboard-read to a password manager is still identifiable.
+
+Clearing cookies alone — permission state lives in site settings, not cookies, so "Clear cookies" leaves the bitmap intact in most browsers.
+
+A VPN. The bitmap is local browser state; the network layer is irrelevant.
+
+## Tools that help
+
+- **Tor Browser / Mullvad Browser** — uniform permission responses across users.
+- **Firefox + Total Cookie Protection** — per-top-site permission partitioning.
+- **Brave** — shields partition permissions per origin; low-value permissions auto-denied.
+- **Librewolf** — Firefox fork with FPP on by default.
+- **Browser site-settings UI** — proactively deny rare permissions (MIDI, sensors, background-sync).
+
+## Try it yourself
+
+[See your own value on the scanner →](/en/scan)
+
+## Further reading
+
+- [W3C Permissions API spec](https://www.w3.org/TR/permissions/)
+- [MDN: Permissions API](https://developer.mozilla.org/en-US/docs/Web/API/Permissions_API)
+- Iqbal et al., *FP-Tracer* (PoPETs 2024)
+- Laperdrix et al., *Browser Fingerprinting: A Survey* (ACM TWEB 2020)
+
+## Known limits
+
+Periodic permission resets disrupt workflows — you re-prompt on every site the next time you visit. The bitmap defence works only in combination with browser-level defences against navigator properties, WebGL, and timezone; a stable bitmap is still a stable identifier even if every individual permission is "correct." The partitioning approach (Firefox TCP, Brave shields) removes the cross-site dimension but does not randomize the first-party bitmap itself.
