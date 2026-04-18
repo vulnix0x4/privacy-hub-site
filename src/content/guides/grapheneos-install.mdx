@@ -1,0 +1,90 @@
+---
+title: "Install GrapheneOS on a Pixel"
+description: Full guide to flashing GrapheneOS via the web installer, verifying the install, setting up sandboxed Google Play, and daily-driving it.
+last_verified: 2026-04-18
+related:
+  - phone-os
+  - permissions-bitmap
+difficulty: advanced
+time_minutes: 45
+prerequisites:
+  - Supported Pixel (6, 6a, 7, 7a, 8, 8a, 9, 9 Pro, or newer)
+  - USB-C cable that actually does data
+  - A Chromium-based browser (Chrome, Brave, Edge, not Firefox)
+---
+
+> **TL;DR.** Unlock the bootloader on a supported Pixel. Run the GrapheneOS web installer from Chrome. Reboot, relock the bootloader, verify. Install sandboxed Google Play as a regular user app, not as system. 45 minutes, minimal drama.
+
+## Why this matters
+
+GrapheneOS is the only production-grade hardened Android you can run on consumer hardware. It is a real open-source OS with a memory allocator that catches heap exploits, per-app network and sensor toggles, a better-than-stock sandbox for Google Play Services (running it as an app, not as system, is the core trick), and verified boot with your own keys.
+
+It runs on Pixels because Pixels are the only phones whose secure boot chain allows relocking with custom keys. Samsung, OnePlus, and everyone else lock you out permanently the moment you unlock the bootloader. Do not try to "install GrapheneOS on a OnePlus." That is not a thing.
+
+## What you need before starting
+
+- A Pixel. The current supported list is always on `grapheneos.org/install/web` — as of April 2026: Pixel 6/6 Pro/6a, 7/7 Pro/7a, 8/8 Pro/8a, 9/9 Pro/9 Pro XL/9 Pro Fold, and the "Tensor G5"-generation devices. Older Pixels (5a and earlier) are out of support.
+- A USB-C data cable. Charge-only cables will not work and the installer will silently stall.
+- A computer with a recent Chromium-based browser. Firefox does not expose WebUSB, you cannot use it.
+- 45 minutes, patience, and a backup of anything on the phone (factory wipe).
+
+## Steps
+
+1. **Back up the phone.** Settings → System → Backup. Wait for it to finish. If you use Google Photos, confirm it is synced. Anything outside Photos/Drive needs to be copied off manually. The flash wipes the device.
+
+2. **Enable developer mode.** Settings → About phone → tap Build number 7 times. Back out to Settings → System → Developer options. Enable both: "OEM unlocking" and "USB debugging." OEM unlocking may take a reboot to stick on newer Pixels.
+
+   {/* SCREENSHOT(step-2): Developer options with both toggles on */}
+
+3. **Reboot into the bootloader.** Power off. Hold volume-down while pressing power. Wait for the bootloader screen — the one with the Android robot lying on its back with "Start" at the top. Plug the phone into your computer via USB-C.
+
+4. **On the computer, open Chrome/Brave/Edge and go to `grapheneos.org/install/web`.** Read the page. The page does the whole flash — it is actual, live, working code that talks to the phone over WebUSB.
+
+   {/* SCREENSHOT(step-4): grapheneos.org web installer landing page */}
+
+5. **Unlock the bootloader.** On the page, click "Unlock bootloader." On the phone's bootloader, use volume keys to navigate to "Unlock bootloader" (if prompted) and confirm. The phone factory-resets. This is expected.
+
+6. **Download the release.** Back in the installer page, click "Download release." The page downloads a signed factory image. Takes 1-3 minutes depending on bandwidth.
+
+7. **Flash the release.** Click "Flash release." The installer writes the OS. Bootloader, boot image, radio, vendor partitions, system. Takes 5-10 minutes. The phone will reboot during. Do not unplug it.
+
+   {/* SCREENSHOT(step-7): install progress output */}
+
+8. **Lock the bootloader.** After the install completes, the page will prompt "Lock bootloader." Click it, then on the phone, use volume keys to confirm. This is the critical step — a locked bootloader plus verified boot with GrapheneOS's signing keys is what gives you the tamper-evident chain. An unlocked bootloader lets anyone with physical access swap the OS.
+
+9. **Reboot.** The phone boots into GrapheneOS for the first time. You should see the GrapheneOS boot screen — no yellow "unlocked" warning, no red warnings. If you see a yellow warning, relock did not take. Try again.
+
+10. **First-run setup.** Language, Wi-Fi, no-Google-account setup (GrapheneOS does not nag), lock screen credential. Use a 6+ digit PIN, ideally alphanumeric for high-risk threat models. Enable biometrics on top as convenience.
+
+   {/* SCREENSHOT(step-10): GrapheneOS first-run setup */}
+
+11. **Install sandboxed Google Play (if you want Play apps).** Apps → GrapheneOS App Store → Google Play Services, Google Play Store, Google Services Framework. Install the three. **This is the key architectural difference:** Play Services runs as a regular app, not as system — it has no special permissions, no ability to peek at other apps' data, and you can wipe it with a tap.
+
+12. **Set up at least one secondary user profile.** Settings → System → Multiple users. Create a secondary profile for "work," "banking," or "random apps I don't trust." Each profile has its own keys, its own sandboxed Play, its own VPN config. Switching profiles is like switching phones.
+
+   {/* SCREENSHOT(step-12): GrapheneOS multi-user profile setup */}
+
+13. **Enable per-profile network and sensor toggles.** Settings → Security & privacy → Sensors, Network. You can now revoke network access per-app, which no stock Android lets you do. Revoke it from calculator. Revoke it from your note-taker. Most apps do not need the internet.
+
+14. **Install your real apps.** For open-source apps, use F-Droid (`f-droid.org`). For Play-Store-only apps, use sandboxed Play. For apps that require Play Integrity attestation (banking, some games) — some work, some do not. GrapheneOS passes basic integrity. Strong integrity (hardware-backed) requires the app developer to opt into allowing it from non-Google OSes, which most do not. This is the one friction point you will hit.
+
+15. **Install Mull or Vanadium for browsing.** Vanadium is GrapheneOS's hardened Chromium fork, default. Mull is a hardened Firefox fork if you prefer Gecko. Do not install regular Chrome — it works, but you lose the sandboxed-by-default posture.
+
+## Verify it worked
+
+- `Settings → About phone → Build number`. Should say "GrapheneOS" and a version string like `2026040800`.
+- Reboot. You should see a green GrapheneOS boot screen. Yellow or red = relock failed.
+- `Settings → Security & privacy → Auditor`. Run the hardware attestation check. It will verify with GrapheneOS's remote attestation server that the phone is running genuine GrapheneOS with a locked bootloader.
+- Open the Google Play app. It should open but NOT have the permissions a system Play Services would — try opening Google Photos, it will ask for storage permission like a regular app instead of silently having it.
+
+## Common pitfalls
+
+- Using a charge-only cable. The installer says "no phone detected" even though the phone is clearly plugged in. Try a different cable before debugging anything else.
+- Skipping the relock step. An unlocked bootloader is the #1 attack surface — anyone with 10 minutes of physical access can swap the OS. Relock.
+- Using the installer from Firefox. WebUSB is a Chromium API. Firefox will not work.
+- Installing Magisk or any rooting stuff "just in case." GrapheneOS specifically does not support root and breaks the security model if you force it. If you want root, do not use GrapheneOS.
+- Expecting your banking app to work. Some US banks (Chase, Citi, Ally) refuse to run on any non-Play-Protect-certified OS. Test a secondary user profile with sandboxed Play before you daily-drive.
+
+## Known limits
+
+GrapheneOS protects you from: random app compromise (much better sandboxing), network exfiltration (per-app network toggles), most memory-corruption exploit chains, OS-level data harvesting (no Google at the system level). It does not protect you from: physical device extraction by a skilled forensic lab (still unlocked-while-used), side-channel attacks on modern SoCs, bugs in the apps you install, SIM swap attacks on your accounts, or an attacker who has your unlock PIN. It is a hardened OS, not magic.

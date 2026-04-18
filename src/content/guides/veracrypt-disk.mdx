@@ -1,0 +1,107 @@
+---
+title: "VeraCrypt full-disk encryption"
+description: Encrypt a Windows system drive or an external drive with VeraCrypt. Handle the rescue disk, set a strong PIM, and test recovery.
+last_verified: 2026-04-18
+related:
+  - disk-encryption
+  - desktop-os
+difficulty: advanced
+time_minutes: 45
+prerequisites:
+  - Windows 10/11, macOS, or Linux
+  - An empty USB stick for the rescue media
+  - An actual backup (non-negotiable)
+---
+
+> **TL;DR.** Install VeraCrypt. For system drive: create rescue media first. Pick AES-256, a passphrase of 8+ words, PIM ≥ 200. Encrypt. Test boot with rescue. For external drive: same but simpler. Your backup was done yesterday, right?
+
+## Why this matters
+
+BitLocker on Windows and FileVault on macOS both exist and both work fine for most people. VeraCrypt is what you use when you do not want Microsoft or Apple to have a recovery key in escrow (BitLocker's default), when you want hidden volumes (plausible deniability), when you need cross-platform compatibility for a single encrypted USB, or when you specifically do not trust the OS vendor's implementation.
+
+This is advanced because full-disk encryption of a system drive is the most nerve-wracking sysadmin task in the consumer stack. One mistake and the OS does not boot. Hence the rescue disk, hence the backup, hence the 45 minutes.
+
+## What you need before starting
+
+- A working backup. Full system image if you are encrypting the system drive. An actual test-restore if you have never done one. Stop here and do this first.
+- The installer from `veracrypt.fr` (or `github.com/veracrypt/VeraCrypt`). Verify the GPG signature if you can.
+- For system drive: a blank USB stick (1 GB+) for rescue media. On older hardware, a blank CD works; on modern UEFI, USB.
+- A passphrase you will not forget. Write it on paper. Keep the paper somewhere safe.
+
+## Steps
+
+### Scenario A: Encrypt the Windows system drive
+
+1. **Verify your boot mode.** UEFI or Legacy? `msinfo32` → "BIOS Mode." VeraCrypt on UEFI is slightly different path. Most post-2015 Windows boxes are UEFI.
+
+2. **Turn off Fast Startup.** Control Panel → Power Options → Choose what power buttons do → Change settings that are currently unavailable → uncheck "Turn on fast startup." Required for reliable VeraCrypt boot.
+
+3. **Turn off Hibernation.** Admin cmd: `powercfg /h off`. Hibernation writes RAM to disk — that RAM contains your volume key. Bad.
+
+4. **Install VeraCrypt.** Default options.
+
+5. **System → Encrypt System Partition/Drive.** Wizard opens.
+
+6. **Pick "Normal" encryption.** Hidden OS is a different, gnarlier procedure and is for specific threat models.
+
+7. **Encrypt "Windows system partition"** (the C:\ only) vs. "whole drive" — if you have multiple partitions on one disk, "whole drive" covers them all. System partition only is safer if you are nervous.
+
+8. **Number of OSes: Single-boot** unless you dual-boot. Dual-boot is doable but requires boot loader gymnastics.
+
+9. **Encryption options.** AES-256 for cipher, SHA-512 for hash. Twofish and Serpent are fine alternatives; cascaded ciphers (AES(Twofish(Serpent))) are overkill for consumer threat models and slow the boot.
+
+   {/* SCREENSHOT(step-9): VeraCrypt cipher selection */}
+
+10. **Set the password and PIM.** Password: 8+ word passphrase, or 25+ random characters. PIM (Personal Iterations Multiplier) is the hashing work factor. Default (empty) = 500,000 iterations for SHA-512. Set PIM = 485+ for SHA-512 to roughly double that. Higher PIM = more protection against brute force, slower boot unlock (by a few seconds).
+
+   **Write both down.** Passphrase and PIM. Without either, the volume is gone.
+
+11. **Collect random data.** Mouse-waggle screen. Do it until entropy is maxed.
+
+12. **Rescue disk creation.** This is the most important step. VeraCrypt makes a rescue disk with your volume header, decryption key (encrypted under your passphrase), and bootloader. If anything goes wrong during encryption or later, boot from this disk to repair or decrypt.
+
+    - Insert your blank USB.
+    - VeraCrypt prompts to save the ISO.
+    - Write the ISO to USB with Rufus or built-in tool.
+    - Boot from the USB and test — VeraCrypt shows a menu. Just confirm you can get to it. Then unplug.
+
+   {/* SCREENSHOT(step-12): rescue disk creation prompt */}
+
+13. **Pre-encryption test.** VeraCrypt offers to test the bootloader before actually encrypting. Do it. The system reboots, you type the passphrase at the VeraCrypt bootloader, Windows boots. If this works, you know the bootloader is compatible with your hardware.
+
+14. **Start encryption.** Depending on drive size and CPU, takes 1-6 hours for a 1 TB SSD. You can use the computer while it runs; performance will be lower.
+
+   {/* SCREENSHOT(step-14): encryption progress screen */}
+
+15. **Reboot. Enter passphrase + PIM at boot.** System should boot normally.
+
+### Scenario B: Encrypt an external drive
+
+The same wizard, much simpler.
+
+1. **Create Volume → Encrypt a non-system partition/drive → Standard VeraCrypt volume.**
+2. **Pick the drive.** Everything on it will be wiped.
+3. **Same cipher + hash choices.**
+4. **Same password / PIM.**
+5. **Random pool. Format.**
+6. **Mount to test.** VeraCrypt → Select Device → Mount → enter creds → drive appears as a new letter.
+
+### Verify it worked
+
+- **System drive**: boot. VeraCrypt's pre-boot prompt appears. Enter passphrase + PIM. Windows boots normally.
+- **Try a wrong passphrase at pre-boot** — it should fail with a delay.
+- **External drive**: mount, write a file, unmount. Plug into another machine with VeraCrypt — you should need the passphrase to mount again.
+- **Rescue disk test**: boot from rescue USB. VeraCrypt options show. Try the "Decrypt Volume Header" path on a second drive, just to confirm your rescue copy matches. Never re-encrypt without updating the rescue disk.
+
+## Common pitfalls
+
+- Skipping the backup. Encryption is destructive if power fails mid-process on some drives. Backup.
+- Encrypting the system drive without the rescue USB. If the bootloader corrupts, you cannot recover without the rescue. There is no Microsoft hotline for this.
+- Forgetting the PIM and remembering only the passphrase. PIM is part of the key derivation; without it, the passphrase does not unlock the volume. Write both down.
+- Storing the rescue USB next to the laptop. If they are both stolen together, the rescue disk gives an attacker the ability to run offline attacks at their leisure. Keep rescue in a different location.
+- Running a Windows update that changes the bootloader and then panicking when VeraCrypt pre-boot disappears. This happens rarely. Boot from rescue USB → "Restore VeraCrypt Bootloader." Fixes it.
+- Hibernation or sleep with encrypted drive. If you suspend and the attacker gets physical access, RAM still has the key. Shut down when away.
+
+## Known limits
+
+VeraCrypt protects data at rest. It does not protect data in use — once unlocked, the filesystem behaves like any other, and a running process with privileges can read everything. It does not protect against a keylogger that captures your boot passphrase (software keylogger in bootloader RAM, hardware keylogger on the USB). It does not protect against a compromised BIOS/UEFI firmware. Against a well-resourced attacker who has your powered-off-and-locked disk and no other leverage, VeraCrypt with a 10-word passphrase and PIM 500+ is currently uncrackable in any reasonable timeframe. That is the threat model it is built for. Anything beyond that needs more than disk encryption.

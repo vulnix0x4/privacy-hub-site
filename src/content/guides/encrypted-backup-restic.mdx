@@ -1,0 +1,164 @@
+---
+title: "Encrypted backups with Restic"
+description: Set up Restic to snapshot your home directory to an offsite target (B2, S3, Storj), with a schedule, pruning, and a documented restore.
+last_verified: 2026-04-18
+related:
+  - file-storage
+  - disk-encryption
+difficulty: advanced
+time_minutes: 60
+prerequisites:
+  - Linux, macOS, or Windows (WSL or native)
+  - A B2, S3, SFTP, or local-disk backup target
+  - Comfort with the terminal
+---
+
+> **TL;DR.** Install Restic. Initialize an encrypted repo on B2 (or S3 / SFTP / local). Write a small wrapper script. Systemd-timer or cron it. Run `restic restore` as a drill. Do the drill every month until it is boring.
+
+## Why this matters
+
+A backup you have never restored is a hope, not a backup. Restic is the tool most people land on after trying Duplicity (fragile), Borg (great but encrypts-key-in-repo), and rsync+cron (no snapshots, no encryption, no pruning). Restic:
+
+- Encrypts with ChaCha20-Poly1305, key derived from your passphrase.
+- Snapshots: atomic point-in-time, rollback to any past state.
+- Deduplication: saves bandwidth and storage on incremental backups.
+- Pluggable backends: B2, S3, SFTP, Swift, Azure, GCS, local disk.
+- One static binary, no daemon.
+
+This guide walks through Restic with Backblaze B2 as the target because B2 is $6/TB/month, reliable, and simple. S3 or any SFTP box is a drop-in.
+
+## What you need before starting
+
+- Restic binary. `brew install restic`, `apt install restic`, or grab from `restic.net/downloads` on Windows.
+- A backup destination. B2: `b2.backblazeb2.com` → create bucket, create application key scoped to that bucket. S3: IAM key scoped to bucket. SFTP: any Linux box with space.
+- A passphrase for the repository. Long, memorable, written down.
+- 60 minutes and a smallish (< 50 GB) home directory for the first-run test.
+
+## Steps
+
+1. **Install Restic.**
+   ```
+   brew install restic           # macOS
+   sudo apt install restic        # Debian/Ubuntu
+   sudo dnf install restic        # Fedora
+   # Windows: download binary from restic.net, put it in PATH
+   ```
+
+2. **Set up the B2 bucket.** `b2.backblazeb2.com` → Buckets → Create a Bucket. Name it something specific: `backup-hostname-yyyymmdd`. Set to "Private." Set lifecycle to "Keep prior versions for X days" if you want B2-level versioning on top of Restic's snapshots (overkill but cheap).
+
+   {/* SCREENSHOT(step-2): B2 bucket creation with private setting */}
+
+3. **Create an application key scoped to that bucket.** App Keys → Add a New Application Key. Name: `restic-keyname`. Allow access to: that specific bucket. Allowed operations: Read and Write. Save the `keyID` and `applicationKey` — applicationKey is shown once.
+
+4. **Set environment variables.** Edit `~/.bashrc` or `~/.zshrc` (or a dedicated `~/.restic-env` you source):
+   ```
+   export B2_ACCOUNT_ID="your-keyID"
+   export B2_ACCOUNT_KEY="your-applicationKey"
+   export RESTIC_REPOSITORY="b2:your-bucket-name:/hostname"
+   export RESTIC_PASSWORD_FILE="$HOME/.restic-pw"
+   ```
+   Store the repo passphrase in `~/.restic-pw` mode 600.
+   ```
+   echo "your-strong-passphrase" > ~/.restic-pw
+   chmod 600 ~/.restic-pw
+   ```
+
+5. **Initialize the repository.**
+   ```
+   restic init
+   ```
+   Output: "created restic repository ... at b2:..." with a warning that the passphrase cannot be recovered. Correct.
+
+6. **Run the first backup.** Pick paths you want to include and paths to skip.
+   ```
+   restic backup \
+     --exclude-caches \
+     --exclude '$HOME/.cache' \
+     --exclude '$HOME/Downloads' \
+     --exclude '$HOME/node_modules' \
+     --exclude-file ~/.resticignore \
+     $HOME
+   ```
+   First backup uploads everything. Expect 1-10 MB/s depending on your upload pipe and cpu. A 50 GB home takes 1-5 hours first time. Incremental backups after are minutes.
+
+   {/* SCREENSHOT(step-6): Restic first backup progress output */}
+
+7. **Verify snapshots.**
+   ```
+   restic snapshots
+   ```
+   You should see one snapshot with a hostname, date, and snapshot ID.
+
+8. **Do the drill RIGHT NOW.** Restore a single file to `/tmp`:
+   ```
+   restic restore latest --target /tmp/restic-test --include $HOME/.bashrc
+   ```
+   Verify the file exists, has the right content. If this step fails, your backup is useless.
+
+9. **Set up scheduling.** Linux with systemd: create `~/.config/systemd/user/restic.service`:
+   ```
+   [Unit]
+   Description=Restic backup
+
+   [Service]
+   Type=oneshot
+   EnvironmentFile=%h/.restic-env
+   ExecStart=/usr/bin/restic backup --exclude-caches --exclude-file=%h/.resticignore %h
+   ```
+   And `~/.config/systemd/user/restic.timer`:
+   ```
+   [Unit]
+   Description=Nightly Restic backup
+
+   [Timer]
+   OnCalendar=*-*-* 03:00:00
+   Persistent=true
+
+   [Install]
+   WantedBy=timers.target
+   ```
+   ```
+   systemctl --user daemon-reload
+   systemctl --user enable --now restic.timer
+   ```
+   macOS: use `launchd` (`~/Library/LaunchAgents/com.user.restic.plist`). Windows: Task Scheduler.
+
+10. **Set up pruning.** Without pruning, the repo grows forever. Add a weekly prune step:
+    ```
+    restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+    ```
+    7 daily, 4 weekly, 12 monthly snapshots. Schedule weekly via systemd timer or cron.
+
+11. **Set up monitoring.** Backup without monitoring is hope-based. Options:
+    - `healthchecks.io` free tier. Curl a ping URL at the end of the backup. If the ping does not arrive within an hour of schedule, they email you.
+    - Uptime Kuma self-hosted. Same idea.
+    - Email on failure. Least reliable.
+
+    Modify the systemd service to curl the success URL on completion.
+
+   {/* SCREENSHOT(step-11): healthchecks.io showing a backup ping schedule */}
+
+12. **Write the runbook.** One-page text file: `RESTIC_REPOSITORY`, location of passphrase, B2 keyID location, how to restore. Store it somewhere your next-of-kin or future self can find. A backup no one knows exists is a backup that dies with you.
+
+13. **Schedule a quarterly full-restore drill.** Block 30 minutes every 3 months. `restic restore` to `/tmp/restic-drill`. Spot-check files. Delete `/tmp/restic-drill`. Write the date in your runbook. If the drill ever fails, fix it before the next scheduled backup.
+
+## Verify it worked
+
+- `restic snapshots` lists your snapshots.
+- `restic stats` shows repo size and dedup ratio.
+- `restic restore` to `/tmp` of any single file succeeds.
+- `systemctl --user status restic.timer` shows an upcoming run.
+- `healthchecks.io` shows a green status for your check.
+
+## Common pitfalls
+
+- Storing the repo passphrase IN the repo (e.g., in a file inside `$HOME`). If the repo is your only backup and the passphrase lives there too, a ransomware that finds and encrypts the file is a total loss. Passphrase lives in a password manager, written on paper, and nowhere on the backup source.
+- Backing up the repo to itself (nested backup). Infinite growth and inclusion cycles. Exclude the restic backup directory.
+- Not pruning. In 2 years your $5/mo B2 bill is $50/mo and you have no idea why.
+- Never restoring. Statistically >30% of configured-and-forgotten backups do not actually restore. Drills are non-negotiable.
+- Using your SSH private key as the B2 app key backup and the key lives on the same laptop as the backup target. Think through the "laptop is stolen and powered on" scenario.
+- Running Restic's `check --read-data` every time. It reads the whole repo and costs a lot on B2. `check` without `--read-data` is the sensible default; `--read-data-subset=10%` monthly catches silent corruption.
+
+## Known limits
+
+Restic encrypts at rest with your passphrase. If your backup target is compromised, the attacker has a useless encrypted blob — but they can tell the blob exists, and some metadata (snapshot times, rough size) may be inferable from object timestamps. Restic cannot protect against a ransomware that has full control of your source system and deletes snapshots via your B2 key — for that, enable B2 object-lock / S3 object-lock for append-only buckets, or use a separate "forget-only" key on a different schedule. Restic also does not back up system state — it backs up files. For OS-level recovery you still want a disk image, or simply a repeatable OS install + Restic restore of `/home`.
