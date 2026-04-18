@@ -10,6 +10,21 @@
 
 **Source of truth:** all decisions in this plan trace to [2026-04-17-privacy-hub-design.md](2026-04-17-privacy-hub-design.md). When in doubt, that doc wins.
 
+> **v2.2 pivot (2026-04-17, mid-Phase-1):** Owner clarified they want the full stack on their self-hosted Docker (no Cloudflare Workers). This plan was originally written for Cloudflare Workers + Hetzner VPS; several sections below still describe that. Treat those as superseded. Current architecture lives in design doc §12.5:
+> - Cloudflare: **DNS records only** (grey-cloud, no proxying).
+> - Site: Astro Node server in Docker on the owner's mini PC (replaces Cloudflare Workers).
+> - Scanner backend: sibling Docker services (`scanner-ja4`, `scanner-nsd`, `scanner-nonce`) in the same compose stack (replaces Hetzner VPS).
+> - Scan nonces: SQLite TTL table on tmpfs in the web container (replaces Cloudflare KV).
+> - Astro adapter: `@astrojs/node` (replaces `@astrojs/cloudflare`).
+>
+> **Tasks affected and how to read them:**
+> - Phase 0.2 / 0.3 → **DONE** (single site repo `privacy-hub-site` is public; scanner code lives in this repo under `scanner/` instead of a second repo, since it deploys via the same compose stack).
+> - Phase 1.1–1.4 → **DONE** (Astro scaffolded; `wrangler.jsonc` replaced with `Dockerfile` + `docker-compose.yml` + `.env.example`; no wrangler-action CI step).
+> - Phase 3 (Scanner VPS) → **re-read as "Scanner backend Docker services"**: Tasks 3.1 (provision VPS) is skipped; 3.2 (systemd/journald hardening) becomes container-flags (already in compose: `read_only: true`, `tmpfs`, `cap_drop: ALL`); Tasks 3.3–3.7 (Caddy/Go/NSD) produce artifacts under `scanner/ja4/`, `scanner/nsd/`, `scanner/nonce/` and are wired into the existing `docker-compose.yml`.
+> - Phase 5.7 (Cloudflare Worker /api/scan/* endpoints) → **re-read as "Astro server routes"** under `src/pages/api/scan/*.ts`, backed by the SQLite tmpfs nonce store.
+> - Phase 11.5 (IndexNow) and deploy gate in 12.4 stay valid (no CF dependency).
+> - Everything else (content, design system, scanner client, Ghost Demo, legal/about, accessibility, SEO, verification gates) is unchanged.
+
 ---
 
 ## Phase structure

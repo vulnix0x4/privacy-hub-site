@@ -1,14 +1,14 @@
 ---
-title: Privacy Hub at privacy.whattheflip.lol — Design Doc (v2.1, locked)
+title: Privacy Hub at privacy.whattheflip.lol — Design Doc (v2.2, self-host)
 date: 2026-04-17
 owner: vulnix0x4
-status: approved — proceeding to implementation plan
-version: v2.1 (post 5-agent verification + owner open-decision pass)
+status: in implementation
+version: v2.2 (self-host Docker pivot during Phase 1)
 ---
 
-# Privacy Hub — Design Doc (v2.1)
+# Privacy Hub — Design Doc (v2.2)
 
-> **v2.1 note:** comprehensive rewrite of the initial design doc after a 5-agent verification pass on (a) tech stack current-state, (b) fingerprinting technical claims, (c) live prior-art re-verification, (d) fresh-eyes scope audit, (e) scanner infrastructure — plus owner resolution of all v2 open decisions (framework, publisher identity, AI-scraper stance, VPS provider, nonce store, affiliate URL verification). Every locked-in decision in this doc has been checked against live docs/specs/browser behavior as of April 2026. Change-log summarizing v1→v2→v2.1 is at §19.
+> **v2.2 note:** during Phase 1 implementation the owner clarified they want the entire stack on their self-hosted Docker infrastructure (no Cloudflare Workers / KV), so JA4 and DNS-leak vectors can both stay in v1. Framework remains Astro 6 but with `@astrojs/node` instead of `@astrojs/cloudflare`. Scanner nonces move from Cloudflare KV to a small in-container store (SQLite with TTL or Redis). Cloudflare is still used for DNS records only (grey-cloud, no proxying). See §19 for the full v1→v2→v2.1→v2.2 change-log.
 
 ## 0. One-line summary
 
@@ -606,44 +606,55 @@ Long-form. Includes:
 
 ### 12.1 Locked versions
 
-- **Astro 6** — Cloudflare first-party on Workers since 2026-01-16 acquisition. Ships 0 KB JS on static pages by default; React islands hydrate only where needed. Content Collections, Pagefind, `prefers-reduced-motion` are Astro-native conventions.
+- **Astro 6** — `output: 'server'` with `@astrojs/node` in standalone mode. Runs as a long-running Node process inside Docker. Ships 0 KB JS on static pages by default; React islands hydrate only where needed.
 - **React 19** — used exclusively inside islands (scanner UI, Ghost Demo, interactive widgets). The 60+ content pages (vectors, categories, scenarios, guides, basics) are static `.astro` / `.mdx` with zero JS unless they embed an island.
-- **TypeScript ≥5.4**
-- **Tailwind CSS v4** (CSS-based `@theme` config, `@import "tailwindcss"`, via `@astrojs/tailwind`)
-- **Motion v12** (motion.dev, formerly Framer Motion; imported from `motion/react` inside React islands only — never leaks into static pages)
+- **TypeScript ^5.x** (pinned to 5 — TS 6 breaks `@astrojs/check` peer deps as of April 2026)
+- **Tailwind CSS v4** (CSS-based `@theme` config, `@import "tailwindcss"`, via `@tailwindcss/vite` in Astro's Vite config)
+- **Motion v12** (motion.dev, formerly Framer Motion; imported from `motion/react` inside React islands only)
 - **CSS `scroll-behavior: smooth`** (Lenis dropped — a11y footgun, anchor-link breakage, native CSS covers 80% of the win at zero bytes)
-- **Astro Content Collections** (first-party; Zod schemas for frontmatter validation — replaces Velite/Content Collections from earlier drafts, no third-party library needed)
-- **Pagefind** — static build-time search; runs after `astro build`, before `wrangler deploy`. Pagefind is an Astro convention; reference implementations are Astro-based.
-- **Lucide** — `lucide-react` inside islands; `lucide`-generated static SVGs inlined into `.astro` components on static pages (zero JS for icons on content pages).
-- **Local WOFF2 fonts** — Inter + JetBrains Mono committed to `/public/fonts`, loaded via `@font-face` (no Google Fonts, even at build time).
-- **Cloudflare Workers** via `@astrojs/cloudflare` adapter (official first-party adapter post-acquisition).
-- **Cloudflare KV** namespace for scanner nonces (60s `expirationTtl`; claim on about page: "≤2 minutes to fully purge from edge caches" — honest reframe of eventual-consistency window).
-- **npm**
+- **Astro Content Collections** (first-party; Zod schemas for frontmatter validation)
+- **Pagefind** — static build-time search; runs after `astro build`
+- **Lucide** — `lucide-react` inside islands; static SVG inlines elsewhere
+- **Local WOFF2 fonts** — Inter + JetBrains Mono committed to `/public/fonts`, loaded via `@font-face` (no Google Fonts, even at build time)
+- **Docker Compose** — orchestrates the web container + scanner backend containers on the owner's self-hosted mini PC
+- **SQLite with TTL cleanup** (or Redis) for scanner nonces, in-container, ephemeral — **replaces Cloudflare KV from v2.1**
+- **npm
 
-### 12.2 Wrangler + Workers configuration
+### 12.2 Docker configuration
 
-```jsonc
-// wrangler.jsonc
-{
-  "compatibility_date": "2026-04-01",   // ≥ 2024-09-23 required
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": false                     // CRITICAL — default is enabled with 100% sampling
-  },
-  "kv_namespaces": [
-    { "binding": "SCAN_NONCES", "id": "..." }
-  ],
-  "assets": {
-    "directory": "dist",                 // Astro build output
-    "binding": "ASSETS",
-    "run_worker_first": false
-  }
-}
+**`Dockerfile`** (multi-stage; non-root user; healthcheck; no persistent volumes for the web container):
+
+```dockerfile
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=4321
+RUN addgroup -S app -g 10001 && adduser -S app -G app -u 10001 -h /app
+COPY --from=builder --chown=app:app /app/dist ./dist
+COPY --from=builder --chown=app:app /app/node_modules ./node_modules
+COPY --from=builder --chown=app:app /app/package.json ./
+USER app
+EXPOSE 4321
+HEALTHCHECK CMD wget --spider -q http://localhost:4321/en/ || exit 1
+CMD ["node", "./dist/server/entry.mjs"]
 ```
 
-Named commitment on `/en/about/scanner-privacy`: **`observability.enabled = false`**. Without this, Workers retains request/response metadata for 3-7 days (default-on on all new Workers) and the "no retention" claim is technically false.
+**`docker-compose.yml`** orchestrates: `web` (Astro Node server), `scanner-ja4` (Go, Phase 3), `scanner-nsd` (NSD, Phase 3), `scanner-nonce` (Go sidecar, Phase 3). Web container is `read_only: true` with a small `/tmp` tmpfs; no mounted volumes. `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`.
 
-Astro middleware lives at `src/middleware.ts` (different lifecycle and API from Next.js middleware — no deprecation concerns for v1).
+**Logging posture** (named commitment on `/en/about/scanner-privacy`): all compose services use `driver: local` with a 10MB/3-file cap; JA4 + NSD handlers never write to disk — responses computed in-memory and discarded. The scanner nonce DB lives in a tmpfs with 60-second TTL cleanup.
+
+Astro middleware lives at `src/middleware.ts`. The Node server runs behind the owner's upstream Caddy (on a separate public-facing server) via a WireGuard tunnel to the mini PC — see §12.5.
 
 ### 12.3 Dependencies explicitly rejected
 
@@ -660,88 +671,100 @@ Astro middleware lives at `src/middleware.ts` (different lifecycle and API from 
 ```yaml
 # .github/workflows/deploy.yml (outline)
 jobs:
-  deploy:
+  ci:
     steps:
       - checkout
       - setup-node (npm ci)
-      - npm run typecheck
-      - npm run lint         # eslint flat config
-      - npm run astro:check  # type-checks Astro + validates Content Collections frontmatter via Zod
-      - npm run test:no-third-party  # asserts every built page makes zero cross-origin fetches
-      - npm run build        # astro build (uses @astrojs/cloudflare adapter)
+      - npm run astro -- check    # type-checks Astro + validates Content Collections frontmatter via Zod
+      - npm run build             # astro build → dist/
       - npx pagefind --site dist
-      - cloudflare/wrangler-action@v3 (deploy)
-      - POST changed URLs to IndexNow
+      - npm run test:no-third-party  # asserts every built page makes zero cross-origin fetches
+      - npm run size              # island bundle-size budget (< 80 KB gzipped for scanner)
+  build-and-push:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/vulnix0x4/privacy-hub-site:latest --push
+  deploy:
+    needs: build-and-push
+    steps:
+      # Runs on the mini PC as a self-hosted GitHub Actions runner:
+      - docker compose pull && docker compose up -d
 ```
 
 - `astro check` fails on missing `last_verified`, missing required `related:` entries (minimum 2), Zod schema violations. Non-negotiable gate.
-- **Preview URLs per PR** via Cloudflare Workers Git integration (launched July 2025): each branch gets `<branch>-<worker>.<subdomain>.workers.dev`.
+- **Preview deployments**: run `npm run dev` locally; no per-PR preview URL for v1 since we're not on a hosted platform. Optional future: self-hosted Coolify / Dokku for PR previews.
 - **Island bundle-size budget**: scanner-island gzipped JS must stay under 80 KB; CI gate enforces via `size-limit` or equivalent.
+- **Container image** built for linux/amd64 + linux/arm64 (mini PC could be either); pushed to GHCR.
 
-### 12.5 Infrastructure layout
+### 12.5 Infrastructure layout — self-host
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│  CLOUDFLARE                                                            │
-│                                                                        │
-│  Zone: privacy.whattheflip.lol                                         │
-│  ├─ privacy.whattheflip.lol        (orange-cloud, Worker)              │
-│  ├─ *.scan.privacy.whattheflip.lol (grey-cloud, DNS-only → VPS IP)     │
-│                                                                        │
-│  Workers (Astro on Workers via @astrojs/cloudflare):                   │
-│  ├─ observability.enabled = false                                      │
-│  ├─ Workers Static Assets (CSS, JS, content, images)                   │
-│  ├─ KV binding SCAN_NONCES (60s expirationTtl)                         │
-│  └─ No Turnstile. No Web Analytics beacon.                             │
-│                                                                        │
-│  Advanced Rate Limiting:                                               │
-│  └─ /api/scan/* → 100 req/60s keyed on request nonce hash (not IP)     │
-│                                                                        │
-│  Analytics: zone-level aggregate dashboard is unavoidable              │
-│  (Cloudflare counts requests edge-side regardless) — disclosed         │
-│  honestly on /en/about/scanner-privacy.                                │
-└────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  CLOUDFLARE — DNS records only (grey-cloud, no proxy)                │
+│  Zone: privacy.whattheflip.lol                                       │
+│  ├─ privacy.whattheflip.lol        A  → [owner's public server IP]   │
+│  ├─ ja4.scan.privacy.whattheflip.lol    A  → [owner's server IP]     │
+│  ├─ ns1.scan.privacy.whattheflip.lol    A  → [owner's server IP]     │
+│  └─ *.scan.privacy.whattheflip.lol      NS → ns1.scan.privacy…       │
+│                                                                      │
+│  Cloudflare NEVER proxies traffic. No Workers, no KV, no analytics.  │
+│  Used strictly as a directory lookup service.                        │
+└──────────────────────────────────────────────────────────────────────┘
                                 │
-                                ▼ (DNS-only: browser TLS-handshakes VPS directly —
-                                   necessary because Cloudflare terminates TLS
-                                   at the edge and cf.bot_management.ja4 is
-                                   Enterprise-only)
-┌────────────────────────────────────────────────────────────────────────┐
-│  SCANNER VPS                                                           │
-│  Hetzner Cloud CAX11 (ARM, 4 GB RAM, 40 GB NVMe, Helsinki €3.79/mo)    │
-│  [ alt: 1984 Hosting Reykjavík ~$10/mo for the privacy-brand premium ] │
-│                                                                        │
-│  ├─ Caddy reverse proxy                                                │
-│  │   - auto-HTTPS via Let's Encrypt                                    │
-│  │   - global: log { output discard }                                  │
-│  │   - per-route: log_skip                                             │
-│  │   - systemd drop-in: StandardOutput=null, StandardError=null        │
-│  │   - unit: ProtectSystem=strict, ReadOnlyPaths=/etc                  │
-│  │                                                                     │
-│  ├─ Go handler @ localhost:8080 /ja4-echo                              │
-│  │   - reads raw TLS ClientHello                                       │
-│  │   - computes JA4 (BSD 3-Clause — no JA4+ variants)                  │
-│  │   - returns JSON, never writes disk                                 │
-│  │   - reproducible build: -trimpath -ldflags="-buildid= -s -w"        │
-│  │                                                                     │
-│  ├─ NSD (authoritative for *.scan.privacy.whattheflip.lol)             │
-│  │   - "NSD doesn't do any logging" by design (per NLnet Labs docs)    │
-│  │   - no query-log subsystem exists at all (not just disabled)        │
-│  │   - zone is synthesized via CoreDNS-like template, or rewritten     │
-│  │     by a Go sidecar watching KV nonce events                        │
-│  │   - alt: CoreDNS with template plugin if simpler wins               │
-│  │                                                                     │
-│  ├─ /var/log mounted on tmpfs; systemd-journald Storage=volatile       │
-│  └─ No Redis, no SQLite, no persistent storage anywhere on this box   │
-└────────────────────────────────────────────────────────────────────────┘
+                                ▼  public internet
+┌──────────────────────────────────────────────────────────────────────┐
+│  OWNER'S PUBLIC-FACING SERVER                                        │
+│  (existing infrastructure — whatever VPS / colo box they run Caddy)  │
+│                                                                      │
+│  ├─ Caddy 443 → reverse-proxy `privacy.whattheflip.lol`              │
+│  │             to [WireGuard IP of mini PC]:${WEB_PORT}              │
+│  │                                                                   │
+│  ├─ Caddy layer4 :8443 → TCP passthrough for                         │
+│  │                       `ja4.scan.privacy.whattheflip.lol` →        │
+│  │                       [WG IP]:${JA4_PORT}                         │
+│  │                       (Caddy layer4 plugin required)              │
+│  │                                                                   │
+│  └─ iptables DNAT 53 UDP+TCP → [WG IP]:${DNS_PORT}                   │
+│     (or Caddy layer4 UDP for port 53)                                │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼  WireGuard tunnel
+┌──────────────────────────────────────────────────────────────────────┐
+│  MINI PC (owner's self-hosted Docker host)                           │
+│                                                                      │
+│  docker-compose stack:                                               │
+│                                                                      │
+│  ├─ web (Astro Node server)                                          │
+│  │   - port 4321 inside container; host-mapped to ${WEB_PORT}        │
+│  │   - read_only, tmpfs /tmp, cap_drop: ALL                          │
+│  │   - no persistent volumes                                         │
+│  │   - SQLite nonce store in tmpfs (ephemeral, 60-second TTL)        │
+│  │                                                                   │
+│  ├─ scanner-ja4 (Go handler for JA4)                                 │
+│  │   - terminates TLS on port 8443 inside container                  │
+│  │   - reads raw ClientHello bytes, computes JA4 (BSD 3-Clause)      │
+│  │   - returns JSON, never writes disk                               │
+│  │   - reproducible build: -trimpath -ldflags="-buildid= -s -w"      │
+│  │                                                                   │
+│  ├─ scanner-nsd (NSD authoritative DNS)                              │
+│  │   - port 53 UDP+TCP inside container                              │
+│  │   - NSD has NO query-log subsystem (per NLnet Labs docs)          │
+│  │   - zone synthesized on-demand from nonce events                  │
+│  │                                                                   │
+│  └─ scanner-nonce (Go sidecar)                                       │
+│      - reads nonce events from web container's SQLite                │
+│      - rewrites NSD zone via nsd-control reload                      │
+│      - no disk writes of its own                                     │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Why this split (verified necessary):**
-- Cloudflare Workers on non-Enterprise plans cannot expose a real JA4. `request.cf` offers `tlsVersion`, `tlsCipher`, `tlsClientHelloLength`, `tlsClientRandom`, `tlsClientExtensionsSha1` — no full ClientHello. `cf.bot_management.ja4` is Enterprise Bot Management only (multi-thousand $/mo).
-- Grey-cloud DNS for `*.scan.privacy.whattheflip.lol` is the only non-Enterprise path for real JA4 — browser handshakes the VPS directly.
-- DNS leak test requires an authoritative NS we control to confirm which resolver queried a scan-unique subdomain.
-- **NSD chosen over Knot DNS** because NSD has no query-logging subsystem — architectural, not policy. Knot has a `log:` section we'd have to prove we didn't set.
-- **Caddy chosen over nginx** because access-logging is off by default in Caddy (stronger audit claim than nginx's "we set access_log off") and auto-HTTPS removes an operational category.
+**Why this shape:**
+- Everything runs on infrastructure the owner already controls — no rented VPS, no Cloudflare vendor lock-in.
+- JA4 works because the TLS handshake reaches our Go handler without termination — the owner's upstream Caddy does **TCP-level passthrough** (Caddy's `layer4` plugin, which needs to be compiled in — `xcaddy` build) for just the JA4 subdomain.
+- DNS-leak works because port 53 UDP+TCP on the owner's server is DNAT'd through the WireGuard tunnel to the NSD container.
+- The "no logs" claim is architectural: container flags (`read_only: true`, `cap_drop: ALL`), no volumes, tmpfs-only writable paths, Go handlers that never call `os.Create`/`fs.WriteFileSync`, NSD with no log subsystem at all.
+- DNS records stay on Cloudflare (just resolver entries — Cloudflare never sees a single byte of user traffic since all records are grey-cloud / DNS-only).
 
 ## 13. Privacy architecture and commitments
 
@@ -750,19 +773,19 @@ jobs:
 1. **No analytics.** Zero. Not first-party, not self-hosted, nothing.
 2. **No third-party scripts.** Every external fetch is a leak vector. Verified at build (`test:no-third-party`).
 3. **No tracking cookies.** None. Site sets zero cookies (even the no-cookies banner is dismissed via IndexedDB).
-4. **No Cloudflare Turnstile** on user-facing routes.
-5. **`observability.enabled = false`** in Workers config — no request retention beyond Cloudflare edge operational logs.
-6. **Scanner VPS cannot log, even if we wanted it to**: Caddy access-logging off by default + global `log { output discard }` + systemd `StandardOutput/Error=null` + `/var/log` on tmpfs + `journald Storage=volatile` + NSD has no query-log subsystem + Go handler never writes disk.
-7. **Scan nonces expire in ≤2 minutes** (60s KV TTL + edge-cache propagation window). Honestly reframed from the v1 "60 seconds" claim.
-8. **Ghost Demo hashes stay in the user's IndexedDB** — our server never sees them.
-9. **Scan history stays in user's IndexedDB only.**
-10. **Share feature is export-only** — PNG + JSON + URL fragment + embed snippet, all client-generated.
+4. **No Cloudflare Turnstile** on user-facing routes. (Also: no Cloudflare anything beyond DNS-record resolution.)
+5. **Containers cannot log to disk, even if we wanted to.** Web container: `read_only: true`, tmpfs-only writable paths, logs capped at 10MB with 3-file rotation via Docker `local` driver. Scanner containers: JA4 Go handler never calls disk-write APIs; NSD has no query-log subsystem by design; nonce sidecar reads tmpfs SQLite only. `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]` on all services.
+6. **Scan nonces live 60 seconds** in an in-container SQLite TTL table on tmpfs — after 60 seconds the row is gone, and since the SQLite file is tmpfs-only, it dies with the container too.
+7. **Ghost Demo hashes stay in the user's IndexedDB** — our server never sees them.
+8. **Scan history stays in user's IndexedDB only.**
+9. **Share feature is export-only** — PNG + JSON + URL fragment + embed snippet, all client-generated.
+10. **DNS records on Cloudflare are resolver-only** (grey-cloud). Cloudflare never sees a single byte of user traffic.
 
 ### 13.2 What we do log (honestly disclosed)
 
-- Cloudflare edge keeps standard operational logs. Their policy, not ours. Documented on `/en/about/scanner-privacy` rather than hand-waved.
-- Cloudflare zone-level aggregate analytics (dashboard request counts) are unavoidable at the edge. We explicitly disable Web Analytics beacon.
-- We commit to **not** enabling sampled page-hit export, even for aggregate stats. (v1 resolved this ambiguity — "we may sample" dropped in favor of firm no.)
+- Docker container stdout/stderr logs are captured by the Docker daemon's `local` log driver, capped at 10MB × 3 files per service. The Astro Node server logs requests by default — we **disable request logging** via a middleware that suppresses access logs (only errors surface to stdout). No IP, no UA, no path history retained.
+- The owner's upstream Caddy (on the public-facing server) has its own log configuration — see its deployed config in the ops repo; default `log { output discard }` per our recommended setup.
+- Cloudflare sees DNS queries to resolve our domain. That's standard DNS operation — Cloudflare has no traffic visibility because every record is grey-cloud.
 - We have no idea who any visitor is. We make no attempt to find out.
 
 ### 13.3 Verifiability and attestation
@@ -949,15 +972,17 @@ Every page ships at Launchable minimum; pages expand over the post-launch 6-week
 - **Stale content** (#1 killer in this space). **Mitigation:** `last_verified` CI-enforced; quarterly re-verification on changelog; graveyard sub-page; de-list publicly when we drop a tool.
 - **Affiliate credibility collapse (CyberInsider trap).** **Mitigation:** free-first rule locked; inline disclosure; TL;DR disclosure on guides; public declined-partnership page; ranking by merit not commission.
 - **Vendor SLAPP / DMCA abuse.** **Mitigation:** §13.5 policy, counter-notice template, DMCA agent, warrant canary.
-- **Astro 6 major-version upgrades.** Astro has been stable for years; post-Cloudflare-acquisition governance is the one unknown. **Mitigation:** pin major version; watch release notes; test on preview URL before merging.
-- **`@astrojs/cloudflare` adapter stability.** First-party post-acquisition, expected to improve. **Mitigation:** pin version; test on preview URL.
-- **React island bundle size creep.** Easy to accidentally ship a 200 KB React tree into a small island and lose the whole "Astro ships 0 KB" win. **Mitigation:** CI gate on scanner island (target < 80 KB gzipped); audit with `rollup-plugin-visualizer` before any feature add.
+- **Astro 6 major-version upgrades.** **Mitigation:** pin major version; watch release notes; test locally before pushing.
+- **`@astrojs/node` adapter stability.** Stable, official. **Mitigation:** pin version.
+- **Self-host uptime.** Single mini PC is a single point of failure (power, ISP, hardware). **Mitigation:** owner's existing homelab is their reliability problem, not the hub's. A brief outage is acceptable for v1.
+- **Upstream Caddy misconfiguration** (TCP passthrough for JA4, port-53 DNAT for DNS-leak). Both are non-trivial; getting them wrong silently breaks those vectors. **Mitigation:** per-deploy smoke test that scans the live site and asserts JA4 returns a non-empty hash and DNS-leak produces a resolver mismatch.
+- **React island bundle size creep.** **Mitigation:** CI gate on scanner island (target < 80 KB gzipped).
 - **Brave farbling defeated by averaging attacks** ("Breaking the Shield" 2025). **Mitigation:** honest disclosure on /en/vectors/canvas-fingerprinting; per-browser verdict template for Brave includes the caveat.
 - **smspool.net affiliate URL verification blocked automatically.** **Mitigation:** manual browser test before launch, owner task.
 
 ## 18. Open decisions (not launch-blocking)
 
-- **KV vs Durable Objects for scanner nonces.** KV has "≤2 min" edge-cache propagation window. DO has strict delete-on-expire via alarms. **Decision: KV for v1.** Upgrade to DO in v1.5 if the tripwire-demo credibility demands stricter semantics.
+- **Scanner nonce store.** SQLite with TTL column + cleanup cron (every 10s) on a tmpfs in the web container. Simple, dependency-free (Node ships with `better-sqlite3`-compatible options or we use `sql.js` in memory). Alternative: Redis container (more moving parts, not worth it for <10k writes/day). **Decision: SQLite on tmpfs.**
 - **1984 Hosting Reykjavík vs Hetzner Helsinki** for scanner VPS. **Decision: Hetzner Helsinki for v1** (€3.79/mo, strong Finnish jurisdiction). 1984 is a brand-premium alternative if `/en/about/scanner-privacy` traffic suggests readers would value the Iceland line.
 - **Secondary affiliate sign-ups** (Bitwarden, Brave, Kagi, Proton-direct, Easy Opt Outs, Obsidian, Ente) — parallel owner task, not a design blocker. Ship at launch with whichever are live.
 - **Third-party audit vendor + cadence.** Commitment is fixed in §11.4/§13.3 (6-month infra + 24-month deep). Vendor choice post-launch.
@@ -1040,14 +1065,29 @@ Every change in this doc from the 2026-04-17 v1 draft, after the 5-agent verific
 
 ### v2 → v2.1 (post-open-decisions owner pass)
 
-- **Framework: Next.js 16.2.4 → Astro 6.** For a content-heavy site with two interactive islands, Astro ships 0 KB JS on static pages vs Next.js's ~100 KB. Cloudflare owns Astro since 2026-01-16; `@astrojs/cloudflare` is the first-party adapter. React islands hydrate only `/scan` and the Ghost Demo hero. Content Collections is Astro-native (drops the separate library), Pagefind is an Astro convention, `prefers-reduced-motion` is the default. Updated §12.1, §12.2, §12.4, §12.5, §17.
-- **Publisher identity: real name → pseudonym only (`vulnix0x4`).** Rationale: pressure-reduction on a site publishing opinionated recommendations against vendor interests. PGP key is the accountability mechanism instead of real-name reveal. Updated §13.5.
-- **AI-scraper stance confirmed: allow** (default kept).
-- **Scanner VPS confirmed: Hetzner Helsinki** (default kept).
-- **KV nonce store confirmed for v1** (DO deferred to v1.5).
-- **smspool.net referral URL confirmed working** by owner (manual browser test) — WebFetch 403 blocker resolved.
-- **Removed from §18 open decisions:** Astro-vs-Next.js (resolved). Remaining open items are v1-non-blocking (secondary affiliate sign-ups, audit vendor choice, palette micro-refinements).
+- **Framework: Next.js 16.2.4 → Astro 6.**
+- **Publisher identity: real name → pseudonym only (`vulnix0x4`).**
+- **AI-scraper stance confirmed: allow.**
+- **Scanner VPS confirmed: Hetzner Helsinki.**
+- **KV nonce store confirmed for v1.**
+- **smspool.net referral URL confirmed working.**
+
+### v2.1 → v2.2 (self-host pivot during Phase 1 implementation)
+
+- **Hosting: Cloudflare Workers → owner's self-hosted Docker stack.** Owner already runs a homelab with WireGuard tunnel from a mini PC to a public-facing server with Caddy. Wanted everything inside that, "no cloudflare at all." Cloudflare is retained only for DNS-record resolution (grey-cloud, no proxying).
+- **Scanner backend: Hetzner VPS → sibling Docker Compose services on the mini PC.** Scanner-ja4, scanner-nsd, scanner-nonce containers. JA4 and DNS-leak **both kept in v1** (not dropped). Requires owner's upstream Caddy to do TCP-passthrough for `ja4.scan.*` (layer4 plugin) and iptables DNAT for port 53 UDP+TCP.
+- **Astro adapter: `@astrojs/cloudflare` → `@astrojs/node`** (standalone mode). `output: 'server'`, Node process in a non-root, read-only, tmpfs-writable container.
+- **Nonce store: Cloudflare KV → SQLite on tmpfs** inside the web container, with TTL cleanup. "≤2 minutes to fully purge from edge caches" language (Cloudflare-specific caveat) dropped — SQLite TTL is strict 60s.
+- **TypeScript pin: `^5`** (TS 6 breaks `@astrojs/check` peer deps).
+- **Wrangler config and `observability.enabled=false`** removed (Cloudflare-specific; not applicable to self-host).
+- **Deploy pipeline: `wrangler deploy` → `docker buildx build --push` to GHCR, then `docker compose pull && up -d`** on the mini PC via a self-hosted GitHub Actions runner.
+- **Cloudflare Workers Git integration preview URLs** — no longer available; optional future self-hosted PR-preview tooling (Coolify / Dokku).
+- **§12 Infrastructure layout** rewritten with the Cloudflare-DNS-only + upstream-Caddy + WG-tunnel + compose-stack diagram.
+- **§13.1 non-negotiables** rewritten around container flags (read_only, cap_drop, tmpfs) instead of Cloudflare observability setting.
+- **§13.2 what we log** rewritten to reflect Docker log driver + Astro middleware access-log suppression instead of Cloudflare edge logs.
+- **§17 risks** swapped Cloudflare-specific risks for self-host (mini PC uptime, upstream Caddy misconfig).
+- **§18 open decisions** — KV-vs-DO replaced with SQLite confirmation.
 
 ---
 
-**Approval status:** Owner has answered all v2 open decisions in favor of Astro, pseudonym, allow-AI-scrapers, Hetzner, KV, and confirmed smspool. Design doc v2.1 is the final pre-implementation artifact. Next step: invoke the `writing-plans` skill to produce a sequenced implementation plan with milestones, file scaffolding, and content production order (aligned to the Wave sequencing in §15.2).
+**Approval status:** v2.2 reflects in-flight implementation decisions. Phases 0 and 1 already landed on the `main` branch at <https://github.com/vulnix0x4/privacy-hub-site>. Continuing to Phase 2 (design system shell) → Phase 4 (content schemas) → Phase 3 (scanner backend containers) → Phase 5 (scanner client island). Stays in implementation; no further design doc revisions expected unless reality pushes back.
