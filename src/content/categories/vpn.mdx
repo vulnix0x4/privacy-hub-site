@@ -13,18 +13,49 @@ related:
   - dns-leaks
 ---
 
-> **TL;DR.** Use Mullvad. It takes cash, accepts a randomly-generated account number with no email, and has been independently audited more times than the rest of the industry combined. If you need streaming-country bypass or a bundled email/drive suite, Proton VPN is the fair second pick.
+> **TL;DR.** Use Mullvad. Five euros a month flat, a randomly-generated account number instead of an email, cash and Monero accepted, and independently audited more times than the rest of the industry combined. Proton VPN is the fair second pick if you already pay Proton for mail and drive. We earn a commission when you sign up via our Proton links — doesn't change which tool we'd pick. See [`/en/legal/affiliate`](/en/legal/affiliate) for the full list.
+
+## What this category protects
+
+A VPN encrypts and re-originates your traffic so your ISP, mobile carrier, coffee-shop router, and every intermediate ASN see a tunnel to one IP instead of the thousand domains you actually visit. That changes what shows up in your [IP geolocation](/en/vectors/ip-geolocation) row — sites see the exit node, not your home address. It also plugs the leak where your ISP's resolver can see every domain you type, provided the VPN handles [DNS itself](/en/vectors/dns-leaks) instead of punting back to the OS.
+
+What a VPN is not: an anti-fingerprinting layer. Canvas, WebGL, fonts, timezone, audio, battery, every JS surface on the scanner — all unchanged. If you log into Google with the tunnel up, Google still knows it's you. Pair the tunnel with a hardened browser (see the [browser category](/en/categories/browser)) or don't expect the "private" label to survive contact with a logged-in session.
 
 ## This just works: Mullvad
 
-5 euros a month, flat. No tiers, no "premium" upsell, no family plans, no referral pyramid. You get an account number. You top it up or you don't. They publish their audits, their server configs, and their RAM-only disk architecture. We don't get a kickback from them. That's the credibility flex.
+Five euros a month. No tiers, no annual discount theatre, no family plan, no "lifetime deal" refer-a-friend pyramid. You get an account number (a 16-digit string, no email) and top it up with card, crypto, or cash sent in an envelope. WireGuard on every platform they ship, OpenVPN if you insist. RAM-only servers, published audit reports from Cure53 and Assured AB, and a public warrant canary.
+
+They also refuse to pay affiliates. Every other VPN "top ten" list you find online is ranked by commission — not by audit record. Mullvad's refusal to play that game is why they keep landing at the top of lists written by people who aren't getting paid to put them there. We aren't either.
+
+What you give up: Mullvad is famously blocklisted on a small subset of high-risk sites (Netflix, some banks, some cloud consoles). That's a function of shared exit IPs, not a defect. Keep a second tunnel or a different network for those cases.
 
 ## Alternatives
 
-**Proton VPN** — worth it if you already pay for Proton Mail or Drive. Secure Core routing is a real feature if your threat model includes a hostile exit country. Affiliate disclosed: we do get a commission on this one.
+- **Proton VPN** — Worth it if you already pay for Proton Mail or Drive. Secure Core routes through a second country before the exit, which is useful if your threat model includes a hostile exit jurisdiction. Audited (Securitum), no-logs, based in Switzerland. Affiliate disclosed.
+- **IVPN** — Same philosophy as Mullvad, smaller network. Flat pricing, no logs they can produce, AntiTracker adds DNS-level ad/malware blocking. Pick this if you want a backup for the one-in-ten sites that blocklist Mullvad's ranges.
 
-**IVPN** — smaller than Mullvad but with the same philosophy. Flat pricing, no logs they can produce, Pro plan adds AntiTracker. Pick this if you want a backup to Mullvad for the one-out-of-ten sites Mullvad's IPs are blocklisted on.
+## Comparison matrix
 
-## What a VPN does not do
+| Provider | No-logs audit | WireGuard | Anonymous payment | Kill switch | Price/mo |
+|---|---|---|---|---|---|
+| **Mullvad** | Cure53 + Assured AB | Yes | Cash, Monero, BTC, card | Yes | €5 flat |
+| Proton VPN | Securitum | Yes | BTC, card (Proton account) | Yes | €4.99-9.99 |
+| IVPN | Cure53 | Yes | Monero, BTC, cash, card | Yes | $6 (Pro $10) |
 
-It does not stop canvas fingerprinting. It does not hide you from a site you're logged into. It does not encrypt your DNS unless you also turn DNS-over-HTTPS on in the VPN client. If the client's DNS leaks, you bought a slower pipe, not privacy. See the DNS leak test on the scanner page.
+## Common mistakes
+
+- **Using a free VPN.** The economic model is reselling your exit bandwidth or logging-and-selling. Free VPNs are how residential-proxy networks are built.
+- **Trusting a VPN to hide you from logged-in services.** The tunnel hides your IP from the ISP; it does not log you out of Google.
+- **Picking by "fastest server." Modern WireGuard is fast everywhere. Pick by audit record and ownership structure.
+- **Ignoring the DNS setting.** If your VPN client's DNS leaks back to the ISP resolver, the tunnel only hid the bytes, not the domains.
+- **Leaving the VPN off on your phone because "nothing is happening."** Background traffic is constant: push notifications, weather widgets, app telemetry. The quiet traffic is the profile.
+
+## Setup
+
+Start with the [Mullvad VPN quickstart guide](/en/guides/mullvad-vpn-quickstart). Ten minutes, five euros, done.
+
+## Related categories
+
+- **[DNS resolver](/en/categories/dns)** — the VPN tunnels your traffic; the resolver decides who sees your domain list.
+- **[Router-level VPN](/en/categories/vpn-router)** — cover every device on the LAN, including the ones that can't run a client.
+- **[Browser](/en/categories/browser)** — the VPN does nothing for fingerprinting; the browser is the other half.

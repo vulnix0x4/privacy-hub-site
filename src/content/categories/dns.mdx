@@ -14,20 +14,50 @@ related:
   - ip-geolocation
 ---
 
-> **TL;DR.** Point your devices at Quad9 (9.9.9.9) over DNS-over-HTTPS. Swiss non-profit, no commercial logging, blocks known-malicious domains by default. One toggle, nothing to pay, immediate upgrade over whatever your ISP gives you.
+> **TL;DR.** Point your devices at Quad9 (9.9.9.9) over DNS-over-HTTPS. Swiss non-profit, no commercial logging, blocks known-malicious domains by default. One toggle, nothing to pay, immediate upgrade over whatever your ISP gives you. NextDNS if you want a dashboard, self-host AdGuard Home if you want nobody else in the loop at all.
 
 ## What this category protects
 
-The real-time log of every domain you visit. Your ISP's default DNS sees that. Your VPN's DNS sees it if you have a VPN. Picking a specific resolver and encrypting the queries closes the biggest outstanding network-level leak.
+Every domain you load resolves through DNS before the first byte of a page arrives. Your ISP's resolver sees that list in the clear — timestamps, every subdomain, every tracking beacon. That log is sold, subpoenaed, and in some jurisdictions mandated. The same list also leaks through every "encrypted" channel if the resolver is unencrypted: see the [DNS leaks](/en/vectors/dns-leaks) vector for the full picture of how a VPN-plus-bad-DNS combo is still a leak.
 
-## Hero pick: Quad9
+Picking a specific resolver and encrypting the queries (DoH or DoT) closes the biggest outstanding network-level leak after the tunnel itself. It also moves the trust boundary from "whoever my ISP contracts with" to an operator you picked on purpose.
 
-9.9.9.9 and 2620:fe::fe. Operated by a Swiss non-profit funded by grants (not ad revenue). No query logging beyond real-time abuse detection. Malware-domain filter on by default. DNS-over-HTTPS and DNS-over-TLS endpoints published on their site. What you give up: nothing meaningful for home use. Pro users may prefer a resolver with policy customization.
+## This just works: Quad9
+
+`9.9.9.9` and `2620:fe::fe`. Operated by the Quad9 Foundation, a Swiss non-profit funded by grants — not ad revenue, not malware-SaaS dashboards. No commercial query logging; the only retention is aggregate counters for capacity planning and real-time abuse detection, flushed continuously. DNS-over-HTTPS endpoint: `https://dns.quad9.net/dns-query`. DoT endpoint on port 853. Malware-domain filter is on by default using feeds from 19 threat-intel partners.
+
+Set it in the OS (Windows 11 Network settings, macOS Network, Android Private DNS `dns.quad9.net`, iOS DoH profile). Set it in your browser (Firefox → DoH → custom, Brave → privacy → secure DNS). Set it on your router and it covers every device on the LAN. What you give up: nothing meaningful for home use. Power users sometimes want more granular block-list control; for that, NextDNS.
 
 ## Alternatives
 
-**Cloudflare 1.1.1.1** — Fastest DNS on the planet in most benchmarks. Audited no-logging policy. The worry is that Cloudflare is also a CDN giant with plenty of other signals on you.
+- **Cloudflare 1.1.1.1** — fastest DNS on the planet in most benchmarks, audited no-logging policy (KPMG annual). The worry is concentration — Cloudflare is already a CDN giant seeing half the web; handing them your DNS too concentrates more signal with one vendor. Fine choice, different threat model.
+- **NextDNS** — DNS-as-a-service with a dashboard. Free tier covers 300k queries/month (plenty for a phone or small household); $2/month Pro unlocks unlimited. Per-device profiles, custom block lists (supports every major blocklist feed), and logs-optional. Run by a two-person French team.
+- **AdGuard Home (self-hosted)** — run your own resolver on a Raspberry Pi or NAS. DoH/DoT front-end, dnsmasq or AdGuard-native back-end, your own block lists. No third party sees your query list at all. Requires upkeep, a basic Linux footprint, and the discipline to keep the thing patched.
+- **Mullvad DNS** — if you use Mullvad VPN, their resolver ships free at `base.dns.mullvad.net`. Four content-filter flavours (`adblock`, `family`, `all`). Works outside the tunnel too.
 
-**NextDNS** — DNS-as-a-service with a dashboard. Free tier gets 300k queries/month, plenty for a phone; paid tiers for a family LAN. Custom block lists, per-device profiles.
+## Comparison matrix
 
-**AdGuard Home (self-hosted)** — Run your own resolver on a Raspberry Pi. No third party sees your queries at all. Requires upkeep and a basic Linux footprint.
+| Resolver | DoH | DoT | Filtering | Logs policy | Anycast | Price |
+|---|---|---|---|---|---|---|
+| **Quad9** | Yes | Yes | Malware (default) | Aggregate only, real-time flush | Yes | Free |
+| Cloudflare 1.1.1.1 | Yes | Yes | Optional via 1.1.1.2 / 1.1.1.3 | Audited no-logs | Yes | Free |
+| NextDNS | Yes | Yes | Custom, per-profile | Off / 1h / 1d / forever (your choice) | Yes | Free or $2/mo |
+| AdGuard Home (self-host) | Yes | Yes | Custom, your lists | You decide | No (your IP) | $0 + hardware |
+| Mullvad DNS | Yes | Yes | 4 flavours | No-logs | Yes | Free (no account needed) |
+
+## Common mistakes
+
+- **Setting a private resolver in the browser only.** Every other app on the device (Steam, system updaters, Slack, notification services) still uses the OS resolver. Set it OS-wide.
+- **Skipping IPv6.** If the OS reaches out via IPv6 first and your v6 DNS is still the ISP default, half your queries leak. Set both `9.9.9.9` and `2620:fe::fe`.
+- **Trusting the router to honour DHCP option 6.** Many smart-home devices hardcode `8.8.8.8` and ignore what the DHCP server hands them. Blackhole outbound port 53 on the router and force everything through your resolver.
+- **Using a filtered resolver and blaming broken sites on the VPN.** A strict `family` or `malware` filter will NXDOMAIN things you want. When something breaks, bypass the filter first, VPN second.
+- **Running DoH but leaving `Disable-IPv6-privacy-extensions` on.** Your v6 suffix is still a stable device ID even through a clean resolver.
+
+## Setup
+
+[DNS-over-HTTPS setup guide](/en/guides/dns-over-https) walks through OS, browser, and router. For self-hosting the recursive-with-blocking path, see [Pi-hole setup](/en/guides/pi-hole-setup) — AdGuard Home is similar in spirit, swap the install step.
+
+## Related categories
+
+- **[VPN](/en/categories/vpn)** — tunnels the traffic; DNS decides who sees the domain list.
+- **[Router-level VPN](/en/categories/vpn-router)** — stack the resolver and the tunnel on the LAN edge.

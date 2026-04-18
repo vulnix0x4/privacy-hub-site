@@ -14,20 +14,48 @@ related:
   - dns-leaks
 ---
 
-> **TL;DR.** Run Mullvad (or any audited flat-fee VPN) on your router instead of on every device. One config, every phone and laptop and smart-TV on the LAN gets covered, including the guest devices that never would have run a client.
+> **TL;DR.** Run Mullvad (or any audited flat-fee VPN) on your router instead of on every device. One config, every phone and laptop and smart-TV on the LAN gets covered, including the guest devices that never would have run a client. Plan on a weekend of setup the first time; after that it's invisible.
 
 ## What this category protects
 
-Background leakage. Steam updaters, Spotify telemetry, the smart-TV that phones home every minute, the Roomba, the kids' switch — any device you forgot about ships DNS and traffic straight to your ISP otherwise.
+Background leakage on the devices you forgot about. Steam and Xbox auto-update through the ISP's resolver. Spotify, the smart-TV, the Roomba, the kids' Switch, the baby monitor, the guest-mode phone — every one of them is still pinging `api.some-vendor.com` with your home IP at DNS-level while your laptop's VPN happily tunnels. A router-level tunnel catches everything traversing the WAN, which fixes the [IP-geolocation leak](/en/vectors/ip-geolocation) and — with the resolver pointed through the tunnel — the [DNS-leak story](/en/vectors/dns-leaks) in one move.
 
-## Hero pick: Mullvad on a compatible router
+It also fixes the "guest logs into WiFi and skips the VPN" gap that every household has. Someone visits, connects, and now your apparent residential IP has their browsing pattern on top of yours. Tunneled router, one less thing to explain.
 
-Any router that supports OpenWRT or a WireGuard config. Load Mullvad's WireGuard config (their website generates it for you), force every outbound connection through the tunnel. What you give up: 10-20 percent of your LAN throughput in most setups, a full weekend if you have never touched router firmware.
+## This just works: Mullvad on a compatible router
+
+Any router that runs OpenWrt (Flint 2, Brume 2, the old Archer C7, whatever you have lying around) or a commercial box with a WireGuard client built in. Generate a WireGuard config on Mullvad's site, paste the keys and endpoint into the router's WireGuard client, set the routing rule to "default route through wg0," and reboot. Mullvad publishes a walkthrough per router family.
+
+What you give up: 10-20 percent of your LAN throughput, a weekend if you've never flashed firmware before, and the ability to debug "why is Netflix broken" without also asking "is it the tunnel?" Keep a kill-switch rule and a bypass SSID (an unencrypted guest network that skips the tunnel) for the times you legitimately want the tunnel off — casting, local-network printers, some smart-home flows.
 
 ## Alternatives
 
-**Proton VPN on router** — Same approach with Proton. Worth it if you already pay Proton for everything else and want one vendor.
+- **Proton VPN on router** — same approach with Proton's WireGuard config. Worth it if you already pay Proton for the rest of the suite. Secure Core isn't available in router mode — that's a single-device-client feature.
+- **GL.iNet pre-built (Slate AX / Flint 2 / Beryl AX)** — ships with a WireGuard client UI and a pre-cut onboarding flow. You unbox it, scan a QR, pick a provider. Good travel router too. You pay for the convenience; firmware is OpenWrt-based under the hood if you want to dig in.
+- **pfSense / OPNsense self-hosted** — for homelabbers. Full firewall, per-client routing rules (send the smart-TV out via Mullvad, send the work laptop direct), real kill switch, traffic graphs. Runs on any old mini-PC or Protectli/ZimaBoard. Steepest learning curve in the category.
 
-**GL.iNet pre-built routers** — Ship with a WireGuard client UI and a pre-cut onboarding flow. The "Slate AX" and "Flint 2" boxes are popular. You pay for the convenience; the unit is yours.
+## Comparison matrix
 
-**pfSense or OPNsense self-hosted** — For homelabbers. Full firewall, per-client routing rules, kill switch. Runs on any old x86 machine. Steepest learning curve.
+| Option | Plug-and-play | WireGuard | Kill switch | Firmware | Upfront cost |
+|---|---|---|---|---|---|
+| **Mullvad on OpenWrt** | No, DIY | Yes | Yes (rule-based) | OpenWrt | $0-200 (hardware) |
+| Proton VPN on OpenWrt | No, DIY | Yes | Yes (rule-based) | OpenWrt | $0-200 |
+| GL.iNet pre-built | Yes | Yes | Yes (UI toggle) | GL.iNet OpenWrt | $150-400 |
+| pfSense / OPNsense | ~ (requires networking chops) | Yes | Yes (per-rule) | FreeBSD / BSD | $200-600 |
+
+## Common mistakes
+
+- **Running the router tunnel and a device-level VPN at the same time.** Double-encapsulation works but halves throughput and confuses MTU; pick one layer.
+- **Forgetting DNS.** If your OpenWrt resolver uses the ISP's upstream by default, every domain you visit still reaches the ISP. Point `dnsmasq` or `unbound` at the VPN provider's resolver (`10.64.0.1` on Mullvad, `10.2.0.1` on Proton) or at Quad9-over-DoT.
+- **No kill-switch rule.** Without `-m mark --mark` style firewall rules, any tunnel hiccup drops traffic straight to the WAN unprotected. Every VPN provider publishes sample rules; use them.
+- **Assuming router-level tunnels fix fingerprinting.** They do not. A tunneled Chrome is still a fingerprint-shaped Chrome to every site you visit.
+- **Buying underpowered hardware.** A $30 TP-Link will cap at 60 Mbps through WireGuard. A Flint 2 or Brume 2 handles gigabit.
+
+## Setup
+
+No single guide matches cleanly — the closest is the [Mullvad VPN quickstart](/en/guides/mullvad-vpn-quickstart) for the account side, then Mullvad's per-router walkthrough for the firmware side. GL.iNet's Uplink docs are the shortest path if you go pre-built.
+
+## Related categories
+
+- **[VPN](/en/categories/vpn)** — the client-level story. Pick the provider there, install it on the router here.
+- **[DNS resolver](/en/categories/dns)** — the other half of "where do my domains go."
