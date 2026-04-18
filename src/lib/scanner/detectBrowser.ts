@@ -16,12 +16,7 @@ export interface DetectionSignals {
     mobile: boolean;
     platform: string;
   };
-  /**
-   * Map of `permissionName → PermissionState` (or `'unsupported'`). Callers
-   * can stash synthetic keys here too (e.g. `__braveIsBrave: 'granted'` when
-   * `navigator.brave?.isBrave()` resolved truthy) so the detector has a
-   * single, serialisable surface.
-   */
+  /** Map of `permissionName → PermissionState` (or `'unsupported'`). */
   permissionShape: Record<string, 'granted' | 'denied' | 'prompt' | 'unsupported'>;
   screenWidth: number;
   screenHeight: number;
@@ -43,6 +38,8 @@ export interface DetectionSignals {
   mediaDevicesEnumerable?: boolean;
   /** True if a WebRTC PeerConnection construction succeeded. */
   webRtcEnabled?: boolean;
+  /** True if `navigator.brave?.isBrave()` resolved truthy. Brave-only signal. */
+  isBrave?: boolean;
 }
 
 export interface DetectionResult {
@@ -104,9 +101,9 @@ function detect(s: DetectionSignals): DetectionResult {
     return { family: 'edge', confidence: 'high' };
   }
 
-  // --- Brave: callers surface navigator.brave?.isBrave() via the synthetic
-  // permission key `__braveIsBrave`. Farbling presence splits strict vs standard.
-  const isBraveSignal = s.permissionShape?.['__braveIsBrave'] === 'granted';
+  // --- Brave: callers surface `navigator.brave?.isBrave()` via `s.isBrave`.
+  // Farbling presence splits strict vs standard.
+  const isBraveSignal = s.isBrave === true;
   if (isBraveSignal && isChromiumUa) {
     if (s.farblingObserved === true) {
       return { family: 'brave-strict', confidence: 'high' };

@@ -62,7 +62,7 @@ const cases: Case[] = [
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
       farblingObserved: true,
-      permissionShape: { ...DEFAULT_PERMS, __braveIsBrave: 'granted' },
+      isBrave: true,
     }),
     expected: 'brave-strict',
   },
@@ -72,7 +72,7 @@ const cases: Case[] = [
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
       farblingObserved: false,
-      permissionShape: { ...DEFAULT_PERMS, __braveIsBrave: 'granted' },
+      isBrave: true,
     }),
     expected: 'brave-standard',
   },
