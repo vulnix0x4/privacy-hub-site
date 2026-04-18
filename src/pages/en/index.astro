@@ -4,6 +4,8 @@ import { ReducedMotionProvider } from '../../components/islands/ReducedMotionPro
 import { GhostDemo } from '../../components/ghost/GhostDemo';
 import { buildBreadcrumbJsonLd, buildWebSiteJsonLd } from '../../lib/seo/jsonLd';
 
+export const prerender = true;
+
 // WebSite schema + SearchAction target. The target URL is
 // https://privacy.whattheflip.lol/en/?q={search_term_string} — a
 // placeholder until Pagefind ships the dedicated /en/search route.

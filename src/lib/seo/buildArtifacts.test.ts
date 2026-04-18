@@ -32,6 +32,11 @@ describe.skipIf(!distExists)('sitemap', () => {
 describe.skipIf(!distExists)('JSON-LD emission', () => {
   const specimens: Array<{ label: string; path: string; expect: Array<RegExp> }> = [
     {
+      label: 'homepage',
+      path: 'en/index.html',
+      expect: [/"@type":"WebSite"/, /"@type":"SearchAction"/, /"@type":"BreadcrumbList"/],
+    },
+    {
       label: 'vector page',
       path: 'en/vectors/canvas-fingerprinting/index.html',
       expect: [/"@type":"Article"/, /"@type":"BreadcrumbList"/],
@@ -50,6 +55,11 @@ describe.skipIf(!distExists)('JSON-LD emission', () => {
       label: 'guide page',
       path: 'en/guides/harden-firefox/index.html',
       expect: [/"@type":"HowTo"/, /"@type":"BreadcrumbList"/],
+    },
+    {
+      label: 'basics page',
+      path: 'en/basics/threat-modeling/index.html',
+      expect: [/"@type":"Article"/, /"@type":"BreadcrumbList"/],
     },
   ];
 
