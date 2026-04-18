@@ -1,0 +1,40 @@
+---
+title: DNS leaks & DoH state
+description: Your DNS queries are a real-time log of every site you open. Most VPNs leak them at least some of the time.
+family: network
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - ip-geolocation
+  - webrtc-local-ip
+---
+
+> **TL;DR.** Before your browser fetches a page, it asks a DNS resolver "what IP runs example.com?" That resolver sees every domain you visit, even if the page itself is HTTPS-encrypted.
+
+By default that resolver is your ISP, who logs it, sells it in some markets, and hands it over on subpoena.
+
+## How it works
+
+DNS predates HTTPS by a decade and was never encrypted. DNS-over-HTTPS (DoH) and DNS-over-TLS (DoT) wrap the query in TLS so only your chosen resolver sees it. Firefox, Chrome, and Edge ship DoH but not always on by default, and not always pointed where you think.
+
+A "DNS leak" happens when your VPN routes traffic but DNS still goes to the ISP-provided resolver, or when your OS uses one resolver and your browser another. The site you visit can also probe your resolver directly using a third-party-loaded image and detect which resolver answered.
+
+## What it leaks about you
+
+Every domain you visit, in real time, with a timestamp. Cross-referencing that with billing data identifies you trivially.
+
+## How to defend
+
+- 🟢 Turn on DoH in your browser pointed at Quad9 (9.9.9.9) or Cloudflare (1.1.1.1).
+- 🟡 Use a VPN whose client forces all DNS through its own resolver. Mullvad and Proton do this by default.
+- 🔴 Run your own resolver on the network (Pi-hole, AdGuard Home, Unbound) and force every device to it via DHCP.
+
+## What doesn't help
+
+A VPN alone, if its DNS toggle is off or broken. Always run a leak test from a fresh network.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

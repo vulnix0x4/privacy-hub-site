@@ -1,0 +1,41 @@
+---
+title: Permissions API bitmap
+description: Your browser's permission state across geolocation, camera, notifications, and clipboard forms a short, stable fingerprint.
+family: permissions
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - navigator-properties
+  - media-devices
+---
+
+> **TL;DR.** A script iterates `navigator.permissions.query()` across a dozen permission names and records which are `granted`, `denied`, or `prompt`. That tuple rarely changes and rarely matches anyone else's exactly.
+
+The spec was meant to let sites gracefully adapt when a user had already said no. It also hands a clean identifier to every site that asks.
+
+## How it works
+
+The Permissions API exposes `navigator.permissions.query({ name })` for a menu of capabilities: geolocation, notifications, camera, microphone, persistent-storage, midi, clipboard-read, clipboard-write, screen-wake-lock, accelerometer, gyroscope. Each returns `granted | denied | prompt`, readable without any prompt of its own.
+
+The resulting 12-entry bitmap reflects your real usage patterns. The user who granted camera to Zoom, denied notifications on a news site, and left clipboard-read at default produces a distinct pattern compared to someone who blocks everything.
+
+## What it leaks about you
+
+Your cross-site permission posture: whether you are a "grant everything" user, a permission-minimizing user, or somewhere in between. Combined with other signals it becomes a strong second-order identifier.
+
+## How to defend
+
+- 🟢 Reset site permissions periodically (every browser has a "clear site data" option).
+- 🟢 Use Firefox Total Cookie Protection — state is already partitioned per top site, so a cross-site probe sees only its own grants.
+- 🟡 In Brave, permissions are partitioned by shield state; the bitmap changes per site.
+- 🔴 Use a fresh browser profile for high-stakes browsing so the bitmap starts empty.
+
+## What doesn't help
+
+Declining one prompt while leaving the rest untouched. The bitmap is its shape that matters, not any single entry.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

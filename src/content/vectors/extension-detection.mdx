@@ -1,0 +1,41 @@
+---
+title: Browser extension detection
+description: The extensions you install are a rare fingerprint. Sites detect them via injected scripts, chrome-extension URLs, and behavior probes.
+family: behavioral
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - navigator-properties
+  - referrer-federated-login
+---
+
+> **TL;DR.** Every content script an extension injects leaves a trace. Every web-accessible resource has a predictable URL. A site that checks 40 common extensions narrows you to a small population: "uBlock + Bitwarden + Grammarly + Dark Reader + React DevTools" is rarely the same combination twice.
+
+Extensions are high-entropy precisely because they reflect what you cared enough to install.
+
+## How it works
+
+Three common techniques. First, web-accessible resources: many extensions declare images or scripts at fixed `chrome-extension://<id>/file.png` URLs that any page can try to fetch; a 200 means installed. Second, DOM mutations: extensions like Grammarly and LastPass inject specific elements a script can observe. Third, behavior probes: ad-blockers silently block certain bait scripts, so a script that checks "did my bait get fetched?" detects ad-blocker presence without naming it.
+
+Firefox randomizes extension IDs per user, which kills the web-accessible-resource probe. Chromium does not.
+
+## What it leaks about you
+
+Which extensions you have installed, and from that your political profile (ad-blocker, specific accessibility tools), your profession (React DevTools, Postman), and your privacy posture.
+
+## How to defend
+
+- 🟢 Use Firefox; randomized extension IDs defeat URL-based probes.
+- 🟡 Install fewer extensions. Each one adds bits.
+- 🟡 Use a dedicated browser profile for one-off logins, with no extensions installed.
+- 🔴 In Chrome, set up a "clean" Chromium channel for sensitive browsing.
+
+## What doesn't help
+
+Incognito mode in Chrome. Most extensions are still active in incognito if you allowed them, and the bait-probe technique works there too.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

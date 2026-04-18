@@ -1,0 +1,41 @@
+---
+title: Timezone, language, locale
+description: Your timezone and accepted languages are visible to every script and to every server. They cut the world by 99 percent in one read.
+family: fingerprint
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - ip-geolocation
+  - navigator-properties
+---
+
+> **TL;DR.** `Intl.DateTimeFormat().resolvedOptions().timeZone` returns "America/Chicago". `navigator.languages` returns `["en-US", "es"]`. The Accept-Language header on every request announces the same. Together they put you in a city and tell every site what languages you read.
+
+These look harmless. They are not, because they cross-reference with IP for free.
+
+## How it works
+
+The timezone string comes from the OS, accurate to the Olson database name (so "America/Indiana/Indianapolis" not just "GMT-5"). Languages come from the OS preferences, ordered. Accept-Language is sent on every HTTP request automatically.
+
+A site that sees Mullvad's German exit IP plus a US Pacific timezone plus en-US,es as your languages knows you are an American on a VPN, browsing from your usual setup. No fingerprinting library needed.
+
+## What it leaks about you
+
+Your real city (timezone), your declared mother tongue and second languages, your immigrant status in some cases, your VPN-vs-real-location consistency.
+
+## How to defend
+
+- 🟢 Use Tor Browser, which forces UTC and en-US for every user.
+- 🟢 Mullvad Browser does the same.
+- 🟡 Firefox FPP forces the timezone to UTC and overrides Accept-Language to en-US.
+- 🔴 Match your VPN exit country to your OS timezone manually if you cannot use one of the above.
+
+## What doesn't help
+
+Switching IP without switching timezone. The mismatch flags you as VPN-using and the timezone betrays where you actually are.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

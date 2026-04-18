@@ -1,0 +1,40 @@
+---
+title: TLS fingerprint (JA4)
+description: Servers can fingerprint your TLS handshake before a single byte of HTTP is exchanged. JA4 is the current state of the art.
+family: network
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - ip-geolocation
+  - user-agent-and-client-hints
+---
+
+> **TL;DR.** Every TLS client (browser, OS, library) negotiates with a slightly different list of cipher suites, extensions, and curves in a slightly different order. Servers hash that order. The hash identifies the client, often down to a specific browser build on a specific OS.
+
+JA4 is the 2023 successor to JA3. It splits TCP, QUIC, and HTTP fingerprints, includes ALPN and signature algorithms, and is harder to spoof than JA3 was.
+
+## How it works
+
+When your browser opens a connection, the first packet (the ClientHello) lists everything your client supports: TLS versions, cipher suites, extensions, supported groups, signature algorithms, ALPN protocols. Most clients send these in a stable order. Cloudflare, Akamai, Imperva, and most bot-management vendors record JA3, JA4, and JA4_r and use them as a primary signal for "is this really Chrome on macOS, or a Python script lying about its User-Agent?"
+
+A spoofed User-Agent without a matching JA4 is a red flag. So is an outdated JA4 from a fully-patched browser version string.
+
+## What it leaks about you
+
+Your real client family and version, your OS family, and whether you are using a custom HTTP library, headless browser, or scraping framework.
+
+## How to defend
+
+- 🟢 Use a mainstream browser version. The crowd is the cover.
+- 🟡 If you must script, use a stack that mimics a real browser's TLS stack (curl-impersonate, undetected-chromedriver).
+- 🔴 Tor Browser standardizes its TLS stack across all users by design.
+
+## What doesn't help
+
+User-Agent spoofing. The TLS layer happens before any HTTP header is sent.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

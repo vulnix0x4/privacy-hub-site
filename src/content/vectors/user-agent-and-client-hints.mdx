@@ -1,0 +1,40 @@
+---
+title: User-Agent & Client Hints
+description: The User-Agent string is half-deprecated and Client Hints replace it with something arguably worse for privacy.
+family: fingerprint
+severity: high
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - tls-ja4
+  - navigator-properties
+---
+
+> **TL;DR.** The classic `User-Agent: Mozilla/5.0 ...` header tells every server your browser, OS, and architecture. Chrome's "User-Agent reduction" replaced detail with a new opt-in delivery mechanism named Client Hints that hands the same data back when the server asks.
+
+Net effect: Chrome users now leak the same info on request, and the request is invisible.
+
+## How it works
+
+A server sends `Accept-CH: Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Model`. The browser caches that demand, then attaches the requested values to every future request to that origin (and, with `Critical-CH`, on the very first one). You see no UI.
+
+Firefox does not implement Client Hints. Brave returns a generic value. Safari ignores most of them.
+
+## What it leaks about you
+
+Browser brand and full version, exact OS, OS version, CPU arch, mobile model on phones (Pixel 8 Pro, iPhone 15 Pro Max).
+
+## How to defend
+
+- 🟢 Use Firefox or Brave; neither hands over the full Client Hints set.
+- 🟡 In Chrome, install an extension that strips `Sec-CH-*` headers (limited list available; review carefully).
+- 🔴 Run a request-rewriting proxy locally that drops Client Hints across all browsers on the device.
+
+## What doesn't help
+
+Spoofing the User-Agent string. Modern fingerprinting cross-checks UA against JA4 (TLS), navigator props, and Client Hints; mismatch is a signal in itself.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

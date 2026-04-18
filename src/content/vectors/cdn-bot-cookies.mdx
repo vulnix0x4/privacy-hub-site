@@ -1,0 +1,41 @@
+---
+title: CDN bot-management cookies
+description: Cloudflare, Akamai, and PerimeterX set their own cookies on millions of sites. Those cookies are cross-site in practice.
+family: cross-site
+severity: medium
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - third-party-cookies-storage
+  - tls-ja4
+---
+
+> **TL;DR.** `__cf_bm`, `_abck`, `_px*`, `__cfduid` (legacy), `ak_bmsc`. These are bot-management cookies from Cloudflare, Akamai, and PerimeterX. Because those CDNs sit in front of millions of sites, the cookie set on one site is readable on every other site that uses the same CDN.
+
+The vendors call these "first-party" because they ride the host origin. Structurally they function as a cross-site tracker with extra steps.
+
+## How it works
+
+A site fronted by Cloudflare serves its own `example.com` pages, but the edge layer sets `Set-Cookie: __cf_bm=...; Path=/; Secure; HttpOnly` on the `example.com` origin. The same edge layer does the same on `other-site.com` using the same bot-scoring machinery. The cookie is technically first-party per site, but the fingerprint it encodes (browser, JA4, behavior) is computed from the same Cloudflare model for both sites, and both sites feed telemetry back to Cloudflare.
+
+You cannot read the cookie value cross-site, but Cloudflare can. Same for Akamai (`_abck`, `ak_bmsc`) and PerimeterX (`_px*`).
+
+## What it leaks about you
+
+A bot-score identity from the CDN vendor's perspective. Plus a behavioral model: your cursor motion, scroll cadence, and key-press intervals feed back to the bot-management API.
+
+## How to defend
+
+- 🟢 Clear all cookies on exit, or use containers to isolate sites per-purpose.
+- 🟢 Firefox Total Cookie Protection partitions these per top-level site.
+- 🟡 Tor Browser; the Cloudflare CAPTCHA is the price.
+- 🔴 Self-host the few sites you care about enough to escape the CDN layer (not possible for most).
+
+## What doesn't help
+
+A VPN alone. The cookie is set on your real identity once you log in, and the CDN links your VPN IP back to that identity via behavioral sampling.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

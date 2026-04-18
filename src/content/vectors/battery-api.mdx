@@ -1,0 +1,40 @@
+---
+title: Battery status API
+description: A short-lived spec that leaked enough to track you for ~30 seconds across cleared cookies. Mostly removed; a few leftovers remain.
+family: sensors
+severity: medium
+prevalence: rare
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - navigator-properties
+  - permissions-bitmap
+---
+
+> **TL;DR.** The Battery Status API exposed your battery's exact charge level (to four decimal places), discharge time, and charging state. Two sites that read it within seconds of each other could match you across origins because the precise level is unique.
+
+Most major browsers removed it after a 2016 paper made the abuse obvious. Chrome on Android still ships it gated.
+
+## How it works
+
+`navigator.getBattery().then(b =&gt; b.level)` returned `0.7892`. Reload the page, get `0.7891`. Open a different site within ten seconds, get the same value, and the cross-site link is made. Researchers Olejnik et al. demonstrated the technique on 1,500 origins in a Mozilla-funded study.
+
+Firefox removed the API in 2016. Safari never shipped it. Chrome desktop removed it from cross-origin contexts; Chrome Android still exposes it to top-level documents.
+
+## What it leaks about you
+
+A short-lived but high-precision identifier. With charging state, indirectly whether you are at home or out.
+
+## How to defend
+
+- 🟢 Use Firefox or Safari; the API is gone.
+- 🟢 In Chrome desktop, the surface is already minimal. On Android, use Brave.
+- 🟡 Disable third-party JavaScript on cross-origin frames.
+
+## What doesn't help
+
+A VPN. The signal is local-device state.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

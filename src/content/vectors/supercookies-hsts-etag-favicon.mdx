@@ -1,0 +1,41 @@
+---
+title: Supercookies (HSTS / ETag / favicon)
+description: Clearing cookies does not clear every storage surface. HSTS, ETag, and the favicon cache all survive and still identify you.
+family: storage
+severity: medium
+prevalence: rare
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - third-party-cookies-storage
+  - referrer-federated-login
+---
+
+> **TL;DR.** "Supercookies" are identifiers smuggled into caches the browser treats as configuration rather than storage. HSTS pins, ETag headers, favicon caching, and HTTP/2 connection state all survive a "Clear cookies" click.
+
+Researchers have demonstrated cross-site identifiers out of each of these since 2015. Browsers have patched most of the worst ones, but the favicon trick still works in Chromium.
+
+## How it works
+
+The HSTS supercookie trick: a tracker serves 32 subdomains of its own, each either HSTS-pinned (bit=1) or not (bit=0). Reading which subdomains your browser now prefers over HTTP reconstructs a 32-bit ID that outlives cookie clears. ETag caches do the equivalent using conditional-GET metadata.
+
+The 2021 "Supercookie" demo by Jonas Strehle used the favicon cache: Chromium caches each origin's favicon independently, so a tracker can encode bits by whether each of 20 subdomains served a favicon on first visit.
+
+## What it leaks about you
+
+A persistent ID that survives "Clear cookies" and "Clear site data" in most browsers, for days to weeks.
+
+## How to defend
+
+- 🟢 Use Firefox or Brave; both partition HSTS by top-site (no cross-site reconstruction).
+- 🟢 Use "Clear all site data" explicitly, which nukes the cache along with cookies.
+- 🟡 Run Tor Browser for sessions where you need a fresh identity on every launch.
+- 🔴 Nuke your favicon cache manually (Chrome stores it in `Favicons` inside the user-data dir).
+
+## What doesn't help
+
+Incognito mode. It shares the favicon cache with your regular session in Chrome.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

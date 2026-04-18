@@ -1,0 +1,40 @@
+---
+title: Screen, viewport, DPR
+description: Window size, screen size, color depth, and device pixel ratio all together pin you to a specific monitor on a specific machine.
+family: fingerprint
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - navigator-properties
+  - canvas-fingerprinting
+---
+
+> **TL;DR.** `screen.width`, `screen.height`, `screen.availWidth`, `screen.availHeight`, `window.innerWidth`, `window.innerHeight`, `window.devicePixelRatio`, `screen.colorDepth`. Together: roughly 15 bits of entropy.
+
+The combination of "1920x1080 monitor with a 1.25 DPR and a window 1356x712" is rare enough to identify you among a few thousand peers.
+
+## How it works
+
+Each value is a JavaScript getter, no permission needed. Available width/height excludes the OS taskbar (Windows knows it is at the bottom; macOS knows it is at the top), so the difference between screen.height and screen.availHeight reveals your OS.
+
+Maximizing a window leaks your taskbar setting. Resizing it constantly across the day leaks behavioral patterns.
+
+## What it leaks about you
+
+Monitor resolution, taskbar layout (so OS family), whether you use a high-DPR display, your window-management habits.
+
+## How to defend
+
+- 🟢 Tor Browser uses "letterboxing": a fixed inner window size with empty bands to hide the real one.
+- 🟢 Firefox FPP rounds the inner window to 200x100 grid steps.
+- 🟡 Always browse maximized; "windowed at 1247x683" is unique to you.
+
+## What doesn't help
+
+A VPN. The screen API is local-machine state, not network state.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

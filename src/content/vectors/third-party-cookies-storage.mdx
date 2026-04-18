@@ -1,0 +1,41 @@
+---
+title: Third-party cookies & storage
+description: The oldest cross-site tracker is still here, just rebranded. Third-party cookies, localStorage, and IndexedDB still track you across the web.
+family: storage
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - supercookies-hsts-etag-favicon
+  - referrer-federated-login
+---
+
+> **TL;DR.** When site A embeds a script or iframe from tracker.com, tracker.com can set a cookie scoped to tracker.com. Visit site B with the same tracker embed and that cookie is sent back. One identifier follows you everywhere the tracker is present.
+
+Google's Privacy Sandbox promised to kill this in Chrome and then quietly shelved the deprecation. As of 2026 third-party cookies are still on by default for most Chrome users.
+
+## How it works
+
+A tracker iframe from analytics.example sets `Set-Cookie: id=abc123; SameSite=None; Secure`. Any cross-site context embedding that tracker then sends the cookie back with every request. The same trick works for `localStorage` and `IndexedDB` when the tracker is an iframe rather than a script, since each iframe gets its own partitioned-or-not storage depending on browser.
+
+Safari blocked this in 2020 (Intelligent Tracking Prevention). Firefox did the same in 2019 (Total Cookie Protection made it default in 2022). Chrome still does not.
+
+## What it leaks about you
+
+A cross-site user ID. Every site you visit that embeds the same tracker learns a new intersection point on you.
+
+## How to defend
+
+- 🟢 Use Firefox, Brave, or Safari: all three block or partition third-party cookies by default.
+- 🟢 In Chrome, turn on "Block third-party cookies" in Settings -&gt; Privacy and security. You will break a few shopping-cart flows.
+- 🟡 Install uBlock Origin, which kills most tracker iframes before they can set cookies.
+- 🔴 Run Pi-hole or NextDNS to null-route tracker domains at the network level.
+
+## What doesn't help
+
+Incognito mode. It clears cookies when you close the window but happily accepts third-party cookies during the session.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

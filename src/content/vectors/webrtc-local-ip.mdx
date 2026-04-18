@@ -1,0 +1,41 @@
+---
+title: WebRTC local IP leak
+description: WebRTC can hand a script your real local network IP, even with a VPN running. Most browsers still ship this enabled.
+family: network
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - ip-geolocation
+  - dns-leaks
+---
+
+> **TL;DR.** WebRTC, the browser API for video calls, exposes your local network IP (10.x.x.x or 192.168.x.x) and sometimes your real public IP through a side channel called STUN. A VPN does not always block it.
+
+The original sin was design: WebRTC needs to know your local IP to set up direct peer connections, and it does so with no permission prompt.
+
+## How it works
+
+Any script can ask the browser for an `RTCPeerConnection`, then read the ICE candidates the browser generates. Those candidates list every IP the browser thinks could route a call. That includes your LAN IP and, in older or misconfigured stacks, your real public IP behind the VPN tunnel.
+
+Combined with a public IP, the LAN IP narrows you to a specific household: the same /24 plus the same NAT lease pattern is a strong join across cleared cookies.
+
+## What it leaks about you
+
+Your local subnet (and from it, your router model in many cases). Sometimes your real ISP-assigned IP even while a VPN is connected.
+
+## How to defend
+
+- 🟢 In Firefox, set `media.peerconnection.enabled` to `false` if you do not use video calls in the browser.
+- 🟢 In Brave, Settings -&gt; Privacy and security -&gt; WebRTC IP handling policy -&gt; "Disable Non-Proxied UDP".
+- 🟡 Use a privacy extension that blocks WebRTC IP leaks (uBlock Origin has the toggle in advanced mode).
+- 🔴 Block UDP at the firewall outside your VPN tunnel.
+
+## What doesn't help
+
+A VPN alone, if your browser exposes a non-proxied candidate. Always test after enabling the VPN.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

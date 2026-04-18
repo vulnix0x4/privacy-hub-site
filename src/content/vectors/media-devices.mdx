@@ -1,0 +1,40 @@
+---
+title: Media device enumeration
+description: Browsers can list your cameras, microphones, and speakers, and the labels alone identify your hardware.
+family: fingerprint
+severity: medium
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - speech-synthesis-voices
+  - permissions-bitmap
+---
+
+> **TL;DR.** `navigator.mediaDevices.enumerateDevices()` returns the count of cameras, microphones, and speakers attached. Without permission it returns counts and types only; with permission it returns the labels (so "Logitech BRIO 4K", "AirPods Pro").
+
+Even the unprivileged response leaks "you have three microphones, two cameras, two output devices", which is rare.
+
+## How it works
+
+The API was originally meant for a video-call app to populate a device picker. The early version returned full labels to anyone. Browsers later restricted labels to origins that already had `getUserMedia` permission, but the count and the deviceId hash remain readable to all sites.
+
+The deviceId is supposed to be per-origin and per-session. In practice, several browsers leak a stable identifier across sessions until you clear site data.
+
+## What it leaks about you
+
+Number and type of audio/video devices. With camera/mic permission once granted, the model name. Indirectly your machine class (laptops have one camera, streamers have three).
+
+## How to defend
+
+- 🟢 Revoke camera and mic permission when you do not actively use them.
+- 🟢 Brave and Firefox both gate labels behind a granted permission.
+- 🟡 Tor Browser blocks `enumerateDevices` outright.
+
+## What doesn't help
+
+Disabling the camera at the OS level on Windows. The browser still sees the device exists; it just cannot stream from it.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

@@ -1,0 +1,41 @@
+---
+title: IP & geolocation
+description: Your IP address is the rawest piece of identity you broadcast on every request. Here is what it actually leaks.
+family: network
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - dns-leaks
+  - webrtc-local-ip
+  - tls-ja4
+---
+
+> **TL;DR.** Every connection you open ships your IP address to the other end. That address maps to a city, an ISP, sometimes a household, and links every request you make from the same network.
+
+This is the floor. Nothing else on this site matters if you have not handled it.
+
+## How it works
+
+Your packets carry a source IP so the server knows where to send the reply. Geo-IP databases (MaxMind, IP2Location) translate that to a city, postal code area, ASN, and a confidence score. Anti-fraud vendors layer on residential-proxy detection, hosting-provider flags, and a reputation score derived from prior abusive traffic on the same /24.
+
+A site that sees your IP for the first time has already pinned you to roughly a five-mile radius and to your ISP. A site you visit twice has a stable identifier for you across cleared cookies, fresh browser profiles, and switched accounts.
+
+## What it leaks about you
+
+City, ISP, mobile-vs-residential, plausible employer if you connect from corporate IPs, and a join key across every site you visit from the same network.
+
+## How to defend
+
+- 🟢 Use a flat-fee audited VPN (Mullvad, IVPN, Proton). One toggle, the IP your sites see is shared across thousands of users.
+- 🟡 Run the VPN at the router level so leaks (a forgotten device, a Steam updater) cannot bypass it.
+- 🔴 Use Tor for the small fraction of activity where even a VPN provider knowing your destinations is too much.
+
+## What doesn't help
+
+Incognito mode. Clearing cookies. Switching browser. None of those touch the IP layer; the server still sees the same address.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

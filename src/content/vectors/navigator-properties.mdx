@@ -1,0 +1,41 @@
+---
+title: Navigator properties
+description: A grab bag of small JavaScript properties that, joined together, narrow you to a small group of users.
+family: fingerprint
+severity: high
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - user-agent-and-client-hints
+  - screen-viewport
+  - timezone-locale
+---
+
+> **TL;DR.** `navigator.hardwareConcurrency`, `navigator.deviceMemory`, `navigator.plugins`, `navigator.languages`, `navigator.maxTouchPoints`, `navigator.cookieEnabled`, `navigator.pdfViewerEnabled`, `navigator.connection`. Each leaks 1-3 bits. Together they leak you.
+
+This is the long tail of fingerprinting: dozens of innocuous properties, summed.
+
+## How it works
+
+Every property is a getter. A script reads them in a loop, concatenates, hashes. CPU core count narrows you to "8-core machines" (still many millions, but a big cut). Device memory rounds to powers of two but reflects the real machine. Connection type ("4g", "wifi") plus downlink and rtt round to discrete buckets that change with network.
+
+Most are not protected by a permission prompt. Most are stable across reloads.
+
+## What it leaks about you
+
+CPU core count, RAM tier, GPU presence (via plugins on some platforms), whether you can do touch, your declared language preferences, whether your connection is metered.
+
+## How to defend
+
+- 🟢 Tor Browser and Mullvad Browser return uniform values for all of these.
+- 🟢 Firefox FPP normalizes hardwareConcurrency and deviceMemory to standard values.
+- 🟡 Brave lies about specific high-entropy properties (deviceMemory rounds to 8, hardwareConcurrency to 2).
+
+## What doesn't help
+
+Disabling JavaScript on the page; you turn it back on for the next site and re-leak the same values.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

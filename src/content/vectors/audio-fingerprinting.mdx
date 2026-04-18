@@ -1,0 +1,40 @@
+---
+title: AudioContext fingerprint
+description: Browsers process a silent audio buffer slightly differently per machine. Sites read the output and hash it for a stable ID.
+family: fingerprint
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - canvas-fingerprinting
+  - webgl-fingerprinting
+---
+
+> **TL;DR.** A script generates a triangle wave through a `DynamicsCompressorNode`, captures a few hundred samples, and sums or hashes them. Floating-point math, audio drivers, and CPU instruction sets perturb the output. Same machine always returns the same number.
+
+This is one of the oldest and most reliable fingerprints. It works headless, works without speakers, works without permission.
+
+## How it works
+
+The Web Audio API was designed for music and games but exposes a silent `OfflineAudioContext`. A site builds a short audio graph: oscillator -&gt; compressor -&gt; analyser -&gt; nothing audible. The compressor's nonlinear math depends on the exact floating-point implementation, which depends on the CPU, the OS audio stack, and how the browser compiled the audio nodes. The output, summed to a single float, is your fingerprint.
+
+The trick is famous because Mowery and Shacham published it in 2012. Twelve years later it still works in every browser that has not specifically farbled it.
+
+## What it leaks about you
+
+A stable per-machine identifier with around 5-7 bits of entropy on its own and with much more when joined to canvas, WebGL, and font enumeration.
+
+## How to defend
+
+- 🟢 Tor Browser and Mullvad Browser return a uniform audio fingerprint.
+- 🟢 Firefox FPP and Brave both farble the AudioContext output.
+- 🟡 Disabling the Web Audio API entirely breaks most modern sites; not recommended.
+
+## What doesn't help
+
+Muting your speakers. The audio is never played; it is computed offline.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

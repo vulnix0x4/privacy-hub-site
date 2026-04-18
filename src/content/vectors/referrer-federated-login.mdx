@@ -1,0 +1,41 @@
+---
+title: Referrer & federated-login probes
+description: The Referer header and federated-login buttons silently leak where you came from and which services you hold accounts with.
+family: cross-site
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - third-party-cookies-storage
+  - cdn-bot-cookies
+---
+
+> **TL;DR.** Every request your browser makes carries a `Referer` header telling the destination site the page you came from. Separately, any "Continue with Google" or "Continue with Facebook" button can probe whether you are logged in there without you clicking anything.
+
+The referrer chain is ancient and still leaky. The login-probe trick is newer and almost nobody guards against it.
+
+## How it works
+
+The `Referer` header was added in 1996 so webmasters could see inbound traffic. Modern browsers have tightened it with a default `Referrer-Policy: strict-origin-when-cross-origin`, but plenty of sites override that back to the full URL. The leak is specific: the path you came from, including query strings, goes to every asset server the next page loads.
+
+Federated-login probes use hidden iframes pointing at `accounts.google.com`, `facebook.com`, `apple.com`, `github.com`. The iframe's load event fires either immediately (logged in) or after an auth flow (not logged in). Timing the difference reveals membership.
+
+## What it leaks about you
+
+Your referrer chain, often with session or search tokens. Separately, which identity providers you hold accounts with. Combined, a strong cross-site linkage.
+
+## How to defend
+
+- 🟢 Use Firefox or Brave; both ship strict referrer policies and partition third-party iframes.
+- 🟢 Enable Firefox's "Strict Enhanced Tracking Protection".
+- 🟡 Install uBlock Origin's "Prevent long third-party Referer" filter.
+- 🔴 Run Tor Browser, which strips Referer cross-origin.
+
+## What doesn't help
+
+A VPN. Both probes are purely HTTP/JavaScript level; the IP layer is irrelevant.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

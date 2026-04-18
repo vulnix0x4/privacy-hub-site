@@ -1,0 +1,40 @@
+---
+title: WebGPU adapter info
+description: WebGPU is the new graphics API and it leaks even more than WebGL. Most browsers shipped it before adding any privacy mitigation.
+family: fingerprint
+severity: high
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - webgl-fingerprinting
+  - canvas-fingerprinting
+---
+
+> **TL;DR.** WebGPU exposes the GPU vendor, architecture, device ID, driver, and a long list of feature limits. It is more granular than WebGL and shipped to Chrome stable in 2023 with no farbling.
+
+Firefox added an opt-in flag to suppress the `requestAdapterInfo()` data; Chrome did not.
+
+## How it works
+
+A site calls `navigator.gpu.requestAdapter()` then `adapter.requestAdapterInfo()`. The returned object names the vendor (nvidia, amd, intel, apple), the architecture (ada, rdna3), the device, and the driver version. The adapter's limits dictionary (max texture dimension, max buffer size, max compute workgroup count) adds even more entropy because it reflects the exact GPU SKU.
+
+This was originally meant for "developer telemetry only" and gated behind a permission. The gate was removed before launch.
+
+## What it leaks about you
+
+Your exact GPU SKU, driver version, and OS-level graphics stack. More entropy than WebGL.
+
+## How to defend
+
+- 🟢 Use Brave (it returns a generic adapter) or Mullvad Browser (WebGPU disabled by default).
+- 🟢 In Firefox, set `dom.webgpu.enabled` to `false` if you do not use any WebGPU site.
+- 🔴 In Chrome there is no good answer; the API ships with no privacy switch.
+
+## What doesn't help
+
+A VPN. Spoofing extensions, since they cannot intercept the WebGPU bridge.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

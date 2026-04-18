@@ -1,0 +1,41 @@
+---
+title: Installed font enumeration
+description: The list of fonts on your machine is one of the highest-entropy passive identifiers. Sites read it without asking.
+family: fingerprint
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - canvas-fingerprinting
+  - webgl-fingerprinting
+---
+
+> **TL;DR.** Your installed-font list reflects every program you have ever installed: Microsoft Office adds dozens, Adobe adds hundreds, every game adds a few. The list is high-entropy and stable.
+
+A script does not need a permission prompt to enumerate it. There are at least three reliable techniques and browsers patch them slowly.
+
+## How it works
+
+The classic method: render a string in a known fallback font, measure the bounding box, then render it in the candidate font and measure again. If the boxes differ, the candidate font is installed. Loop over a list of 5,000 candidate fonts and you get a per-machine bitmap.
+
+The CSS Font Loading API offers a faster route. The newer `queryLocalFonts()` requires permission, which is the right design and is why most fingerprinters still use the measurement trick.
+
+## What it leaks about you
+
+Your OS, your locale (CJK fonts give you away), every Office or design suite you have installed, sometimes specific niche software (game fonts, accessibility fonts).
+
+## How to defend
+
+- 🟢 Use Tor Browser, which restricts fonts to a hardcoded shortlist.
+- 🟢 Firefox FPP returns a fixed font list to scripts that probe.
+- 🟡 In Brave, fingerprinting protection farbles font measurements per session.
+- 🔴 On Linux, run a containerized browser (Bubblewrap, Flatpak) with only its bundled fonts.
+
+## What doesn't help
+
+Uninstalling fonts you do not use. Even small lists are high-entropy and your OS-shipped defaults are not uniform across versions.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

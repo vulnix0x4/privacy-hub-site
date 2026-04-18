@@ -1,0 +1,40 @@
+---
+title: Speech synthesis voices
+description: The list of TTS voices on your device is a per-OS, per-language identifier readable without permission.
+family: fingerprint
+severity: medium
+prevalence: common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - media-devices
+  - navigator-properties
+---
+
+> **TL;DR.** A script calls `speechSynthesis.getVoices()` and gets an array of every text-to-speech voice your OS has installed. Apple, Google, Microsoft, and third-party packs each install their own; the list is unique per machine.
+
+Low entropy on its own, real entropy when joined to the others.
+
+## How it works
+
+The Web Speech API exposes a list of voices: name, lang, default, localService. On macOS that is dozens of Apple voices plus any you downloaded for Accessibility. On Windows it is the SAPI voice list, which depends on installed language packs. On Linux it is whatever your speech-dispatcher backend has loaded.
+
+No permission gate. No prompt. The list is read via JavaScript on page load, no user action required.
+
+## What it leaks about you
+
+Your OS family and version, your installed language packs (so likely your real language), and any accessibility tools you have configured.
+
+## How to defend
+
+- 🟢 Use Tor Browser or Mullvad Browser, which return an empty or fixed voice list.
+- 🟡 In Firefox, the `media.webspeech.synth.enabled` flag disables the API entirely (about:config).
+- 🔴 Run a containerized browser with no system speech backend.
+
+## What doesn't help
+
+A VPN. The voice list is local OS state.
+
+## Try it
+
+[See your own value -&gt;](/en/scan)

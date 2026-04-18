@@ -1,0 +1,41 @@
+---
+title: WebGL renderer & parameters
+description: WebGL hands any script your exact GPU model and driver version. That is high-entropy, stable, and visible without permission.
+family: fingerprint
+severity: critical
+prevalence: very-common
+in_scanner: true
+last_verified: 2026-04-18
+related:
+  - canvas-fingerprinting
+  - webgpu-fingerprinting
+  - audio-fingerprinting
+---
+
+> **TL;DR.** A site asks WebGL `getParameter(UNMASKED_RENDERER_WEBGL)` and gets back something like "ANGLE (NVIDIA GeForce RTX 3070 Direct3D11)". That string plus the OpenGL extension list narrows you to a handful of machines on the planet.
+
+Combined with canvas fingerprinting, this is the single most damaging passive identifier in the modern web.
+
+## How it works
+
+WebGL exposes a debug extension named `WEBGL_debug_renderer_info` that returns the unmasked GPU vendor and renderer string. The full list of supported extensions, max texture size, max render buffer size, anisotropy support, and shading-language version all add entropy. Then a script renders a 3D scene off-screen and hashes the pixels, which is canvas fingerprinting on hard mode (more variation per machine).
+
+Cloudflare, Akamai, FingerprintJS, and every modern ad-tech SDK read these. The WebGL hash plus the canvas hash is, in the open-data Panopticlick-class studies, enough to uniquely identify well over 99 percent of users.
+
+## What it leaks about you
+
+Your GPU, your driver version, your OS GPU stack, and indirectly your machine model (laptop vs. desktop, integrated vs. discrete graphics).
+
+## How to defend
+
+- 🟢 Use Tor Browser or Mullvad Browser, which return a uniform renderer string.
+- 🟢 Firefox FPP (privacy.resistFingerprinting or the gentler privacy.fingerprintingProtection) farbles the WebGL parameters.
+- 🟡 Disable WebGL entirely if you do not need it (about:config webgl.disabled in Firefox). Some sites break.
+
+## What doesn't help
+
+A VPN. Disabling JavaScript on a per-site basis (you will turn it back on for the next site and re-leak).
+
+## Try it
+
+[See your own value -&gt;](/en/scan)
