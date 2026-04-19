@@ -6,6 +6,7 @@ last_verified: 2026-04-18
 related:
   - parent-online
   - domestic-abuse-survivor
+jurisdiction_note: Legal rights as a minor vary enormously by US state and by country. Some jurisdictions restrict access to gender-affirming care, therapy, and certain online communities for minors without parental consent. The Trevor Project crisis line at 1-866-488-7386 has staff who know the specifics of most US states and can route you to local legal-aid organisations when needed. Lambda Legal handles strategic litigation and has a help desk. This is technical privacy guidance, not legal advice.
 playlist:
   - type: category
     slug: messaging
@@ -30,20 +31,68 @@ playlist:
     why: Pseudonymous social accounts, completely separate from the family-known ones.
 ---
 
-> **TL;DR.** The Trevor Project's crisis line is 1-866-488-7386 and they take text and chat. That is the most important number on this page. The rest is how to keep your existence online from ending up as a screenshot held up at the dinner table.
+> **TL;DR.** The Trevor Project's crisis line is 1-866-488-7386 and they take text (text START to 678678) and chat. That is the most important number on this page. The rest is how to keep your existence online from ending up as a screenshot held up at the dinner table.
 
-## Threat picture
+## The threat picture
 
-Household actors with administrative access to the WiFi, sometimes the device, sometimes the Apple ID or Google account, and almost always more informal surveillance (walking past the screen, picking up an unlocked phone). The goal is to reduce the surface area they can look at without having to lie outright about using a phone.
+Household actors with a mix of administrative access (the WiFi router, sometimes the device itself, sometimes the Apple ID or Google account on the family plan) and informal surveillance (walking past the screen, picking up an unlocked phone, asking to see your messages "as a check-in"). The adversary is not a trained investigator but is often physically present, emotionally invested, and in some cases willing to escalate — restrict device use, remove the phone, install monitoring software, or act on what they discover.
 
-## What you get from this playlist
+Specific surveillance patterns documented by youth-serving orgs:
 
-A compartmentalized second identity that lives on your phone: different email, different social, different chat history. The family-visible layer stays boring. Your real communications live in Signal with disappearing messages, and nothing survives a phone scroll.
+- **Family-plan iCloud or Google One.** The organiser sees app-install notifications, purchase history, location of every device on the plan, and can remotely see some iCloud content.
+- **"Screen Time" parental controls on iOS / "Family Link" on Android.** These can log which apps are used, for how long, and in some configurations every URL visited.
+- **Router-level logs.** Home routers — especially ISP-issued ones — log every DNS request by default. A parent with admin access to the router sees what sites every device visited.
+- **Monitoring software.** Bark, Aura, and similar products are marketed to parents and scan messages, photos, and browser history for keywords. They produce reports.
+- **Casual phone pickup.** The single most common pattern. A parent who picks up an unlocked phone sees open Discord DMs, a Signal conversation, a browser tab.
+- **Shared streaming / social accounts.** Watch history on Netflix or YouTube on a shared profile, follow-and-like patterns on a shared Spotify, TikTok feed tuned to an algorithm that reflects your interests.
 
-## Notes from real people
+## What you're optimising for
 
-Kids who have done this say the decisive move is a password-locked phone with biometric disabled. In a hostile household, biometrics get compelled. A long memorized passcode does not.
+A compartmentalized second identity that lives on your phone, does not cross-contaminate the family-visible layer, and survives casual inspection. The target is not "the parents never find out" at any cost — that is often not sustainable, and safety sometimes requires being able to tell them on your own terms. The target is that the *finding out* happens when and how you decide, not because a router log surfaced a URL or a family iCloud notification pinged.
+
+A secondary optimisation: preserve the community and support you have. Locking yourself out of Trevor's chat, Q Chat Space, or your Discord server "to be safe" is overcorrection. The goal is to keep those channels and make them survive casual scrutiny.
+
+## The playlist
+
+Signal with disappearing messages first, because a parent scrolling your phone finds nothing in a Signal chat set to one-hour disappearing. Brave (or Firefox) with private-window-only browsing and history cleared on close, plus an innocuous homepage that does not tell a story. A Proton inbox that exists only on your phone — never logged in on the family laptop, never synced to the family iCloud Mail.
+
+Password manager discipline: a separate Bitwarden account that is not on the family plan, with a master password nobody in the household knows or could guess. Permissions audit to find and decline every family-sharing invite that Apple or Google silently re-suggests after OS updates. VPN or school-WiFi use so the family router does not log the exact sites. Pseudonymous social accounts for community and for follows that do not match the real-name public persona.
+
+An order-of-operations point that matters: disable biometric unlock on the phone before any of this becomes sensitive. A long memorized passcode is the only unlock a parent cannot realistically compel; Face ID and fingerprint unlock happen fast and casually. Many youth who have done this successfully describe the biometric-off decision as the single most protective move.
+
+## Where it gets hard
+
+**Family plans are sticky.** Removing yourself from the Apple Family or Google Family plan is a visible action that the organiser gets notified about. In some households that notification itself is the risk. The advocate-approved alternative: accept that some activity will show up in family-visible logs, and shift the sensitive activity to Signal and private-window browsing which are visible less.
+
+**Monitoring software cannot be fully defeated from the client side.** If Bark or similar is installed on the device by the account organiser, app-level tools you add do not override it. At that point, the practical options are: a separate device the family does not know about (if you can afford it), using a friend's device or a school-issued device for sensitive conversations, or waiting until you have more autonomy.
+
+**Physical-pickup risk.** The single most common leak vector is not a log, it is a parent picking up the phone. Screen-timeout short, passcode complex, biometrics off, notifications on lock screen showing minimal preview.
+
+**Legal rights as a minor vary.** The right to medical privacy, to access certain websites, to open an account, and to refuse parental inspection of a device differ by state, by age, and by specific category. A 17-year-old's rights are different from a 14-year-old's. The Trevor Project, Lambda Legal, and local LGBTQ+ legal-aid orgs can clarify for your specific state.
+
+**Escalation risk is real.** In households where being out would meaningfully endanger you — including conversion-therapy pressure, physical violence, or housing loss — some of the "normal" advice (confide in a trusted adult, document the abuse) can backfire. The Trevor Project crisis line staff are trained on this specifically.
+
+## Real-world notes
+
+The Trevor Project (1-866-488-7386, text START to 678678, chat via thetrevorproject.org) is the 24/7 US crisis line for LGBTQ+ youth and has staff trained on both mental-health crisis and the specific technology-abuse patterns of hostile households. Their TrevorSpace is a moderated youth community that does not require parental account visibility.
+
+Lambda Legal (lambdalegal.org) runs strategic litigation for LGBTQ+ rights and has a help desk that routes to local legal-aid orgs for specific state-level questions — minor access to care, school policy, family law. Q Chat Space (qchatspace.org), run by CenterLink, is a moderated chat community for LGBTQ+ youth 13-19. GLSEN covers school-policy terrain and publishes resources for youth dealing with school-based surveillance or discrimination.
+
+It Gets Better Project, PFLAG (for supportive family networks when families are supportive), and the True Colors United program (focused on LGBTQ+ youth homelessness) all publish resources that cover the adjacent terrain this technical playlist does not.
+
+On the tech-specific side, Digital Defense Fund and EFF both publish LGBTQ+-youth-relevant guidance on device privacy. Signal's own documentation on PINs, safety numbers, and disappearing messages is worth reading through once rather than trusting the defaults.
 
 ## What we don't cover here
 
-Legal rights as a minor. Those vary enormously by state and country. The Trevor Project's hotline (1-866-488-7386) and Lambda Legal (https://lambdalegal.org) are both places with staff who know the specifics of your jurisdiction. Call them; do not try to work out your state's law from a forum post.
+- Mental-health crisis support. Trevor Project, Crisis Text Line (text HOME to 741741), and Trans Lifeline (1-877-565-8860) are the specialised resources.
+- Runaway planning or housing. National Runaway Safeline (1-800-786-2929) and True Colors United cover this.
+- Legal emancipation, minor-consent law for medical care, and school-policy navigation. Lambda Legal help desk and local LGBTQ+ legal-aid orgs.
+
+## Next steps
+
+- Save The Trevor Project chat (thetrevorproject.org), crisis line (1-866-488-7386), and text (START to 678678) somewhere they survive a phone wipe.
+- Turn off biometric unlock and set a long passcode before anything else on this list. That single change defeats the most common household-inspection vector.
+- Read Q Chat Space's own safety guidance before joining; they have clear opsec advice for users in hostile households.
+
+---
+last_verified: 2026-04-18

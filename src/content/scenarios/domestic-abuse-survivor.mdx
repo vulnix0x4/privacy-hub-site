@@ -6,7 +6,7 @@ last_verified: 2026-04-18
 related:
   - creator-with-stalker
   - lgbtq-youth
-jurisdiction_note: If you are in the United States, the National Domestic Violence Hotline is 1-800-799-7233 (SAFE). In the UK, Refuge is 0808 2000 247. Internationally, Hot Peach Pages (https://hotpeachpages.net) lists hotlines by country. If you are in immediate danger, 911 or your local equivalent comes first. A paid advocate through one of these services will have done this process with hundreds of people; use that expertise.
+jurisdiction_note: If you are in the United States, the National Domestic Violence Hotline is 1-800-799-7233 (SAFE) and takes text (text START to 88788) and chat. In the UK, Refuge is 0808 2000 247. Internationally, the Hot Peach Pages directory at hotpeachpages.net lists hotlines by country. If you are in immediate danger, 911 or your local equivalent comes first. A paid advocate through one of these services will have done this process with hundreds of people; use that expertise.
 playlist:
   - type: basics
     slug: threat-modeling
@@ -33,18 +33,78 @@ playlist:
 
 > **TL;DR.** This is not a do-it-yourself project. Work with an advocate. The National Domestic Violence Hotline at 1-800-799-7233 has a team trained in exactly this. They will walk you through device triage and will know the local shelters and legal-aid resources.
 
-## Threat picture
+## The threat picture
 
-An abusive partner often has administrative access to shared devices, router, cloud accounts, the kids' devices, and the car's companion app. Modern cars share location with whoever is on the account. "Find My" networks cover AirTags hidden in a bag. Stalkerware is commercial and installed easily. Assume anything you have ever shared is readable by them.
+An abusive partner is not an ordinary adversary. They usually have administrative access you would not grant an adversary: shared devices, the home router, cloud accounts, the kids' devices, joint email accounts, the car's companion app, the family iCloud plan. Modern cars share location with whoever is on the account; "Find My" networks cover AirTags hidden in a bag or a coat lining; modern TVs log viewing history; smart-home devices (Nest, Ring, Alexa) record presence. Stalkerware is a commercial product that installs in under five minutes on an unlocked phone and forwards texts, locations, and browser history to a web dashboard the installer controls. Assume anything you have ever shared, mentioned, or stored is readable by them.
 
-## What you get from this playlist
+The physical and emotional threat layer compounds everything. An adversary who sees a password change or a device swap and responds by escalating violence is different from an adversary who sees the same thing and responds by hiring a lawyer. Device triage sequenced wrong — changing passwords on the old phone, turning off location sharing before you are physically safe, packing a documented bag while stalkerware is still live — can trigger that escalation. This is why the single most important item on this page is working with an advocate through NDVH, NNEDV's Safety Net program, or a local shelter.
 
-A clean-break posture: a new device, a new email, new passwords, new payment rails. Not invisibility, which may be out of reach. Enough separation to receive services, hold a job, and communicate with a lawyer without the partner detecting or disrupting it.
+Specific technology-facilitated abuse patterns documented by NNEDV Safety Net:
 
-## Notes from real people
+- **Stalkerware on the primary phone.** Commercial products (mSpy, FlexiSpy, pcTattletale, Cocospy) forward messages, calls, keystrokes, and GPS to the installer's dashboard. Factory-reset-resistant in some installations.
+- **AirTag and tile-tracker placement.** In vehicles, bags, coat linings, children's backpacks. iOS and Android now surface "unknown AirTag travelling with you" alerts, but detection is imperfect.
+- **Joint-account surveillance.** Shared iCloud, shared Google, shared Microsoft, shared bank. Every receipt, every location history, every backup is readable.
+- **Family iCloud / Google Family presence signals.** "Last seen" dots, location sharing, purchase history.
+- **Car telematics.** Modern connected cars share location, speed, and door-open events with the account holder through the manufacturer app.
+- **Smart-home logs.** Ring doorbells, Nest thermostats, and Alexa all log presence patterns.
+- **Breadcrumb forensics.** A new Uber account, a new coffee-shop WiFi login, a new grocery-store loyalty account on the shared card — any of these can triangulate a new location.
 
-Advocates say the single most common mistake is changing passwords on the old phone. The stalkerware app captures the new password immediately. Use a clean device from the first moment, and assume the old device is compromised until an advocate helps you triage it.
+## What you're optimising for
+
+A clean-break posture and a sequence that minimises escalation risk. New device first, new accounts on that device, financial separation before visible account changes, physical safety throughout. Not invisibility — that may be out of reach long-term — but enough separation to receive services, hold a job, communicate with a lawyer, and maintain custody of children without the partner detecting or disrupting it.
+
+The sequence matters enormously. Done in the wrong order, the same list of tools can tip off the partner and escalate the situation. Done with an advocate, the same list is the standard playbook that has worked for tens of thousands of survivors.
+
+## The playlist
+
+The exact sequence should come from your advocate; what follows is the general shape. Threat-modelling with the advocate first: which devices the partner controls, which accounts are joint, whether stalkerware is installed, whether the old phone needs to stay in normal use while the new one is set up quietly.
+
+Clean phone next: a new device the partner does not know about, purchased in a way that does not appear on a shared credit card or a shared phone plan. This becomes the device you use for the hotline, the lawyer, the landlord, the new bank, the new email — nothing from this phone should ever touch an account the partner has administrative access to.
+
+Password manager on the clean device with all new passwords, new email alias on Proton (also on the clean device only), burner number for calls that are not ready to use the new permanent number, VPN once the new home is set up, and masked cards for payment trails. Do not change passwords from the old phone. Do not log into the new accounts from the family computer. Do not pair the clean phone with the shared car.
+
+Specific discipline points:
+
+- **Biometric off on the clean phone.** Compelled unlock is a real concern.
+- **No "family sharing" anything on the new device.** Not iCloud, not Google One, not Amazon household.
+- **Location services review.** Every app, every OS-level "share location with family" toggle.
+- **AirTag sweep.** iOS has "Items found moving with you" under Find My; Android has "Unknown tracker alerts" in Google Play Services. Do both.
+- **Car app review.** If the car is shared, assume the partner sees location. Consider dropping the car app account entirely from your side.
+
+## Where it gets hard
+
+**Shared devices survive every reset.** A partner who had admin access to a laptop and has the Apple ID password can restore a full backup onto a new device and keep reading your data. A factory reset alone does not fix this; you need new accounts, not just new hardware.
+
+**Cloud-sync leaks backward.** If your old iCloud is the one you log into on the new phone, everything on the new phone syncs up to the account the partner can read. The new phone must use a new Apple ID or Google account, period.
+
+**The old phone cannot be trusted, at all, from the moment you suspect stalkerware.** Do not type new passwords into it; do not open new accounts on it; do not use it to check if the new accounts work. An advocate can help you decide when and how to triage or replace it.
+
+**Children's devices are vectors.** A kid's iPad on the family plan logs the kid's location, which logs yours when you are together. Dropping the kid off the family plan has custody-law implications that your lawyer needs to weigh in on.
+
+**Credit reports and shared utilities.** A new apartment, a new phone bill, a new utility account can show up on the shared credit-monitoring view the partner has access to. This is where masked cards, Privacy.com, and a new bank relationship at a different bank than the shared one all matter.
+
+## Real-world notes
+
+NNEDV's Safety Net program (techsafety.org) is the canonical technical-abuse resource. They publish survivor-specific guides for iPhone, Android, social media, and smart-home devices, and they train advocates at local shelters. The "A Safe Exit from Tech Abuse" workbook is free and thorough.
+
+Operation Safe Escape (safeescape.org) runs opsec-focused support specifically for survivors, with volunteers who have backgrounds in security and domestic-violence advocacy. The Coalition Against Stalkerware (stopstalkerware.org) coordinates AV-vendor detection across Kaspersky, Malwarebytes, Avast, and ESET and maintains a public list of stalkerware families.
+
+National Domestic Violence Hotline (1-800-799-7233, text START to 88788, thehotline.org) staffs 24/7. Hot Peach Pages (hotpeachpages.net) maintains the international directory. The Clinic to End Tech Abuse at Cornell Tech provides free forensic consultations for NYC-area survivors and publishes research that has shaped the field.
+
+Advocates who have done this hundreds of times are unanimous on the order-of-operations point: the single most common mistake is changing passwords on the old phone, because the stalkerware app captures the new password immediately. Use a clean device from the first moment, and assume the old device is compromised until an advocate helps you triage it.
 
 ## What we don't cover here
 
-Custody, legal protective orders, or shelter logistics. Those go through your advocate and your lawyer. The Safety Net project at NNEDV (https://nnedv.org/content/safety-net) publishes technology-safety resources specifically for survivor services.
+- Custody, legal protective orders, or shelter logistics. Those go through your advocate and your lawyer.
+- Financial separation beyond the privacy layer. NNEDV's Economic Empowerment program, FreeFrom, and The Allstate Foundation's financial-abuse resources cover this.
+- Immigration implications of leaving. VAWA (Violence Against Women Act) self-petition pathways and U-visa options need a specialist immigration attorney.
+- Support for male and LGBTQ+ survivors. All the resources above serve all survivors; The Network/La Red (tnlr.org) specializes in LGBTQ+ intimate partner abuse.
+
+## Next steps
+
+- Call NDVH (1-800-799-7233) or text START to 88788 before any technical step. Their advocates will route you to local resources and know the current stalkerware landscape.
+- Read NNEDV Safety Net's "A Safe Exit from Tech Abuse" workbook before purchasing a new phone.
+- If you suspect stalkerware and have time, Coalition Against Stalkerware's scanner tools can confirm. Operation Safe Escape can help with triage if the situation is urgent.
+
+---
+last_verified: 2026-04-18

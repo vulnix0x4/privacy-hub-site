@@ -6,7 +6,7 @@ last_verified: 2026-04-18
 related:
   - domestic-abuse-survivor
   - lgbtq-youth
-jurisdiction_note: Abortion law in the United States varies dramatically by state after Dobbs (2022). Several states treat self-managed abortion, helping someone cross state lines, or receiving abortion medication by mail as potentially prosecutable. The Repro Legal Helpline at 1-844-868-2812 is free, confidential, and run by If/When/How; they have attorneys familiar with state-by-state specifics. Call them before acting, not after.
+jurisdiction_note: Abortion law in the United States varies dramatically by state after Dobbs (2022). Several states treat self-managed abortion, helping someone cross state lines, or receiving abortion medication by mail as potentially prosecutable; a growing number criminalise specific conduct beyond the procedure itself. The Repro Legal Helpline at 1-844-868-2812 is free, confidential, and run by If/When/How; they have attorneys familiar with state-by-state specifics. Call them before acting, not after.
 playlist:
   - type: category
     slug: messaging
@@ -33,18 +33,63 @@ playlist:
 
 > **TL;DR.** Call the Repro Legal Helpline at 1-844-868-2812 first. They are free, they are confidential, they know your state's specifics. The rest of this list is general hygiene to reduce the digital footprint of whatever you decide to do; it does not replace legal advice.
 
-## Threat picture
+## The threat picture
 
-Prosecutions so far have relied on Facebook Messenger logs, Google search history, and unencrypted SMS. At least two US prosecutions have used period-tracker data. The threat is prosecutorial subpoena of the big tech companies, plus civil bounty actions in states that allow them. The goal is to not be the easy case.
+The adversary is a prosecutor with subpoena power, not a hacker. In every post-Dobbs prosecution of abortion-related conduct on record, the evidence pattern has been the same: subpoena Facebook or Google for message history, search history, and location data; subpoena the ISP for IP logs; subpoena the period-tracker app for cycle data; correlate. The 2022 Nebraska case where a mother was prosecuted based on Facebook Messenger logs that she had forgotten existed is the canonical pattern — the investigator asked Meta for the messages and Meta handed them over under the subpoena.
 
-## What you get from this playlist
+Specific adversary capabilities in 2026:
 
-A searching-and-coordinating workflow that leaves minimal subpoena-able evidence: encrypted messaging that does not log content, search history that does not link back to a Google account, encrypted email between you and the provider.
+- **Platform subpoena response.** Google, Meta, Apple, Microsoft all comply with lawful subpoenas; "lawful" includes state-court warrants in states that criminalise abortion. Platforms publish transparency reports but do not resist subpoenas they consider compliant.
+- **Period-tracker data.** Stardust, Flo, Clue, and others have varying commitments and varying actual practices. At least one tracker cooperated with a subpoena before 2022; several have restructured since. Assume any tracker that stores cycle data server-side is compellable.
+- **Geofence and reverse-location warrants.** Police request all devices at a location at a time; Google's Sensorvault has been the primary data source. Used in abortion-adjacent investigations in multiple states.
+- **Civil bounty statutes.** Texas SB 8 and its descendants allow private civil actions against anyone "aiding and abetting" an abortion; discovery in those suits reaches messages, email, and payment records.
+- **Cross-state prosecution.** Several states assert jurisdiction over residents who travel for care. The legal terrain here is unsettled and moving.
 
-## Notes from real people
+A specific non-threat worth calling out: the FBI is not watching you personally. The pattern is reactive prosecution based on tips and complaints, not proactive surveillance. The threat is leaving behind artifacts that are easy to subpoena after a tip.
 
-Repro advocates say the hardest advice to follow is to not use your personal phone for the research phase. A public-library computer, a clean burner, or a trusted friend's device for the searches alone removes the biggest evidentiary source.
+## What you're optimising for
+
+Plausible deniability and no long-term breadcrumbs pointing at the procedure. Not "vanish from the internet" and not "outsmart every possible forensic technique." The realistic target: if a prosecutor later subpoenas the obvious providers (Google, Meta, your ISP, your period tracker, your bank), they find nothing that connects you to the specific care. The information you typed, the apps you installed, and the money you spent should all be on channels that are either not compellable or not identifying.
+
+Secondary: do not generate evidence against the people helping you. A friend who drives you across state lines, a funder who helps pay, a clinician who provides care — their exposure depends on your opsec more than theirs.
+
+## The playlist
+
+Signal first, because the single biggest evidentiary source in post-Dobbs prosecutions has been message logs. Signal with disappearing messages on an aggressive timer — a day, sometimes an hour — is the channel for anything substantive. Never Messenger, Instagram DMs, or SMS. Hardened browser (Brave, Firefox with ETP strict, or Tor Browser for the research phase specifically) with a Google-account-logged-out session for any searching. IP geolocation defence via VPN so the search history cannot be pinned to your home IP even if the searches themselves leak through a tool you missed.
+
+Email between you and any provider goes Proton-to-Proton, which is end-to-end encrypted at rest on both ends. Payments via Privacy.com masked cards so the statement shows "Privacy.com" rather than a specific clinic or medication provider. Permissions audit so that the apps on your phone which do not need your location do not have it — and specifically, revoke period-tracker data access or move to a local-only tracker like Drip or Euki.
+
+An order-of-operations specific to this scenario: do the research phase from a device, account, or browser profile that is not linked to your normal identity. A public-library computer, a friend's clean device, or a guest profile on a borrowed laptop removes the single biggest subpoena source (your Google account's search history tied to your IP) entirely. Repro advocates have landed on this as the single most protective move you can make.
+
+## Where it gets hard
+
+**Shared devices and household visibility.** A parent, partner, or roommate scrolling your phone is a realistic threat. Signal on a pattern-unlocked phone with disappearing messages helps; it does not help if someone has your unlock code. Biometrics on in a household where someone else has physical access is a meaningful leak.
+
+**Period-tracker data persists.** Deleting the app does not delete server-side data. Several trackers let you request account deletion; do that, and move to a local-only tracker like Drip or Euki going forward.
+
+**Medication by mail.** Plan C pills and similar are legal in some states and criminalised in others, and the shipping trail (a specific return address, a specific carrier, a specific delivery time) is subpoena-able. Repro Legal Helpline has current, state-specific guidance.
+
+**Friends and helpers are the biggest human risk.** Anyone who helped — drove, funded, informed — is exposed through their own accounts unless they took the same precautions. Do not CC them on opsec, but do not share details they do not need.
+
+**Not everything is compellable, and not every prosecutor wins.** This list is about making prosecution harder, not about guaranteeing a particular legal outcome. The legal outcome is a lawyer question.
+
+## Real-world notes
+
+If/When/How runs the Repro Legal Helpline (1-844-868-2812) and is the single best resource for US-state-specific legal advice; their *Self-Care, Criminalized* report documents the prosecutorial landscape year by year. Repro Legal Defense Fund supports legal defence for people prosecuted for pregnancy outcomes. Digital Defense Fund (digitaldefensefund.org) publishes technical-privacy resources specifically for the abortion-access community; their guides have shaped most of the technical defaults in this playlist. Plan C (plancpills.org) covers medication access and its current state-by-state legality.
+
+On the technical side, Electronic Frontier Foundation's post-Dobbs guidance has been updated repeatedly and is linked from most reproductive-health org pages. The Digital Defense Fund's own tools list is the closest thing to a canonical technical reference for this specific threat model.
 
 ## What we don't cover here
 
-Medical or legal specifics. Plan C (https://www.plancpills.org) covers medication access; If/When/How runs the Repro Legal Helpline. This site does not know your state's law. They do.
+- Medical or legal specifics. Repro Legal Helpline for law; Plan C and the National Abortion Federation's helpline (1-800-772-9100) for care navigation.
+- Funding. National Network of Abortion Funds (abortionfunds.org) connects people to local funds; most accept donations through channels that work with Privacy.com masked cards.
+- In-clinic appointment opsec. Clinics know their own threat model better than any tool list; follow their guidance on what to bring and what not to.
+
+## Next steps
+
+- Call Repro Legal Helpline (1-844-868-2812) before any substantive step. Free, confidential, state-aware.
+- Delete period-tracker accounts server-side if you use one; switch to Drip or Euki going forward.
+- Save Digital Defense Fund's guides offline in case access gets harder later.
+
+---
+last_verified: 2026-04-18
