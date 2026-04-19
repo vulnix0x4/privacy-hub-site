@@ -1,169 +1,118 @@
 /**
- * Gather the six Ghost-hash inputs from the live browser.
- *
- * Intentionally self-contained: we don't drag the full scanner registry or
- * `stabilityProbe` in here. The Ghost Demo only needs one-shot reads of the
- * canvas, audio, UA, screen, timezone, and a short font list. That keeps
- * the island small and makes the code easy to reason about.
+ * Gather the Ghost-hash inputs from the live browser.
  *
  * Every helper is wrapped in try/catch: a missing API (Tor, Lockdown Mode,
- * private mode) should yield an empty-string placeholder rather than an
- * unhandled rejection. The hash just reflects whatever we could read.
+ * private mode, restrictive policy) should yield a sane default rather than
+ * an unhandled rejection. The hash just reflects whatever we could read.
+ *
+ * Every collected signal is deliberately chosen to survive Brave's per-
+ * session farbling (canvas / audio / fonts / UA minor version / hardware
+ * concurrency / device memory) and to remain stable across private-window
+ * boundaries on the same device.
  */
-import type { GhostHashInputs, ResilientHashInputs } from './computeGhostHash';
+import type { GhostHashInputs } from './computeGhostHash';
 import type { DetectionSignals } from '../../lib/scanner/detectBrowser';
 
 interface NavigatorWithBrave {
   brave?: { isBrave?: () => Promise<boolean> };
 }
 
-/**
- * Run a 220x30 canvas rasterisation and return its SHA-256 hex.
- *
- * Mirrors the shape of the scanner's canvas probe but is simplified: we
- * don't care about error differentiation, just a hash-or-empty result.
- */
-async function hashCanvas(): Promise<string> {
-  try {
-    if (typeof document === 'undefined') return '';
-    const canvas = document.createElement('canvas');
-    canvas.width = 220;
-    canvas.height = 30;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return '';
-    ctx.textBaseline = 'top';
-    ctx.font = '14px "Arial"';
-    ctx.fillStyle = '#f60';
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = '#069';
-    ctx.fillText('ghost \u{1F47B}', 2, 15);
-    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-    ctx.fillText('ghost \u{1F47B}', 4, 17);
-    return await sha256Hex(canvas.toDataURL('image/png'));
-  } catch {
-    return '';
-  }
+interface NavigatorUAData {
+  brands?: Array<{ brand: string; version: string }>;
+  mobile?: boolean;
+  platform?: string;
 }
 
 /**
- * Render 1s of a compressed oscillator into an OfflineAudioContext and hash
- * the mid-slice sum. Identical method to the scanner's audio probe.
+ * The ordered list of feature-detection probes that feed the `features`
+ * bitmap. Bit N is set if the corresponding check returns truthy. Order
+ * must stay frozen — changing it changes every existing user's hash.
  */
-async function hashAudio(): Promise<string> {
-  try {
-    const OAC =
-      (globalThis as unknown as { OfflineAudioContext?: typeof OfflineAudioContext })
-        .OfflineAudioContext ??
-      (globalThis as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
-        .webkitOfflineAudioContext;
-    if (!OAC) return '';
-    const ctx = new OAC(1, 44100, 44100);
-    const oscillator = ctx.createOscillator();
-    oscillator.type = 'triangle';
-    oscillator.frequency.value = 10_000;
-    const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -50;
-    compressor.knee.value = 40;
-    compressor.ratio.value = 12;
-    compressor.attack.value = 0;
-    compressor.release.value = 0.25;
-    oscillator.connect(compressor);
-    compressor.connect(ctx.destination);
-    oscillator.start(0);
-    const rendered = await ctx.startRendering();
-    const data = rendered.getChannelData(0);
-    const sliceEnd = Math.min(data.length, 45_000);
-    const sliceStart = Math.max(0, sliceEnd - 1000);
-    let acc = 0;
-    for (let i = sliceStart; i < sliceEnd; i++) {
-      acc += Math.abs(data[i] ?? 0);
-    }
-    return await sha256Hex(acc.toFixed(6));
-  } catch {
-    return '';
-  }
-}
-
-/** Same short allow-list the scanner uses, capped to the 30 design-doc specifies. */
-const CANDIDATE_FONTS = [
-  'Arial',
-  'Helvetica',
-  'Times New Roman',
-  'Courier New',
-  'Verdana',
-  'Georgia',
-  'Comic Sans MS',
-  'Trebuchet MS',
-  'Arial Black',
-  'Impact',
-  'Tahoma',
-  'Palatino',
-  'Garamond',
-  'Bookman',
-  'Avant Garde',
-  'Andale Mono',
-  'Calibri',
-  'Cambria',
-  'Consolas',
-  'Segoe UI',
-  'Optima',
-  'Futura',
-  'Geneva',
-  'Lucida Console',
-  'Lucida Sans',
-  'Monaco',
-  'Helvetica Neue',
-  'San Francisco',
-  'SF Pro',
-  'Inter',
+const FEATURE_PROBES: ReadonlyArray<{ name: string; check: () => boolean }> = [
+  { name: 'serviceWorker', check: () => typeof navigator !== 'undefined' && 'serviceWorker' in navigator },
+  { name: 'indexedDB', check: () => typeof indexedDB !== 'undefined' },
+  {
+    name: 'webGL',
+    check: () => {
+      try {
+        if (typeof document === 'undefined') return false;
+        const c = document.createElement('canvas');
+        return !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
+      } catch {
+        return false;
+      }
+    },
+  },
+  { name: 'webGPU', check: () => typeof navigator !== 'undefined' && 'gpu' in navigator },
+  {
+    name: 'audioContext',
+    check: () =>
+      typeof globalThis !== 'undefined' &&
+      (typeof (globalThis as { OfflineAudioContext?: unknown }).OfflineAudioContext !==
+        'undefined' ||
+        typeof (globalThis as { webkitOfflineAudioContext?: unknown })
+          .webkitOfflineAudioContext !== 'undefined'),
+  },
+  {
+    name: 'speechSynthesis',
+    check: () => typeof window !== 'undefined' && 'speechSynthesis' in window,
+  },
+  { name: 'bluetooth', check: () => typeof navigator !== 'undefined' && 'bluetooth' in navigator },
+  {
+    name: 'gamepad',
+    check: () => typeof navigator !== 'undefined' && 'getGamepads' in navigator,
+  },
+  {
+    name: 'wakeLock',
+    check: () => typeof navigator !== 'undefined' && 'wakeLock' in navigator,
+  },
+  { name: 'share', check: () => typeof navigator !== 'undefined' && 'share' in navigator },
+  {
+    name: 'clipboard',
+    check: () => typeof navigator !== 'undefined' && 'clipboard' in navigator,
+  },
+  {
+    name: 'geolocation',
+    check: () => typeof navigator !== 'undefined' && 'geolocation' in navigator,
+  },
+  {
+    name: 'deviceOrientation',
+    check: () => typeof window !== 'undefined' && 'DeviceOrientationEvent' in window,
+  },
+  {
+    name: 'webCrypto',
+    check: () =>
+      typeof globalThis !== 'undefined' && !!globalThis.crypto && !!globalThis.crypto.subtle,
+  },
+  {
+    name: 'credentials',
+    check: () => typeof navigator !== 'undefined' && 'credentials' in navigator,
+  },
+  { name: 'usb', check: () => typeof navigator !== 'undefined' && 'usb' in navigator },
+  { name: 'serial', check: () => typeof navigator !== 'undefined' && 'serial' in navigator },
+  { name: 'hid', check: () => typeof navigator !== 'undefined' && 'hid' in navigator },
+  {
+    name: 'pushManager',
+    check: () => typeof window !== 'undefined' && 'PushManager' in window,
+  },
+  {
+    name: 'payment',
+    check: () => typeof window !== 'undefined' && 'PaymentRequest' in window,
+  },
 ] as const;
 
-const BASELINE_FONTS = ['monospace', 'sans-serif', 'serif'] as const;
+export const FEATURE_NAMES: readonly string[] = FEATURE_PROBES.map((p) => p.name);
 
-/**
- * Simplified font-enumeration. Detects installed fonts by measuring text-width
- * deltas against three fallback families. Returns the raw names — the hash
- * module sorts + caps to 30.
- */
-function detectFonts(): string[] {
-  if (typeof document === 'undefined' || !document.body) return [];
-  try {
-    const span = document.createElement('span');
-    span.textContent = 'mmmmmmmmmmlli';
-    span.style.position = 'absolute';
-    span.style.left = '-9999px';
-    span.style.top = '-9999px';
-    span.style.fontSize = '72px';
-    span.style.visibility = 'hidden';
-    document.body.appendChild(span);
+function computeFeatureBitmap(): number {
+  let b = 0;
+  for (let i = 0; i < FEATURE_PROBES.length; i++) {
     try {
-      const baselineWidths: Record<string, number> = {};
-      for (const base of BASELINE_FONTS) {
-        span.style.fontFamily = base;
-        baselineWidths[base] = span.getBoundingClientRect().width;
-      }
-      const installed: string[] = [];
-      for (const font of CANDIDATE_FONTS) {
-        for (const base of BASELINE_FONTS) {
-          span.style.fontFamily = `"${font}", ${base}`;
-          const w = span.getBoundingClientRect().width;
-          if (w !== baselineWidths[base]) {
-            installed.push(font);
-            break;
-          }
-        }
-      }
-      return installed;
-    } finally {
-      try {
-        document.body.removeChild(span);
-      } catch {
-        // ignore teardown race
-      }
+      if (FEATURE_PROBES[i]!.check()) b |= 1 << i;
+    } catch {
+      // leave bit unset on any throw
     }
-  } catch {
-    return [];
   }
+  return b;
 }
 
 function timezone(): string {
@@ -174,39 +123,78 @@ function timezone(): string {
   }
 }
 
-/** Assemble the six-field input vector for {@link computeGhostHash}. */
-export async function collectGhostInputs(): Promise<GhostHashInputs> {
-  const [canvas, audio] = await Promise.all([hashCanvas(), hashAudio()]);
-  const fonts = detectFonts();
-  return {
-    canvas,
-    audio,
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
-    screen: [
-      typeof screen !== 'undefined' ? screen.width : 0,
-      typeof screen !== 'undefined' ? screen.height : 0,
-      typeof window !== 'undefined' ? window.devicePixelRatio ?? 1 : 1,
-    ] as [number, number, number],
-    timezone: timezone(),
-    fonts,
-  };
+function timezoneOffset(): number {
+  try {
+    return new Date().getTimezoneOffset();
+  } catch {
+    return 0;
+  }
 }
 
-/**
- * Gather the four resilient signals that survive Brave's per-session farbling:
- * timezone, primary language, OS platform, and screen dimensions. No network
- * fetch — all pure client-side reads.
- */
-export function collectResilientInputs(): ResilientHashInputs {
+function uaBrand(ua: string, uaData: NavigatorUAData | undefined): string {
+  // Prefer UA-CH brands where available (non-Blink browsers typically lack
+  // this; that's fine — we fall through to UA regex).
+  const brands = uaData?.brands ?? [];
+  for (const b of brands) {
+    // Skip the "Not*A*Brand" / GREASE entries.
+    if (/not.*brand/i.test(b.brand)) continue;
+    if (/chromium/i.test(b.brand)) continue; // prefer derivative brand over Chromium
+    return b.brand;
+  }
+  if (/LibreWolf/i.test(ua)) return 'LibreWolf';
+  if (/Edg\//.test(ua)) return 'Edge';
+  if (/OPR\//.test(ua)) return 'Opera';
+  if (/Firefox/.test(ua)) return 'Firefox';
+  if (/Safari/.test(ua) && !/Chrome|Chromium/.test(ua)) return 'Safari';
+  if (/Chrome/.test(ua)) return 'Chrome';
+  return 'unknown';
+}
+
+function uaMobile(ua: string, uaData: NavigatorUAData | undefined): boolean {
+  if (uaData && typeof uaData.mobile === 'boolean') return uaData.mobile;
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
+}
+
+function mediaPref(query: string, candidates: readonly string[]): string {
+  try {
+    if (typeof window === 'undefined' || !window.matchMedia) return 'no-preference';
+    for (const candidate of candidates) {
+      if (window.matchMedia(`(${query}: ${candidate})`).matches) return candidate;
+    }
+    return 'no-preference';
+  } catch {
+    return 'no-preference';
+  }
+}
+
+/** Assemble the input vector for {@link computeGhostHash}. */
+export function collectGhostInputs(): GhostHashInputs {
   const nav = typeof navigator !== 'undefined' ? navigator : ({} as Navigator);
+  const ua = typeof nav.userAgent === 'string' ? nav.userAgent : '';
+  const uaData = (nav as unknown as { userAgentData?: NavigatorUAData }).userAgentData;
+  const languages = Array.isArray(nav.languages) ? [...nav.languages] : [];
+  const primaryLang = typeof nav.language === 'string' ? nav.language : '';
+  const sc = typeof screen !== 'undefined' ? screen : ({} as Screen);
   return {
     timezone: timezone(),
-    language: typeof nav.language === 'string' ? nav.language : '',
+    timezoneOffset: timezoneOffset(),
+    language: primaryLang,
+    languages: languages.length > 0 ? languages : primaryLang ? [primaryLang] : [],
     platform: typeof nav.platform === 'string' ? nav.platform : '',
+    uaBrand: uaBrand(ua, uaData),
+    uaMobile: uaMobile(ua, uaData),
     screen: [
-      typeof screen !== 'undefined' ? screen.width : 0,
-      typeof screen !== 'undefined' ? screen.height : 0,
+      typeof sc.width === 'number' ? sc.width : 0,
+      typeof sc.height === 'number' ? sc.height : 0,
     ] as [number, number],
+    colorDepth: typeof sc.colorDepth === 'number' ? sc.colorDepth : 0,
+    pixelDepth: typeof sc.pixelDepth === 'number' ? sc.pixelDepth : 0,
+    maxTouchPoints: typeof nav.maxTouchPoints === 'number' ? nav.maxTouchPoints : 0,
+    cookieEnabled: typeof nav.cookieEnabled === 'boolean' ? nav.cookieEnabled : false,
+    prefersColorScheme: mediaPref('prefers-color-scheme', ['dark', 'light']),
+    prefersReducedMotion: mediaPref('prefers-reduced-motion', ['reduce']),
+    prefersContrast: mediaPref('prefers-contrast', ['more', 'less', 'custom']),
+    features: computeFeatureBitmap(),
   };
 }
 
@@ -271,18 +259,36 @@ export async function collectDetectionSignals(): Promise<DetectionSignals> {
   };
 }
 
-async function sha256Hex(input: string): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (subtle) {
-    const buf = new TextEncoder().encode(input);
+/**
+ * Render a 220x30 canvas fingerprint and hash it. Used only by
+ * {@link collectDetectionSignals} to detect Brave's farbling by diffing two
+ * reads — not part of the Ghost hash itself (Brave would drift the hash).
+ */
+async function hashCanvas(): Promise<string> {
+  try {
+    if (typeof document === 'undefined') return '';
+    const canvas = document.createElement('canvas');
+    canvas.width = 220;
+    canvas.height = 30;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.textBaseline = 'top';
+    ctx.font = '14px "Arial"';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = '#069';
+    ctx.fillText('ghost \u{1F47B}', 2, 15);
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.fillText('ghost \u{1F47B}', 4, 17);
+    const url = canvas.toDataURL('image/png');
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) return url.slice(-32);
+    const buf = new TextEncoder().encode(url);
     const digest = await subtle.digest('SHA-256', buf);
     return Array.from(new Uint8Array(digest))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
+  } catch {
+    return '';
   }
-  let h = 5381;
-  for (let i = 0; i < input.length; i++) {
-    h = ((h << 5) + h + input.charCodeAt(i)) | 0;
-  }
-  return ('fallback' + (h >>> 0).toString(16)).padEnd(64, '0');
 }

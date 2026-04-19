@@ -35,10 +35,14 @@ describe('verdicts', () => {
     expect(v.detail.toLowerCase()).toContain('scanner');
   });
 
-  it('`isAnonymityBucket` accepts only Tor/Mullvad/Brave-strict', () => {
+  it('`isAnonymityBucket` accepts only Tor / Mullvad (post-unified-hash)', () => {
+    // Brave-strict used to be in this set but with the unified hash over
+    // stable signals, Brave users typically produce persistent matches
+    // across incognito — so they get `PERSISTENT_BY_FAMILY` copy instead
+    // of anonymity-set framing.
     expect(isAnonymityBucket('tor-browser')).toBe(true);
     expect(isAnonymityBucket('mullvad-browser')).toBe(true);
-    expect(isAnonymityBucket('brave-strict')).toBe(true);
+    expect(isAnonymityBucket('brave-strict')).toBe(false);
     expect(isAnonymityBucket('vanilla-chrome')).toBe(false);
     expect(isAnonymityBucket('firefox-etp-standard')).toBe(false);
     expect(isAnonymityBucket('safari')).toBe(false);

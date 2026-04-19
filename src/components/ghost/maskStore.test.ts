@@ -75,7 +75,7 @@ describe('maskStore', () => {
     fakeDb.get.mockResolvedValueOnce(undefined);
     fakeDb.put.mockResolvedValueOnce(undefined);
     const { saveMask } = await import('./maskStore');
-    const r = await saveMask('hash-1', undefined, 500);
+    const r = await saveMask('hash-1', 500);
     expect(r.firstSeen).toBe(500);
     expect(r.lastSeen).toBe(500);
     expect(r.hash).toBe('hash-1');
@@ -94,7 +94,7 @@ describe('maskStore', () => {
     fakeDb.get.mockResolvedValueOnce(existing);
     fakeDb.put.mockResolvedValueOnce(undefined);
     const { saveMask } = await import('./maskStore');
-    const r = await saveMask('new-hash', undefined, 900);
+    const r = await saveMask('new-hash', 900);
     expect(r.firstSeen).toBe(100); // preserved
     expect(r.lastSeen).toBe(900); // updated
     expect(r.hash).toBe('new-hash');

@@ -2,30 +2,25 @@
  * GhostDemo — homepage hero island.
  *
  * Renders a self-contained "you cleared your cookies but we still know you"
- * demo. Computes a short fingerprint hash entirely client-side, stores it
- * in the visitor's IndexedDB, and lets the visitor try to escape — then
- * re-hashes and shows one of three verdict cards.
+ * demo. Computes a short fingerprint hash entirely client-side over a set of
+ * signals that survive Brave's farbling and incognito-mode storage clearing
+ * (timezone, locale, OS, screen dims, feature-support bitmap) so that the
+ * hash genuinely stays the same across a normal + private-window pair on
+ * the same device. Stores the hash in the visitor's IndexedDB and lets
+ * them try to escape — then re-hashes and shows a verdict.
  *
  * Privacy architecture:
- *   - No server request (verified by grep; everything runs in the island).
+ *   - No server request: everything runs in the island.
  *   - The hash lives only in `privacy-hub-ghost` IndexedDB on the visitor's
  *     device. A "Clear my fingerprint from this browser" button is always
  *     visible.
- *   - Reduced-motion users get a static "Compute now" button instead of
- *     the scroll-triggered auto-compute.
+ *   - Reduced-motion users get a static "Compute now" button instead of the
+ *     scroll-triggered auto-compute.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import {
-  collectGhostInputs,
-  collectResilientInputs,
-  collectDetectionSignals,
-} from './collectGhostInputs';
-import {
-  computeGhostHash,
-  computeResilientHash,
-  type GhostHashResult,
-} from './computeGhostHash';
+import { collectGhostInputs, collectDetectionSignals } from './collectGhostInputs';
+import { computeGhostHash, type GhostHashResult } from './computeGhostHash';
 import { loadMask, saveMask, clearMask } from './maskStore';
 import {
   clearSiteData,
@@ -59,9 +54,7 @@ interface State {
   phase: PhaseKey;
   browser: BrowserFamily;
   firstHash: GhostHashResult | null;
-  firstResilient: GhostHashResult | null;
   secondHash: GhostHashResult | null;
-  secondResilient: GhostHashResult | null;
   stored: MaskRecord | null;
   storedBefore: MaskRecord | null;
   lastAction: ActionLog | null;
@@ -74,7 +67,6 @@ type Action =
   | {
       type: 'complete-initial';
       hash: GhostHashResult;
-      resilient: GhostHashResult;
       stored: MaskRecord | null;
       storedBefore: MaskRecord | null;
     }
@@ -82,7 +74,6 @@ type Action =
   | {
       type: 'complete-action';
       hash: GhostHashResult;
-      resilient: GhostHashResult;
       stored: MaskRecord | null;
       log: ActionLog;
     }
@@ -93,9 +84,7 @@ const INITIAL_STATE: State = {
   phase: 'idle',
   browser: 'unknown',
   firstHash: null,
-  firstResilient: null,
   secondHash: null,
-  secondResilient: null,
   stored: null,
   storedBefore: null,
   lastAction: null,
@@ -113,7 +102,6 @@ function reducer(state: State, action: Action): State {
         ...state,
         phase: 'ready',
         firstHash: action.hash,
-        firstResilient: action.resilient,
         stored: action.stored,
         storedBefore: action.storedBefore,
       };
@@ -129,7 +117,6 @@ function reducer(state: State, action: Action): State {
         ...state,
         phase: 'verdict',
         secondHash: action.hash,
-        secondResilient: action.resilient,
         stored: action.stored,
         lastAction: action.log,
       };
@@ -174,17 +161,12 @@ export function GhostDemo() {
       // returning visitor accurately regardless of whether the current hash
       // ends up matching.
       const priorRecord = await loadMask();
-      const inputs = await collectGhostInputs();
-      const resilientInputs = collectResilientInputs();
-      const [hash, resilient] = await Promise.all([
-        computeGhostHash(inputs),
-        computeResilientHash(resilientInputs),
-      ]);
-      const nextRecord = await saveMask(hash.hash, resilient.hash);
+      const inputs = collectGhostInputs();
+      const hash = await computeGhostHash(inputs);
+      const nextRecord = await saveMask(hash.hash);
       dispatch({
         type: 'complete-initial',
         hash,
-        resilient,
         stored: nextRecord,
         storedBefore: priorRecord,
       });
@@ -227,17 +209,12 @@ export function GhostDemo() {
   const runAfterAction = useCallback(
     async (label: string, summary: string) => {
       try {
-        const inputs = await collectGhostInputs();
-        const resilientInputs = collectResilientInputs();
-        const [hash, resilient] = await Promise.all([
-          computeGhostHash(inputs),
-          computeResilientHash(resilientInputs),
-        ]);
-        const nextRecord = await saveMask(hash.hash, resilient.hash);
+        const inputs = collectGhostInputs();
+        const hash = await computeGhostHash(inputs);
+        const nextRecord = await saveMask(hash.hash);
         dispatch({
           type: 'complete-action',
           hash,
-          resilient,
           stored: nextRecord,
           log: { label, summary },
         });
@@ -273,7 +250,7 @@ export function GhostDemo() {
     const summary =
       handle == null
         ? 'Your browser blocked the popup. Try again, or open a private window manually.'
-        : 'A new window opened. Browsers may ignore the private-window hint — check yours.';
+        : 'A new window opened. Browsers may ignore the private-window hint \u2014 check yours.';
     void runAfterAction('Open in private window', summary);
   }, [runAfterAction]);
 
@@ -294,38 +271,17 @@ export function GhostDemo() {
   // --- Derived verdict ------------------------------------------------------
 
   const outcome: VerdictOutcome = useMemo(() => {
-    if (
-      state.phase === 'verdict' &&
-      state.firstHash &&
-      state.secondHash &&
-      state.firstResilient &&
-      state.secondResilient
-    ) {
-      const strictMatch = state.firstHash.hash === state.secondHash.hash;
-      const resilientMatch =
-        state.firstResilient.hash === state.secondResilient.hash;
-      if (strictMatch) {
+    if (state.phase === 'verdict' && state.firstHash && state.secondHash) {
+      if (state.firstHash.hash === state.secondHash.hash) {
         return 'persistent';
       }
       if (isAnonymityBucket(state.browser)) {
         return 'anonymity-set';
       }
-      if (resilientMatch) {
-        // Strict hash drifted (farbling worked) but the resilient signals
-        // held — a sophisticated tracker could still link the sessions.
-        return 'resilient-persistent';
-      }
       return 'drift';
     }
     return 'first-visit';
-  }, [
-    state.phase,
-    state.firstHash,
-    state.secondHash,
-    state.firstResilient,
-    state.secondResilient,
-    state.browser,
-  ]);
+  }, [state.phase, state.firstHash, state.secondHash, state.browser]);
 
   const verdict: Verdict | null = useMemo(() => {
     if (state.phase !== 'verdict') return null;
@@ -340,11 +296,11 @@ export function GhostDemo() {
     if (elapsed < RECENT_VISIT_MS) {
       return same
         ? 'Still you. Same fingerprint as your last visit.'
-        : 'Still you — but a signal shifted since your last visit.';
+        : 'Still you \u2014 but a signal shifted since your last visit.';
     }
     return same
-      ? 'Welcome back — your fingerprint is the same as last time.'
-      : 'Welcome back — your fingerprint drifted since we last saw you.';
+      ? 'Welcome back \u2014 your fingerprint is the same as last time.'
+      : 'Welcome back \u2014 your fingerprint drifted since we last saw you.';
   }, [state.storedBefore, state.firstHash]);
 
   // --- Render ---------------------------------------------------------------
@@ -358,16 +314,6 @@ export function GhostDemo() {
     state.phase === 'verdict' && state.secondHash
       ? state.secondHash.hash
       : state.firstHash?.hash ?? null;
-
-  const shortResilient =
-    state.phase === 'verdict' && state.secondResilient
-      ? state.secondResilient.short
-      : state.firstResilient?.short ?? null;
-
-  const fullResilient =
-    state.phase === 'verdict' && state.secondResilient
-      ? state.secondResilient.hash
-      : state.firstResilient?.hash ?? null;
 
   return (
     <section
@@ -386,8 +332,11 @@ export function GhostDemo() {
           You cleared your cookies. We still know it's you.
         </h1>
         <p className="max-w-3xl text-lg text-text-muted">
-          Below is a hash of your browser's fingerprint — computed right here,
-          on your device. We don't have a copy. Try to hide from us anyway.
+          Below is a hash of the signals your browser leaks that Brave's
+          farbling and incognito mode don't hide: timezone, language, platform,
+          screen dimensions, and about twenty feature-support flags. Computed
+          right here on your device. We don't have a copy. Try to hide from us
+          anyway.
         </p>
       </div>
 
@@ -399,8 +348,6 @@ export function GhostDemo() {
           phase={state.phase}
           short={shortHash}
           full={fullHash}
-          shortResilient={shortResilient}
-          fullResilient={fullResilient}
           error={state.errorMessage}
           prefersReducedMotion={prefersReducedMotion === true}
           onManualCompute={runInitialCompute}
@@ -431,8 +378,7 @@ export function GhostDemo() {
 
         {state.phase === 'action-running' ? (
           <p className="text-sm text-text-muted" aria-live="polite">
-            Running "{state.lastAction?.label ?? 'action'}" — re-hashing your
-            environment…
+            {'Running "'}{state.lastAction?.label ?? 'action'}{'" \u2014 re-hashing your environment\u2026'}
           </p>
         ) : null}
 
@@ -457,8 +403,6 @@ interface HashPanelProps {
   phase: PhaseKey;
   short: string | null;
   full: string | null;
-  shortResilient: string | null;
-  fullResilient: string | null;
   error: string | null;
   prefersReducedMotion: boolean;
   onManualCompute: () => void;
@@ -468,8 +412,6 @@ function HashPanel({
   phase,
   short,
   full,
-  shortResilient,
-  fullResilient,
   error,
   prefersReducedMotion,
   onManualCompute,
@@ -506,54 +448,28 @@ function HashPanel({
           Your fingerprint
         </p>
         <p className="font-mono text-3xl text-text" aria-busy="true">
-          …computing
+          {'\u2026computing'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2" aria-live="polite">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wider text-text-muted">
-          Strict hash
+    <div className="space-y-2" aria-live="polite">
+      <p className="text-xs uppercase tracking-wider text-text-muted">
+        Your fingerprint
+      </p>
+      <p className="font-mono text-3xl text-text">
+        {`\u2026${short ?? '------'}`}
+      </p>
+      {full ? (
+        <p
+          className="font-mono text-xs text-text-muted break-all"
+          aria-label="Full SHA-256 hash"
+        >
+          {full}
         </p>
-        <p className="font-mono text-3xl text-text">
-          …{short ?? '------'}
-        </p>
-        <p className="text-xs text-text-muted">
-          Canvas · audio · UA · screen · timezone · fonts. Brave farbles most of
-          these on every session.
-        </p>
-        {full ? (
-          <p
-            className="font-mono text-[11px] text-text-muted break-all"
-            aria-label="Full SHA-256 of strict hash"
-          >
-            {full}
-          </p>
-        ) : null}
-      </div>
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wider text-text-muted">
-          Resilient hash
-        </p>
-        <p className="font-mono text-3xl text-text">
-          …{shortResilient ?? '------'}
-        </p>
-        <p className="text-xs text-text-muted">
-          Timezone · language · platform · screen size. Brave and incognito
-          don't change any of these.
-        </p>
-        {fullResilient ? (
-          <p
-            className="font-mono text-[11px] text-text-muted break-all"
-            aria-label="Full SHA-256 of resilient hash"
-          >
-            {fullResilient}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -616,7 +532,7 @@ function TryToHide({ running, onClear, onPrivate, onNetwork }: TryToHideProps) {
         />
         <HideOption
           label="Switch network"
-          detail="Flip your VPN or switch SSID, then re-hash. IP geolocation usually moves; fingerprints often don't."
+          detail="Flip your VPN or switch SSID, then re-hash. The hash here uses locale + screen signals, not IP \u2014 usually no change."
           onClick={onNetwork}
         />
       </div>

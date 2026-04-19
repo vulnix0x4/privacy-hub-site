@@ -2,36 +2,63 @@
  * Pure "Ghost hash" computation.
  *
  * The Ghost Demo on the homepage shows visitors a short fingerprint hash
- * that is stable across visits as long as their browser/device surface is
- * stable. This module is framework-agnostic: callers gather the six input
- * signals (canvas + audio + UA + screen + timezone + top-N fonts), hand them
- * to {@link computeGhostHash}, and get back a SHA-256 hex digest plus a
- * short display form.
+ * that is stable across the same device — including across Brave's farbling
+ * and across incognito / private-window sessions. This module is framework-
+ * agnostic: callers gather the ~16 input signals, hand them to
+ * {@link computeGhostHash}, and get back a SHA-256 hex digest plus a short
+ * display form.
  *
  * Nothing in this module touches a network, a server, or any storage. Tests
  * can call it directly with synthetic vectors — the shape is deterministic.
  */
-import type { GhostVector, ResilientVector } from './types';
+import type { GhostVector } from './types';
 
 /**
- * The six-field vector that feeds the Ghost hash. Every field is either a
- * pre-computed string (canvas/audio are already SHA-256 hex from the probes)
- * or a small, stable primitive. Order is fixed; JSON-stringify key order is
- * the lexical order the vector was built with (explicitly controlled below).
+ * The field-by-field input shape for {@link computeGhostHash}. Every signal
+ * here is chosen to survive Brave's per-session farbling and incognito-mode
+ * storage clearing: timezone / locale / OS / screen dims / user preferences
+ * / feature-support bitmap.
+ *
+ * Deliberately excluded (they would break the stability promise):
+ * - Canvas / WebGL / AudioContext fingerprints (Brave farbles)
+ * - Font enumeration (Brave farbles)
+ * - Full user-agent minor version (Brave farbles)
+ * - Hardware concurrency / device memory (Brave farbles per v2 spec)
+ * - IP address (requires network fetch; breaks "no server" promise)
  */
 export interface GhostHashInputs {
-  /** SHA-256 hex of the 2D canvas data URL. */
-  canvas: string;
-  /** SHA-256 hex of the folded OfflineAudioContext output. */
-  audio: string;
-  /** `navigator.userAgent`. */
-  userAgent: string;
-  /** `[screen.width, screen.height, window.devicePixelRatio]`. */
-  screen: readonly [number, number, number];
   /** IANA timezone from `Intl.DateTimeFormat().resolvedOptions().timeZone`. */
   timezone: string;
-  /** Up to 30 detected fonts, sorted ascending for stable hashing. */
-  fonts: readonly string[];
+  /** Minutes offset from UTC via `new Date().getTimezoneOffset()`. */
+  timezoneOffset: number;
+  /** Primary `navigator.language`. */
+  language: string;
+  /** Full `navigator.languages` array, capped and stable-sorted. */
+  languages: readonly string[];
+  /** `navigator.platform`, e.g. `MacIntel`, `Win32`, `Linux x86_64`. */
+  platform: string;
+  /** Major browser brand extracted from the UA string (`Chrome` / `Firefox` / …). */
+  uaBrand: string;
+  /** Heuristic mobile flag from UA regex. */
+  uaMobile: boolean;
+  /** `[screen.width, screen.height]` — DPR omitted because Brave farbles it. */
+  screen: readonly [number, number];
+  /** `screen.colorDepth`. Stable on Brave. */
+  colorDepth: number;
+  /** `screen.pixelDepth`. Stable on Brave. */
+  pixelDepth: number;
+  /** `navigator.maxTouchPoints`. Stable across private browsing. */
+  maxTouchPoints: number;
+  /** `navigator.cookieEnabled`. Effectively always true but recorded for completeness. */
+  cookieEnabled: boolean;
+  /** `matchMedia('(prefers-color-scheme: dark|light)')` resolution. */
+  prefersColorScheme: string;
+  /** `matchMedia('(prefers-reduced-motion: reduce)')` resolution. */
+  prefersReducedMotion: string;
+  /** `matchMedia('(prefers-contrast: more|less|custom)')` resolution. */
+  prefersContrast: string;
+  /** Bitmap over a fixed list of 20 browser-API capabilities (see types.ts). */
+  features: number;
 }
 
 /** Result returned by {@link computeGhostHash}. */
@@ -45,22 +72,36 @@ export interface GhostHashResult {
 }
 
 /**
- * Build a canonical {@link GhostVector} from loose inputs. Separated so tests
- * and real callers produce byte-identical canonical forms for equal inputs.
+ * Build a canonical {@link GhostVector} from loose inputs. Separated so
+ * tests and real callers produce byte-identical canonical forms for equal
+ * inputs.
  *
- * Fonts are sorted ascending and capped at 30 entries to match the design-doc
- * §6 "top 30 from the existing font-enumeration probe" shape.
+ * `languages` is sorted-unique to immunise against array-order drift.
+ * (Brave doesn't re-order languages but conservative canonicalisation
+ * makes us robust to future collectors that do.)
  */
 export function buildGhostVector(inputs: GhostHashInputs): GhostVector {
-  const fonts = [...inputs.fonts].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).slice(0, 30);
+  const langs = Array.from(new Set(inputs.languages)).sort((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0
+  );
   // Return keys in a fixed order so JSON.stringify produces stable bytes.
   return {
-    canvas: inputs.canvas,
-    audio: inputs.audio,
-    userAgent: inputs.userAgent,
-    screen: [inputs.screen[0], inputs.screen[1], inputs.screen[2]],
     timezone: inputs.timezone,
-    fonts,
+    timezoneOffset: inputs.timezoneOffset,
+    language: inputs.language,
+    languages: langs,
+    platform: inputs.platform,
+    uaBrand: inputs.uaBrand,
+    uaMobile: inputs.uaMobile,
+    screen: [inputs.screen[0], inputs.screen[1]],
+    colorDepth: inputs.colorDepth,
+    pixelDepth: inputs.pixelDepth,
+    maxTouchPoints: inputs.maxTouchPoints,
+    cookieEnabled: inputs.cookieEnabled,
+    prefersColorScheme: inputs.prefersColorScheme,
+    prefersReducedMotion: inputs.prefersReducedMotion,
+    prefersContrast: inputs.prefersContrast,
+    features: inputs.features,
   };
 }
 
@@ -69,58 +110,12 @@ export function buildGhostVector(inputs: GhostHashInputs): GhostVector {
  *
  * Uses `crypto.subtle.digest('SHA-256', ...)` — available in every modern
  * browser and in Node 20+ (`globalThis.crypto`). If SubtleCrypto is missing
- * (ancient happy-dom build), a small DJB2-derived fallback keeps the function
- * deterministic for unit tests; this branch is never reached in production.
+ * (ancient happy-dom build), a small DJB2-derived fallback keeps the
+ * function deterministic for unit tests; this branch is never reached in
+ * production.
  */
 export async function computeGhostHash(inputs: GhostHashInputs): Promise<GhostHashResult> {
   const vector = buildGhostVector(inputs);
-  const serialized = JSON.stringify(vector);
-  const hash = await sha256Hex(serialized);
-  return {
-    hash,
-    short: hash.slice(-6),
-    vector: serialized,
-  };
-}
-
-/**
- * Resilient hash inputs — only signals Brave's farbling (and most browser
- * anti-fingerprinting modes) leave intact across sessions on the same device.
- * Fed to {@link computeResilientHash}.
- */
-export interface ResilientHashInputs {
-  /** IANA timezone, e.g. `America/Los_Angeles`. Stable across incognito. */
-  timezone: string;
-  /** Primary `navigator.language`. Brave does not farble the primary lang. */
-  language: string;
-  /** `navigator.platform`, e.g. `MacIntel`, `Win32`, `Linux x86_64`. */
-  platform: string;
-  /** `[screen.width, screen.height]`. DPR omitted because Brave farbles it. */
-  screen: readonly [number, number];
-}
-
-/** Build the canonical {@link ResilientVector} with keys in a fixed order. */
-export function buildResilientVector(inputs: ResilientHashInputs): ResilientVector {
-  return {
-    timezone: inputs.timezone,
-    language: inputs.language,
-    platform: inputs.platform,
-    screen: [inputs.screen[0], inputs.screen[1]],
-  };
-}
-
-/**
- * Compute the resilient Ghost hash — the "farbling isn't enough" counterpart
- * to {@link computeGhostHash}. Uses only timezone + language + platform +
- * screen dimensions, all of which Brave's per-session farbling leaves
- * untouched. A tracker correlating these signals with the user's IP (which
- * we don't include here to keep the demo server-free) could still link
- * Brave-incognito sessions to the non-incognito origin.
- */
-export async function computeResilientHash(
-  inputs: ResilientHashInputs
-): Promise<GhostHashResult> {
-  const vector = buildResilientVector(inputs);
   const serialized = JSON.stringify(vector);
   const hash = await sha256Hex(serialized);
   return {
