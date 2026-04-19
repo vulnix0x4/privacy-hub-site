@@ -156,7 +156,7 @@ describe('ScannerCard', () => {
     expect(badge?.textContent).toBe('Farbled');
   });
 
-  it('renders the "Pending — backend" label for stub probes', () => {
+  it('renders the "Roadmap · Phase 3" label for stub probes', () => {
     act(() => {
       root.render(
         createElement(ScannerCard, {
@@ -169,7 +169,7 @@ describe('ScannerCard', () => {
     const badge = container.querySelector(
       `[data-testid="badge-${vector.id}"]`
     );
-    expect(badge?.textContent).toBe('Pending — backend');
+    expect(badge?.textContent).toBe('Roadmap · Phase 3');
   });
 
   it('renders an error state when probe fails', () => {

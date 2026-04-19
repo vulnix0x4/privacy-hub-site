@@ -34,6 +34,6 @@ export function getInterpretation(
     case 'INFO-CONTEXT':
       return 'Contextual detail — not a meaningful fingerprint on its own, shown here for transparency.';
     case 'pending-backend':
-      return 'The scanner backend that measures this vector is not live yet. The card will fill in once the infrastructure lands.';
+      return 'Measured server-side — requires the Phase 3 scanner backend (raw-TLS passthrough for JA4, authoritative DNS for leak observation, cache-echo endpoints for supercookies). The card fills in once those services are on. See the scanner-privacy page for the roadmap.';
   }
 }
