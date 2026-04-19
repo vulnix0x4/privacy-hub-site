@@ -32,18 +32,53 @@ playlist:
 
 > **TL;DR.** Your source took a real risk. The tools that protect them are the same tools that protect you when the legal department starts asking questions. Compartmentalize devices, use SecureDrop if the outlet runs one, and treat every piece of metadata as attackable.
 
-## Threat picture
+## The threat picture
 
-Depends on the story. Could be a corporate legal team with subpoena power, could be a state actor with signals-intelligence budget, could be a dedicated internal-investigations unit at the source's employer. In every case: the source's phone records, the source's work email, the source's badge logs, and your own movements around the time of contact are the first places an investigator looks. The goal is to ensure none of those signals intersect.
+The adversary depends on the story. It could be a corporate legal team with subpoena power and a well-resourced e-discovery firm on retainer; it could be an internal-investigations unit at the source's employer with badge-log access and Slack search; it could be a state actor with signals-intelligence budget and a standing relationship with the source's ISP. For the biggest stories, it can be all three at once.
 
-## What you get from this playlist
+In every case the pattern is the same. Investigators do not need to break your encryption; they look for metadata intersections. The source's phone records around the time of contact, the source's work-email headers, the source's badge logs, your own movements that day, the hotel WiFi at the meeting, the airport CCTV — all of it sits in different databases. The goal of source protection is to make sure none of those signals intersect in a way that points at your source.
 
-A hardened contact and review pipeline. Signal-with-disappearing-messages as the default channel, a per-story alias, an encrypted review vault. Not a SecureDrop substitute. If your outlet has one, use it.
+The 2017 Reality Winner case is the canonical worst-case study: microdots in the printed document plus a single phone-call record to The Intercept were enough to identify the source within hours of publication. The lesson is that a single metadata leak defeats everything else you did right.
 
-## Notes from real people
+## What you're optimising for
 
-Every investigative reporter will tell you: the source protection plan is decided in the first conversation. If you let the source DM you on Twitter once, that link is now in Twitter's database forever. Steer every first contact to Signal within the first reply.
+A source who can never be identified through signals you, personally, control. You cannot guarantee source-side opsec — if the source emails you from their work laptop, that is on them, and the investigator will find it. What you can guarantee is that nothing you did on your end makes their identification easier: not the first message on Twitter DM, not the email alias that links back to your byline, not the hotel WiFi at the meeting, not the document you uploaded to Google Drive for your editor to review.
+
+The secondary optimisation: shield-law-readiness. When the company lawyer comes asking, your process needs to be defensible as journalistic practice. Signal-first, SecureDrop-for-docs, per-story aliases, encrypted review vaults — these are also the things a shield-law invocation rests on.
+
+## The playlist
+
+Signal first because that is the channel you route every first contact to. IP geolocation and VPN second because browser-based communication leaks the moment a source clicks a link you sent them. Per-story email aliases so the paper trail does not reverse-index years later. The federated-login vector is a specific gotcha — leak-submission platforms that offer "Continue with Google" have burned sources because the Google login persists the identity across the "anonymous" form.
+
+File storage is load-bearing. Proton Drive's zero-access model, Tresorit, or an offline veracrypt container on air-gapped review machines — pick one and never slack it, drive it, drop-box it. The review pipeline is where newsrooms leak sources; editors are generally less opsec-trained than the reporter who brought in the story.
+
+An order-of-operations note: set up the per-story contact alias and the per-story Signal identifier before the first message, not after. Rotating channels after contact has already happened is a well-documented OSINT signal to investigators.
+
+## Where it gets hard
+
+**Source-side opsec is outside your control.** You can offer Signal, SecureDrop, Tor Browser, and a carefully worded "please do not contact me from a work device" note — you cannot make the source read or follow any of that. This is the limit of what technical tools can do. Freedom of the Press Foundation's source-protection trainings emphasize building a trusting first-contact conversation precisely because it is the only moment you can influence the source's opsec before the evidence gets generated.
+
+**Your own outlet is an adversary, sometimes.** Corporate newsrooms run MDM on reporter phones, Slack-retention policies that preserve DMs forever, and editorial CMS systems that log every draft. Some of that is subpoena-able. Know what your own employer retains before you write anything sensitive into it.
+
+**The legal layer.** Shield laws vary by state and country, and US federal-court interpretations are inconsistent. Know your outlet's legal support before you take the story. If you are freelance, know which legal-aid orgs (Reporters Committee for Freedom of the Press, Freedom of the Press Foundation) can refer you to counsel.
+
+## Real-world notes
+
+Freedom of the Press Foundation (freedom.press) is the canonical resource; their threat-modeling training has kept many sources out of prosecution. Their "Digital Security Checklist for Journalists" is the single best starting document, and their SecureDrop platform is the reference implementation of an anonymous-tip pipeline.
+
+The Committee to Protect Journalists (cpj.org) publishes an annual safety guide with region-specific adversary breakdowns. EFF's Surveillance Self-Defense has a "Journalist" playlist that overlaps with this one and is worth reading end-to-end. Reporters Committee for Freedom of the Press (rcfp.org) handles US legal-hotline calls. Signal's own documentation on disappearing messages and safety-number verification is part of the required reading.
 
 ## What we don't cover here
 
-Legal strategy, pre-publication shield-law invocation, and outlet-level workflows. Freedom of the Press Foundation (https://freedom.press) is the canonical resource; their threat-modeling training has kept many sources out of jail.
+- Legal strategy and pre-publication shield-law invocation. Your outlet's general counsel and RCFP handle that.
+- Newsroom-level workflow decisions (SecureDrop deployment, Tor v3 service hosting). Freedom of the Press Foundation runs training specifically for that.
+- Physical-meeting opsec (dead drops, burner-phone tradecraft). If that is where the story is, you are past the scope of a tool list.
+
+## Next steps
+
+- Take Freedom of the Press Foundation's free journalist digital-security training. It is the baseline every investigative reporter should have before a big story lands.
+- If your outlet does not run SecureDrop, know which outlets near you do, so you can refer sources upstream when the story fits another newsroom better.
+- Save the RCFP legal hotline (1-800-336-4243) before you need it.
+
+---
+last_verified: 2026-04-18

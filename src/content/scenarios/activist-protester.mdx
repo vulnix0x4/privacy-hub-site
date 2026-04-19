@@ -31,20 +31,59 @@ playlist:
     why: Coordination numbers that do not link to your primary identity if seized or leaked.
 ---
 
-> **TL;DR.** You want to coordinate, document, and show up without handing law enforcement (or hostile counter-movements) a searchable dossier. Priorities: a locked phone with a strong passcode, Signal with short disappearance timers, and no biometric unlock while you are on the street.
+> **TL;DR.** You want to coordinate, document, and show up without handing law enforcement or hostile counter-movements a searchable dossier. Priorities: a locked phone with a strong passcode, Signal with short disappearance timers, and no biometric unlock while you are on the street.
 
-## Threat picture
+## The threat picture
 
-Ranges enormously. At one end: local PD with stingrays, body cams, and a licence plate reader at the rally point. At the other: intelligence agencies running network surveillance at protests of scale. Counter-movements with their own OSINT teams are now routine. Your phone is the richest single piece of evidence a hostile agency can obtain from you.
+Adversaries at a protest range enormously. On one end: local police with stingrays (cell-site simulators), body cameras with automatic license-plate readers on the cruiser, geofence-warrant capability for Google and Meta location histories, and facial-recognition systems fed from the protest's own livestreams. In the middle: federal agencies with signals-intelligence budget at anything politically salient — Black Lives Matter 2020, pro-Palestine campus encampments 2024, anti-ICE actions 2025 all drew documented federal monitoring. On the other end: organized counter-movements with their own OSINT teams that identify individuals from crowd photos and publish them, sometimes to employers.
 
-## What you get from this playlist
+The single richest piece of evidence a hostile agency can obtain from you is your phone. Modern phones are passport, notebook, rolodex, and location log in one device. Phone seizure on arrest is the dominant threat shape in the US since *Riley v. California* (2014) clarified the warrant requirement — the warrant is usually obtained, and an unlocked phone or a biometric-unlocked phone gives the investigator everything.
 
-A baseline "do not turn yourself into trivial evidence" posture. Hardened phone, ephemeral messaging, separated social identities, tunnelled traffic. Nothing illegal-advising; nothing silver-bullet.
+Geofence warrants — where police request every device in an area at a time — have been the documented mechanism for identifying protesters at specific events since at least 2020. Reverse-location warrants, keyword warrants, and the Google Sensorvault have all been court-tested.
 
-## Notes from real people
+## What you're optimising for
 
-Organizers say turn off biometrics before the march. US case law allows police to compel Face ID or Touch ID in many jurisdictions; they cannot compel a memorized passcode (5th Amendment). Know your legal observers' numbers by heart, not just saved.
+"Do not turn yourself into trivial evidence." The threat is not being at a protest — it is being at a protest in a way that generates specific, searchable digital artifacts (a livestream that shows your face, a Signal group with your real-name identifier, a rideshare log to the rally point on your primary account). The target is to leave the protest without having created any artifact that did not exist before you went.
+
+Secondary: do not be the weak link that outs your co-organizers. A Signal group where everyone uses disappearing messages except you retains everything on your end. A rideshare you booked to the site under your real name geolocates you and any passenger.
+
+## The playlist
+
+Phone-OS hardening first because every other layer fails if the phone is unlocked on arrest. Signal with a 1-day disappearing-message default second because that is the standard coordination channel. IP, VPN, and permissions next because livestreams and app permissions are the leaks you generate without noticing. Pseudonymous social and burner numbers last because those matter for persistence across protests, not for a single event.
+
+Specific phone-side drill before leaving home:
+
+- Turn off biometric unlock. US case law is inconsistent but in most jurisdictions police can compel Face ID or Touch ID; they cannot compel a memorized passcode (5th Amendment).
+- Power the phone off rather than leave it locked. A powered-off phone is in Before-First-Unlock state, which is meaningfully harder for forensic tools (Cellebrite, GrayKey) to extract from than After-First-Unlock.
+- Know your legal-observer number by heart, not just saved. A dead or seized phone cannot look up contacts.
+
+## Where it gets hard
+
+**Facial recognition is mostly outside your technical control.** Clearview AI and its peers scrape every public photo. A mask helps (and is legal in most jurisdictions during protests, though some have anti-mask laws specifically aimed at protesters — know yours). So does avoiding livestreams that face the crowd. You cannot technically block it after the fact.
+
+**Cars and rideshare logs.** An Uber or Lyft to the rally point is a business-record log tied to your real name and payment method. Public transit with a reloadable card paid in cash is safer. A car with a licence plate is captured by every ALPR cruiser at the event. Bikes, walking, and transit remove that layer.
+
+**Organizer-side compromise.** If the organizing Signal group has ten people and one is informant, everyone's messages are readable. Disappearing messages help; they do not fix it. Vet before trusting, and minimize what you share before the day-of.
+
+**Memory.** In stressful situations people make opsec errors. The attorney-on-call numbers and the meeting points need to be memorized, not just saved. If your only record of them is on the phone and the phone is seized, you are without support at the worst moment.
+
+## Real-world notes
+
+EFF's *Surveillance Self-Defense* attending-a-protest guide is the canonical starting document. It is updated regularly and covers both tech and rights. The National Lawyers Guild publishes jurisdiction-specific know-your-rights cards — their Legal Observer program also runs on-scene at most major US actions. Digital Freedom Fund covers EU-side legal terrain. Access Now's digital-security helpline provides activist-specific support 24/7.
+
+On the tech side, Signal's own documentation on disappearing messages, safety numbers, and PIN-recovery-lock is required reading. GrapheneOS project pages describe the specific attack classes their device hardening defeats (verified boot, hardware-backed attestation, remote-attestation-aware app sandboxing).
 
 ## What we don't cover here
 
-Operational security at actual protests: buddy systems, medic plans, legal-observer coordination. Electronic Frontier Foundation's "Surveillance Self-Defense" protest guide is the starting point; the National Lawyers Guild publishes jurisdiction-specific know-your-rights cards.
+- Operational security at actual protests: buddy systems, medic plans, de-arrest tactics. EFF and NLG cover the first; Rosehip Medic Collective and Street Medic resources cover the second.
+- Legal defence funds and bail-bond logistics. National Bail Fund Network maintains a directory.
+- Counter-surveillance against specific adversaries (undercover officers, informant protocols). That is tradecraft, not privacy hygiene.
+
+## Next steps
+
+- Read EFF's Surveillance Self-Defense protest guide end-to-end before the next action.
+- Save NLG Legal Observer and Access Now Helpline numbers to memory, not just contacts.
+- Practice the phone-off-on-arrest drill with an accountability partner. The habit matters more than the knowledge.
+
+---
+last_verified: 2026-04-18

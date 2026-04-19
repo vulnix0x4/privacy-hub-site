@@ -33,18 +33,51 @@ playlist:
 
 > **TL;DR.** Someone who likes your content too much has figured out how to find you. You cannot quit the internet; you can make finding you cost more than they will pay. Priority: strip the public-records layer, then layer VPN and masked payments over every device that touches your real identity.
 
-## Threat picture
+## The threat picture
 
-A determined individual with your handle, probably some of your videos, and a willingness to spend hours on OSINT. They do not have state resources. They do have time and the open web's data-broker layer. Most stalking incidents escalate when the target becomes reachable at a specific physical address; your single most valuable move is making that address cost $2000 of private-investigator time rather than $9.99 of BeenVerified.
+A determined individual with your handle, probably some of your videos, and a willingness to spend hours on OSINT. They do not have state resources. They do have time and the open-web data-broker layer.
 
-## What you get from this playlist
+Most stalking incidents escalate when the target becomes reachable at a specific physical address. Your single most valuable move is making that address cost $2,000 of private-investigator time rather than $9.99 of BeenVerified. The second most valuable move is assuming the stalker has already done enough OSINT to know the city, the employer, and the rough neighbourhood — you are racing to get ahead of where they are, not where they started.
 
-A clean separation between the persona your stalker follows and the real-world address, phone, and inbox where bills and court mail arrive. Not anonymity, which you cannot have as a public creator. Compartmentalization.
+A note on what "stalker" means in 2026: the line between a disturbed fan and a coordinated harassment campaign has gotten blurry. Swatting attempts, false CPS calls, and SWAT-fee-for-service Discord servers are all documented. Treat a single escalated fan as the leading edge of something that could recruit others.
 
-## Notes from real people
+## What you're optimising for
 
-Creators who have been through this say the hardest part is realizing that the platform's "report" button does almost nothing. Document everything, preserve evidence with timestamps, and build a relationship with local law enforcement before you need one.
+Compartmentalization, not anonymity. You are a public creator; anonymity is off the table. The target is a clean separation between the persona your audience (and your stalker) follows and the real-world address, phone number, and inbox where bills and court mail arrive. When the stalker sits down with their $9.99 people-search subscription, they should hit dead ends at every layer: the business address is a registered-agent, the delivery phone is a Google Voice number, the merch ships to a UPS Store box, and the residential address is not on any public-records aggregator they have access to.
+
+## The playlist
+
+Work from the public-records layer inward. Data-broker opt-outs come first because they are the cheapest OSINT source your stalker has. Then network layer (VPN, router) so livestream and upload software cannot leak your IP. Then the payment and phone layers so merch, fan-meetup SMS, and courier drop-offs do not generate a paper trail back to your home. Email alias discipline ties it all together so a breach at any one platform does not cascade.
+
+An order-of-operations warning: opt out of data brokers *before* you move house, change phone number, or sign up for anything new under your new compartment. Starting the opt-outs with fresh data just flags "update my listing" to the aggregator's next scrape. Do the opt-out sweep, then pivot your new details.
+
+## Where it gets hard
+
+**Platforms are uneven allies.** Some (YouTube, Twitch) have real safety teams and will action a pattern of harassment; others (small platforms, decentralized networks) have nothing. Plan around the weakest platform you are on.
+
+**Doxx-defence is adversarial.** Every time you opt out, the stalker can re-submit your info through the data broker's "list a public record" flow. Opt-outs are not one-shot; services like DeleteMe, Kanary, and Optery repeat them monthly, which is the only way that stays effective.
+
+**Real life still leaks.** Livestream from home and the Amazon package visible on the couch becomes your neighbourhood. A convention badge photo at a lanyard-height angle becomes your employer. The stalker reads everything. Review what is in frame before every stream; check merch drops for visible handwriting that matches your signed autographs.
+
+**Collaborations.** Other creators' opsec becomes your opsec the moment you record together. A collab partner who does not use a VPN at their end and has your IP in their OBS logs becomes the weak link. Talk about it before the stream.
+
+## Real-world notes
+
+The Crash Override Network, founded by Zoë Quinn after the 2014 harassment wave, wrote the first public playbook for creator-side counter-doxxing; their resource set (crashoverridenetwork.com) remains the canonical starting point and their "So You've Been Doxxed" guide has specific, realistic tactics. OnlineSOS and the PEN America Online Harassment Field Manual cover adjacent terrain with a journalist lens. For the payments and shipping side, the Privacy.com + UPS Store combination has been standard practice among harassed creators since the late 2010s and is still the cheapest physical-address layer that holds up.
+
+On the platform side, the Cyber Civil Rights Initiative (cybercivilrights.org) runs a crisis helpline for image-based abuse adjacent to stalking; Without My Consent's legal-resource database hands off to lawyers in most US states.
 
 ## What we don't cover here
 
-Active platform-side abuse (harassment campaigns, mass reports). That is a Trust & Safety team problem, not a privacy problem. If you are being swatted or doxxed, the Crash Override Network (https://crashoverridenetwork.com) is a better starting point than any tool on this site.
+- Active platform-side abuse (mass-report brigades, impersonation waves). That is a Trust & Safety problem, not a privacy problem. Document and report; do not expect the privacy stack to fix it.
+- Physical-security planning (home camera systems, neighbourhood patrol, moving). If the threat has escalated to that level, a local personal-security consultant who specializes in stalker defence is the next call.
+- Legal strategy for restraining orders. Local legal aid, Without My Consent, or the Victim Rights Law Center know your jurisdiction.
+
+## Next steps
+
+- Run the data-broker-removal playbook at `/en/categories/data-broker-removal` before anything else on this list.
+- Bookmark Crash Override Network's "So You've Been Doxxed" guide and the CCRI crisis line (1-844-878-2274) before you need them, not during.
+- If the harassment escalates to credible threat, document everything in a single file with timestamps and screenshots. It matters enormously for restraining-order petitions.
+
+---
+last_verified: 2026-04-18

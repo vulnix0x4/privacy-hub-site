@@ -6,6 +6,7 @@ last_verified: 2026-04-18
 related:
   - journalist-source-protection
   - activist-protester
+jurisdiction_note: Whistleblower legal protections vary enormously by country, sector, and type of disclosure. In the US, the Whistleblower Protection Act, the Dodd-Frank SEC program, False Claims Act qui tam suits, and sector-specific laws (HIPAA, IRS, FDA) each have different procedural requirements that can decide whether your disclosure is protected at all. The Government Accountability Project (1-202-457-0034) and Project on Government Oversight refer experienced counsel and can help you scope protections before you act. The EU Whistleblower Directive (2019/1937) applies across member states with national-level variation.
 playlist:
   - type: basics
     slug: threat-modeling
@@ -30,20 +31,63 @@ playlist:
     why: Anything you move out of work goes on a full-disk-encrypted personal volume.
 ---
 
-> **TL;DR.** Do not do anything technical until you have spoken to a lawyer. The Government Accountability Project (GAP) and the Project on Government Oversight (POGO) are experienced in whistleblower intake and can advise on legal protections before you act. The Whistleblower Protection Act (US) and equivalents elsewhere have specific procedural requirements that matter enormously to your outcome.
+> **TL;DR.** Do not do anything technical until you have spoken to a lawyer. The Government Accountability Project (whistleblower.org) and the Project on Government Oversight (pogo.org) are experienced in whistleblower intake and can advise on legal protections before you act. The Whistleblower Protection Act and its sector-specific variants have precise procedural requirements that matter enormously to your outcome.
 
-## Threat picture
+## The threat picture
 
-Corporate internal-investigations teams subpoena Slack, Google Workspace, badge logs, and MDM device telemetry as a matter of course when they suspect an internal leak. Federal leaks add signals-intelligence investigation. The most common mistake is using a work device or a work-network-connected personal device to contact a journalist; that single action is usually enough for a forensic team to identify you.
+Corporate internal-investigations teams are not a hypothetical. Every Fortune-500 has one, and the tooling they run — Microsoft Purview, Nuix, Relativity, Exabeam behaviour analytics — indexes Slack, Google Workspace, email, badge logs, printer logs, VPN logs, and MDM device telemetry as a matter of routine. When leadership suspects an internal leak, forensic teams run queries across all of that data with an investigator's timeline. Most internal leakers get identified within 48 hours of publication by metadata intersection, not by a snitch.
 
-## What you get from this playlist
+Federal leaks add signals-intelligence capability. The Reality Winner case (2017) is the canonical cautionary tale: microdots in the printed document plus a single phone-record check narrowed the suspect list to one person within hours. Drake, Sterling, and Manning each demonstrate different failure modes — badge logs, phone records, and work-device artifacts respectively.
 
-A separated communications plane that does not touch your employer's network, their devices, or their identity providers. A clean phone, a personal email on a different provider than your work mail, a VPN that your employer did not set up.
+The most common mistake: using a work device, a work-network-connected personal device, or a personal account demonstrably linked to a work identity to contact a journalist. A Gmail draft on a work-synced Chrome session, a DM from an account the employer knows about, a call from the office floor — any single one is typically enough for forensics to identify you.
 
-## Notes from real people
+## What you're optimising for
 
-Former whistleblowers who did it legally emphasize that a lawyer's first call is the single most protective act. GAP (https://whistleblower.org) and POGO (https://pogo.org) both refer pro-bono counsel. If/When/How, in its broader scope, also maintains legal resources.
+Three things, in order.
+
+**Legal protection.** Nothing else matters if your disclosure is not protected. Which statute applies (WPA, Dodd-Frank, Sarbanes-Oxley, False Claims Act, sector-specific variants, or foreign equivalents) is a lawyer question, not a tool question. Your first conversation should be with counsel via GAP, POGO, or their EU equivalents.
+
+**Metadata minimisation.** A separated communications plane that does not touch your employer's network, devices, or identity providers. Clean phone, personal email on a different provider than work mail, VPN that your employer did not provision, reading and drafting on a device that has never been on the corporate WiFi.
+
+**Procedural compliance.** Most whistleblower protections require specific channels and timing (internal reporting first in some statutes, direct-to-agency in others). Technical opsec that violates the statute's procedural requirements can cost you the protection.
+
+## The playlist
+
+Threat-modelling first. With an attorney, you map: who investigates internally, what data they already have, what the timeline of the disclosure looks like, what channels are legally protected in your jurisdiction, and what the consequences of different disclosure shapes are.
+
+Clean device second, because every later step assumes you are working from a device that is not part of the corporate fleet. A new prepaid phone paid in cash, bought outside a store that scans your ID, in a location that is not covered by your home-grocery-store CCTV routine. Signal on the clean device. Proton on a personal alias. A personal VPN that was not purchased with a card your employer could subpoena.
+
+The rest of the playlist (IP, VPN, encryption) is about what happens when you have something to move. A leaked document touches your clean device, your personal encrypted volume, and the reporter's SecureDrop — and nothing else. Do not draft in Google Docs; do not attach to Gmail; do not copy-paste into Slack DMs, not even to a trusted colleague.
+
+An order-of-operations note that matters: set up the lawyer call before the clean phone. A lawyer may tell you that a specific internal channel is legally required first, and doing the clean-phone-and-Signal sequence before that internal channel could void the legal protection you were building toward.
+
+## Where it gets hard
+
+**The internal investigation knows before you think they do.** Behaviour analytics tools flag anomalies — unusual document downloads, after-hours access, search queries — and security teams get briefed before an investigation formally opens. By the time you are thinking about disclosure, your employer's tooling may already have flagged you. Assume the clock started earlier than you think.
+
+**Personal accounts are linked across platforms.** The Gmail you set up in 2010 that you have used for personal mail forever is also the recovery email on your LinkedIn, which lists your current employer, which lists your team, which narrows the internal-investigation pool to a handful of people. Your clean alias needs to be actually clean — new email on Proton, new Signal number, no cross-links to anything an investigator can pull.
+
+**Journalists are not lawyers.** A reporter can advise on how to transfer documents securely; they cannot advise on what is legally protected, and they have no attorney-client privilege with you. The *attorney* call is not substitutable with the *reporter* call.
+
+**Pattern of life is evidence.** If you start working late hours in a specific conference room during a two-week period immediately before a leak publishes, that is a noticeable pattern. Forensic teams run correlations across badge logs, network logs, and printer logs with timelines. Do not create a behavioural pattern that matches the timeline of the disclosure.
+
+## Real-world notes
+
+Government Accountability Project (whistleblower.org) is the longest-running US whistleblower-defence organisation and the first call for most leakers. Project on Government Oversight (pogo.org) handles government-sector leaks. Freedom of the Press Foundation (freedom.press) runs SecureDrop and publishes threat-model guides for leakers; their "Guide for Sources" is the most thorough source-side document publicly available. In the EU, Whistleblowing International Network and national orgs handle regional specifics.
+
+The Reality Winner, Daniel Hale, and Jeffrey Sterling cases are studied in whistleblower-defence circles as case studies in how investigations identify sources. They are worth reading before acting.
 
 ## What we don't cover here
 
-Anything legally advisory. Specifically: whether any particular disclosure is protected under your jurisdiction, whether internal channels are required first, and what immunity you may or may not have. Consult a lawyer before you act. This site does not replace that call.
+- Specific legal advice on whether any particular disclosure is protected under your jurisdiction. Call GAP, POGO, or a counsel they refer.
+- Whether internal channels are required first. Statute-dependent. Ask a lawyer.
+- What immunity, if any, you may have for acts committed during the disclosure (e.g. taking documents). Again: statute-dependent, lawyer-only.
+
+## Next steps
+
+- Call GAP (whistleblower.org, 1-202-457-0034) or POGO (pogo.org) before any technical step. Their intake is confidential.
+- Read Freedom of the Press Foundation's "Guide for Sources" end-to-end.
+- Do not talk about the disclosure with colleagues, family, or friends before the lawyer call. Every conversation is a potential subpoena-able record.
+
+---
+last_verified: 2026-04-18
