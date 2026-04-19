@@ -16,6 +16,7 @@ import { motion } from 'motion/react';
 import type { VectorEntry, DefenseMode } from '../../lib/scanner/types';
 import { BADGE_CONFIG, FAMILY_PILL_CLASS } from './badgeConfig';
 import { getInterpretation } from './interpretation';
+import { UniquenessPill } from './UniquenessPill';
 
 export type CardState = 'pending' | 'scanning' | 'done' | 'error';
 export type CardDefenseMode = DefenseMode | 'pending-backend';
@@ -97,6 +98,11 @@ export function ScannerCard({
         ) : (
           <p className="text-text-muted">Reading the live environment…</p>
         )}
+        <UniquenessPill
+          vectorId={vector.id}
+          state={state}
+          {...(defenseMode !== undefined ? { defenseMode } : {})}
+        />
       </div>
 
       <footer className="mt-4 flex items-center justify-between gap-3 text-xs">

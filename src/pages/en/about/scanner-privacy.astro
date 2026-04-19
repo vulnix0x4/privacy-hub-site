@@ -6,9 +6,10 @@
  * posture, and the audit commitments (6-month infra, 24-month deep,
  * quarterly asciinema). Design doc §13.
  *
- * Scanner-backend repo URL is a placeholder until Phase 3 publishes the
- * actual Docker services. Flag with TODO(phase-3) badge so the canary is
- * clear.
+ * Scanner-backend repo and asciinema attestation are marked "Phase 3" with
+ * a neutral roadmap badge — not a TODO — because the site-level scan is
+ * already live. Phase 3 adds the TLS/DNS/nonce sidecars under TLS
+ * termination; the badge flips to green when the repo publishes.
  */
 import Layout from '../../../layouts/Layout.astro';
 
@@ -129,10 +130,11 @@ const lastUpdated = '2026-04-18';
         <li>
           Scanner backend:{' '}
           <span
-            class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged-text"
-          >TODO(phase-3)</span>{' '}
-          Docker service repository will be published here when Phase 3 lands. Nonce + headers
-          endpoints are implemented in that service.
+            class="inline-flex items-center rounded border border-state-info/40 bg-state-info/10 px-2 py-0.5 text-xs font-medium text-state-info-text"
+          >Roadmap · Phase 3</span>{' '}
+          The nonce + headers + JA4 Docker services land in a public repository once the TLS
+          sidecar reaches production. The site-level scan (22 client-side vectors) is already live
+          and self-contained; Phase 3 adds the TLS/DNS observation pipeline.
         </li>
       </ul>
     </section>
@@ -154,13 +156,12 @@ const lastUpdated = '2026-04-18';
         <li>
           <strong>Quarterly asciinema attestation.</strong>{' '}
           <span
-            class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged-text"
-          >TODO(phase-3)</span>{' '}
+            class="inline-flex items-center rounded border border-state-info/40 bg-state-info/10 px-2 py-0.5 text-xs font-medium text-state-info-text"
+          >Roadmap · Phase 3</span>{' '}
           Once per quarter we record a terminal session (via{' '}
           <a href="https://asciinema.org" class="underline">asciinema</a>) showing the scanner
           backend's runtime state: no persistent storage, tmpfs mount, process tree, open ports.
-          First attestation lands with Phase 3 when the backend goes live. Published in the
-          changelog.
+          First attestation lands when the Phase 3 backend goes live. Published in the changelog.
         </li>
       </ul>
     </section>
