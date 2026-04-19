@@ -32,18 +32,53 @@ playlist:
 
 > **TL;DR.** The attackers come in three tiers: phishers, exchange-breach re-users, and physical-attack (wrench) operators. Your priority is to make the wrench-attack operator's OSINT cost too high to justify targeting you specifically. That means scrubbing the public-records layer, separating crypto-identity from real-name identity, and keeping the size of your holdings out of search-indexable space.
 
-## Threat picture
+## The threat picture
 
-The wrench attack is not a meme. There have been dozens of on-record cases of people being held at gunpoint or kidnapped after identifying themselves as crypto-rich online. The prerequisite for this attack is that the attacker can find you. Your goal: ensure that finding you requires more investigation than your holdings justify.
+Three tiers, each needing a different defence.
 
-## What you get from this playlist
+**Tier one: the phisher.** A fake Metamask popup, a Discord scam, a Twitter DM with a link that drains a signed transaction. This is the most common loss in 2025. Hardware wallet plus never-sign-what-you-cannot-read defeats it.
 
-Identity compartmentalization: your real name nowhere near your wallet addresses, your home address scrubbed from data brokers, your seed phrase on an encrypted volume, your exchange accounts behind hardware 2FA. Not invisibility. Just enough friction.
+**Tier two: the exchange-breach credential re-user.** Every year another CEX leaks. If you reused a password anywhere, the attacker tries it on every other exchange within 48 hours. Password-manager unique credentials plus hardware FIDO2 on every exchange that supports it defeats this outright.
 
-## Notes from real people
+**Tier three: the wrench attack.** Someone shows up at your door and demands the seed. This is real; there were dozens of on-record cases in 2024-2025. The prerequisite is always the same: the attacker connects a public crypto-identity (a Twitter handle that brags about gains, a Discord name tied to a big mint) to a physical address via the data-broker layer. Your goal is to break that link before it gets built.
 
-Every long-term self-custodian will tell you the same thing: do not tell people IRL what you hold. The wrench attack almost always starts with a conversation at a bar or a Twitter reply. Speak in ranges or not at all.
+## What you're optimising for
+
+Identity compartmentalization, not invisibility. Your real name nowhere near your wallet addresses, your home address scrubbed from people-search sites, your seed phrase on an encrypted volume plus a metal backup stored somewhere physically separate from where you live, and your exchange accounts behind hardware 2FA on a dedicated alias email. Not anonymity — custody in KYC-land always touches your real name eventually — but enough friction that an opportunistic attacker picks a softer target.
+
+## The playlist
+
+Disk encryption first because your seed backup, your wallet descriptor files, and your PSBTs all belong on an encrypted volume. Then the password manager and hardware 2FA, because the tier-two attack is the most common and the cheapest to defend against. Then the network layer (IP, VPN), because this is what blocks the tier-three attacker from pinning your wallet-interface visits to your home IP. Signal and the dedicated crypto email round out the opsec around co-signing and exchange notifications.
+
+An order-of-operations note: set up a *new* email alias for every exchange before you sign up for the exchange, not after. Rotating an exchange's email after the fact is friction, and a reused personal Gmail on three exchanges is exactly the breach-propagation pattern that hurts people.
+
+## Where it gets hard
+
+The real risk with self-custody is not the blockchain. It is social engineering against your seed phrase. "Hey your wallet needs a migration, enter your seed here" scams, "support" DMs on Discord, fake ledger-live updates, clipboard hijacker malware that swaps your paste address. None of these are defeated by on-chain privacy tools — they are defeated by muscle-memory discipline around what you type and where.
+
+Other pain points:
+
+- **KYC leaks.** Exchanges get breached. Your ID photo, proof of address, and sometimes your home address leak. Coinbase, Ledger's 2020 customer database, and several smaller exchanges have all had this happen. Assume the KYC packet you submitted is eventually public; do not use your primary residence as your KYC address if you have a business address or a registered agent.
+- **Public bragging.** Twitter, Farcaster, Discord — a single "I minted ten of these" post plus a wallet address that is later linked to your ENS is enough OSINT to start the wrench story. Speak in ranges or not at all.
+- **Shared devices.** Wallet files on a machine a partner, roommate, or family member uses. Seed backups left in a cloud-sync folder. A macOS Time Machine backup of your whole home directory. All normal behaviours that become catastrophic with crypto on the machine.
+
+## Real-world notes
+
+The wrench-attack pattern is documented by Jameson Lopp's *Physical Bitcoin Attacks* list (lopp.net/resources), maintained since 2014 and the single best public record of this threat. The KYC-leak pattern is documented across Ledger's 2020 incident, the BitMart and Crypto.com breaches, and Have I Been Pwned's crypto-related entries. Lopp's own writing is the canonical self-custody opsec reference.
+
+On tooling, the picks mirror what the self-custody community has converged on: hardware wallets (Ledger, Trezor, Coldcard), multisig via Sparrow or Nunchuk for larger holdings, a personal Electrum server for network-layer privacy, and metal backups (Seedplate, Cryptosteel) for the seed itself.
 
 ## What we don't cover here
 
-On-chain privacy tools (mixers, privacy chains, coinjoin). Those are both jurisdictionally fraught and change monthly. Consult a tax professional in your jurisdiction before using any of them; some US services (Tornado Cash) carry OFAC sanctions exposure.
+- On-chain privacy tools (mixers, privacy chains, coinjoin). Those are jurisdictionally fraught and change every few months. Tornado Cash carries OFAC sanctions exposure; Samourai's Whirlpool shut down in 2024; Wasabi's coordinator paused US users. Consult a tax professional in your jurisdiction before touching any of them.
+- Tax strategy, jurisdiction-shopping, or any of the "live tax-free in Puerto Rico" takes. Ask a tax lawyer.
+- Advice on which tokens to buy or hold. Not the point of this site.
+
+## Next steps
+
+- Run `/en/categories/data-broker-removal` once through. Your home address on WhitePages is the single most valuable OSINT datum for a wrench attacker.
+- Set a calendar reminder to review your seed backup's physical location once a year. Stuff gets lost; partners move out; houses flood.
+- If your holdings are large enough to worry about, read Lopp's list end-to-end. It will recalibrate what "privacy-first crypto" actually means in practice.
+
+---
+last_verified: 2026-04-18

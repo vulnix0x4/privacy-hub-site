@@ -32,18 +32,45 @@ playlist:
 
 > **TL;DR.** The goal is autonomy, not surveillance. The spy-on-your-kid apps are largely ineffective, often insecure themselves, and they model exactly the wrong lesson about privacy. Teach habits; install tools once; trust your kid to grow into it.
 
-## Threat picture
+## The threat picture
 
-Your actual threats in order: data-broker aggregation of your kid's information, ad-driven attention extraction, school-district software selling their reading scores, and eventually whatever platform they sign up for at 13. Predators are the cover story; commercial surveillance is the actual footprint.
+Your actual threats, in order of how often they matter: data-broker aggregation of your kid's information from school portals, youth-sports sign-ups, birthday-party RSVP apps, and every free game they download. Ad-driven attention extraction, which is not a privacy story on its own but compounds with everything else. School-district software that sells engagement data and reading scores to analytics vendors nobody audits. And eventually — once they are 13 and can sign up for real platforms — whatever algorithmic optimization those platforms run on them.
 
-## What you get from this playlist
+Predators are the cover story parenting-app vendors sell. They are real but rare, and the products sold against them leak more data than they protect. Commercial surveillance is the actual footprint, and the actual footprint is huge.
 
-A household where the adults use good privacy tools visibly, the kids inherit the defaults, and nobody is on Google Family Link as the primary trust layer. Age-appropriate conversations about what "agreeing to terms" actually means.
+## What you're optimising for
 
-## Notes from real people
+A household where the adults use good privacy tools visibly, the kids inherit the defaults without a lecture, and nobody is on Google Family Link or Bark as the primary trust layer. The target is not "my kid cannot access anything"; it is "my kid learns that software works for them, not the other way around." When they turn 18 and move out, they carry those defaults with them. That is the real long-term win.
 
-Parents who pulled this off say the consistent thread is not installing anything the adult does not use themselves. If you are still on Gmail while the kid uses Proton, the kid learns that privacy is what you tell them to do.
+## The playlist
+
+Work through the playlist together. The order is deliberate: threat-modelling first so you are both clear on what you are worried about, then install the tools the kid will touch every day (browser, Signal), then the scaffolding they grow into (password manager, 2FA, photo vault). The third-party-cookies vector at the end is the conversation-starter, not a setup step.
+
+One piece of order-of-operations advice: install everything on your own devices first. Kids read hypocrisy faster than any adult, and a parent who uses Chrome and Gmail while telling the kid to use Brave and Proton loses the argument in a week.
+
+## Where it gets hard
+
+Shared Apple IDs and Google Family accounts leak in both directions. If the family iCloud plan is set up with the parent as organizer, photo-library sharing, location sharing, purchase sharing, and screen-time reports all flow up to the parent device by default. Disable what you do not actually use. Family Sharing is convenient for paid apps; it is overreach as a trust layer.
+
+Schools are largely outside your control. If the district issues a Chromebook with mandatory management extensions, that device is a surveillance device, period — treat it as a school computer, not a personal one, and make sure the kid knows the difference. Homework goes on it; everything else goes on the personal device.
+
+Teenagers will eventually sign up for things without telling you. The playlist does not prevent that. It gives them the tools (unique passwords, aliased emails, 2FA) so the account they did not tell you about does not become the breach that propagates.
+
+## Real-world notes
+
+Common Sense Media and the American Academy of Pediatrics publish the best non-surveillance frameworks for age-appropriate screen use — their guidance on time limits and co-viewing holds up because it is not product-driven. On the algorithmic-harm side, Tracking Exposed (Marc Faddoul's group) publishes open research on how platforms radicalize recommendations, which is worth reading before handing a phone to a twelve-year-old. Mozilla Foundation's annual *Privacy Not Included* guide reviews kids' products specifically, and it is brutal about apps that sell the data they collect on a child.
 
 ## What we don't cover here
 
-Content moderation. Whether a twelve-year-old should be on TikTok is not a privacy question. The American Academy of Pediatrics and Common Sense Media have usable frameworks; Marc Faddoul's work at Tracking Exposed covers the algorithmic-harm side.
+- Whether a specific age is appropriate for a specific platform. That is a parenting question, not a privacy question. Common Sense Media reviews each platform.
+- Content moderation or parental controls. Those exist in every OS; turn them on if you want, but they do not substitute for privacy hygiene.
+- Kids in genuinely hostile households. See `lgbtq-youth` if that is the actual situation — it is a different threat model.
+
+## Next steps
+
+- Run through `just-want-basics` yourself if you have not already. You cannot teach what you do not practice.
+- Look at `/en/guides/simplelogin-aliases` before the kid signs up for anything new. Alias-per-account from day one is a thirty-year win.
+- Revisit the playlist with them every year. Threats change; the kid's autonomy grows.
+
+---
+last_verified: 2026-04-18

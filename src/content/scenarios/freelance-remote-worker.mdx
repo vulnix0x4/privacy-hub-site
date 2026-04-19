@@ -32,18 +32,47 @@ playlist:
 
 > **TL;DR.** Your clients handed you access. A client-data leak ends your business faster than a missed deadline. A tiny one-person security program — encrypted disk, password manager, hardware 2FA, audited VPN, zero-knowledge file storage — covers the 95th percentile of bad outcomes for the cost of one afternoon setup.
 
-## Threat picture
+## The threat picture
 
-The realistic threats: a lost laptop at a coffee shop, a phishing email that steals a client SSH key, a backup drive thrown in the trash by a roommate, and a subpoena to a cloud provider who had your client files in plaintext. Less realistic but possible: a targeted attack on you specifically because a client is high-profile.
+The realistic threats, in order of probability: a laptop stolen from a coffee shop or a hotel room, a phishing email that steals a reused SSH key or a Google Workspace session cookie, a backup drive thrown out by a roommate during a move, and a civil subpoena to a cloud provider who had your client files in plaintext. Less likely but possible: a targeted attack against you specifically because a client is high-profile and someone has figured out you are the freelancer who has the keys.
 
-## What you get from this playlist
+None of this is advanced-threat-actor territory. It is the unglamorous middle of the threat landscape — opportunistic theft, credential reuse, and the fact that "oh we use Dropbox" is an answer that now fails most vendor-security questionnaires.
 
-A defensible one-person shop. You can fill out a vendor-security questionnaire honestly: encrypted disk, unique credentials per client, hardware 2FA, encrypted backups, provider-inaccessible file storage. Nothing exotic; all of it meaningful if something goes wrong.
+## What you're optimising for
 
-## Notes from real people
+A defensible one-person shop. When a prospective client sends you a security questionnaire, you can answer every question honestly with a single sentence: encrypted disk at rest, unique credentials per client in a password manager, hardware 2FA on everything that supports it, VPN on every connection, zero-knowledge file storage for anything sensitive, a custom-domain business email that is not tied to your personal Gmail. Nothing exotic. All of it meaningful when something goes sideways.
 
-Freelancers who take this seriously say the single biggest mistake is using personal accounts (personal Dropbox, personal Gmail) for client files. Buy a business email, use a business password manager organization, separate the bookkeeping. When a client asks for your security posture, you have real answers.
+The other thing you are optimising for: separation. Your personal accounts, your bookkeeping, and your client work live in three different password-manager vaults, three different browser profiles, and ideally three different email addresses. A personal-account breach should not touch client work.
+
+## The playlist
+
+Disk encryption first. If you skip it and the laptop walks, nothing else on the list saves you. Then password manager with generated unique credentials, because every later tool wants an account. Then hardware 2FA, because the most common freelancer compromise in 2024-2025 was session-cookie theft after a phishing email, and a FIDO2 key defeats that attack class entirely. VPN and file storage are the "what touches the network" tier. Business email is last because migrating email is annoying but yields the biggest long-term professional credibility win.
+
+## Where it gets hard
+
+Clients give you access via their tools, not yours. If a client insists you use their Slack, their Google Drive, their JIRA, their expense-reporting app — those accounts inherit their security posture, not yours. You can still do the things on your side (strong unique password, hardware 2FA where the client allows it), but the client's tenant is only as secure as the client chose to make it. Note this and move on; it is not a battle you win as a vendor.
+
+The other pain point: working off public WiFi. A VPN helps, but some corporate client networks block outbound VPNs entirely, which means on-site client work can force you onto their WiFi without a tunnel. Ask before a site visit; bring a cellular hotspot if the answer is "our security team blocks all VPNs."
+
+Backups are the silent failure. Time Machine to an encrypted external drive is the minimum; consider a second offsite backup on a zero-knowledge provider (Borgbase, rsync.net, Proton Drive). A laptop loss plus a backup-drive loss at the same time is the classic "this should not have happened but here we are" story every freelancer has heard.
+
+## Real-world notes
+
+The one-person-security-program shape comes from the same places that shaped the early solo-consultant security books: Thomas Ptacek's and Tony Arcieri's writing on session-cookie theft, troyhunt.com's long-running commentary on credential reuse, and the NIST SP 800-171 baseline that most US federal prime contractors now push down to solo subcontractors. None of that is exotic. It is the minimum viable shape of a vendor-security answer.
+
+On the tooling side, the picks line up with what Privacy Guides, Techlore, and the freelancer-security corner of Mastodon all converge on. Bitwarden for most, 1Password for those who prefer its UX and can budget it, Proton for mail and storage if you want one-vendor simplicity, Fastmail for mail if you prefer their IMAP and JMAP maturity.
 
 ## What we don't cover here
 
-Formal compliance programs (SOC 2, ISO 27001, HIPAA). Those require auditors, documented policies, and a tax bill. If your clients start asking for certifications, you have outgrown a one-person ops model; Vanta and Drata are the usual starting points.
+- Formal compliance programs (SOC 2, ISO 27001, HIPAA, PCI). Those require auditors, documented policies, and an actual tax bill. If clients start asking for certifications, you have outgrown a one-person ops model; Vanta and Drata are the standard starting points.
+- Company incorporation, business insurance, or tax-handling advice. Ask an accountant.
+- Advanced-threat scenarios (state-level, industrial espionage). See `journalist-source-protection` or `whistleblower` if that is the shape of your problem.
+
+## Next steps
+
+- Pick one client, write the security answer you would give them, and see where you cannot honestly say yes yet. Fix that first.
+- Add a one-line security posture paragraph to your website or your standard proposal. Clients who care will notice; clients who do not care will not read it.
+- Diary a quarterly review. Passwords rotate, a YubiKey gets replaced, a client relationship ends — the shape of your access changes, and the security program needs to keep up.
+
+---
+last_verified: 2026-04-18

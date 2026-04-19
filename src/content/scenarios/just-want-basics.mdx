@@ -35,10 +35,45 @@ playlist:
 
 > **TL;DR.** You are not under active surveillance. You just want to leak less. This playlist is ordered by payoff per minute of effort. Do them top to bottom, stop when you are tired, and you will already be ahead of almost everyone.
 
-## How to work through this
+## The threat picture
 
-Skim each linked page's TL;DR. If you already do the thing, skip it. If it looks like a lot of work, stop at whatever level is not a lot of work. Privacy compounds. You do not need to finish the list today.
+Nobody is personally watching you. Nobody needs to. The ad-tech stack — Google, Meta, Amazon, plus a hundred data brokers you have never heard of — aggregates what you click, who you email, where your phone is, and what you buy into a behavioural profile that gets sold wholesale. Your health-insurance rate, the coupons you see, the political ads that reach you, and which employers match your resume all touch that profile at some point.
 
-## What this won't protect you from
+That is the everyday privacy problem. It is not thrilling and it is not a movie. It is a slow bleed of agency across every decision a piece of software gets to make about you.
 
-A targeted adversary with your real name. Law enforcement with a warrant. Someone with physical access to your unlocked laptop. If any of those describe your situation, pick a more specific scenario from the index. The list is there for a reason.
+## What you're optimising for
+
+Less data on the open market. Specifically: the browser you spend most of your day in should not phone home on every tab, the password you use on thirty sites should not be the same password, and the email you hand out everywhere should not be the one that gets sold the day a company has a breach. That is the target. Not perfect anonymity. Not changing your name and moving to Iceland. Just closing the loudest three or four leaks so you rejoin the normal human baseline that existed before ad-tech got this good.
+
+## The playlist
+
+Work the list top to bottom. Each step is linked in the playlist above, with a one-liner on why it matters. If you already do one, skip it. If one looks like more work than you have energy for right now, stop at the item above it. Privacy compounds. You do not need to finish today, next week, or this year.
+
+One order-of-operations note: set up the password manager early, because every later step asks you to sign up for something. Having Bitwarden or Proton Pass ready turns those sign-ups from friction into muscle memory.
+
+## Where it gets hard
+
+The honest limits. Your phone operating system still phones home constantly — iPhone to Apple, Android to Google — and this playlist does not touch that. The guides that do (GrapheneOS, iPhone privacy settings) are on the site if you want to go there, but they are a separate afternoon.
+
+Your existing accounts at Gmail, Facebook, Amazon still have your data. Switching your primary email to Proton protects new messages; it does not erase ten years of archived Gmail. Getting that data back and deleted takes a GDPR or CCPA request, which the site has a template for.
+
+Finally: anyone with physical access to an unlocked device beats every tool on this list. If that is your threat model, the `domestic-abuse-survivor` or `creator-with-stalker` scenario is a better starting place.
+
+## Real-world notes
+
+This list is the normie distillation of what EFF's Surveillance Self-Defense, Privacy Guides, and Techlore all recommend for the "I am not special, I just want to leak less" audience. The sequencing — browser first, password manager early, VPN once you care about IP, email last because email migration is the most annoying — mirrors what Privacy Guides has converged on after years of revisions. Nothing here is novel. It is the boring consensus, which is usually what works.
+
+## What we don't cover here
+
+- Phone-OS hardening (GrapheneOS, LineageOS, iPhone Lockdown Mode). See `/en/guides/degoogle-android` and `/en/guides/iphone-privacy`.
+- Router-level blocking (Pi-hole, AdGuard Home). See `/en/guides/pihole`.
+- Data-broker opt-outs. See `/en/categories/data-broker-removal` once the basics are in place.
+
+## Next steps
+
+- Run the scanner at `/en/scan` after each tool swap to see the change for yourself.
+- When the easy list is done, pick one deeper scenario — `parent-online` if you have kids, `creator-with-stalker` if you post publicly, `freelance-remote-worker` if you hold client data.
+- Bookmark the changelog at `/en/changelog`. The tools shift; the site tracks what we stop recommending and why.
+
+---
+last_verified: 2026-04-18
