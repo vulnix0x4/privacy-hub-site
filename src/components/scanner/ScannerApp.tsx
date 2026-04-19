@@ -28,6 +28,8 @@ import { VECTOR_CATALOG } from '../../lib/scanner/registry';
 import { stabilityProbe } from '../../lib/scanner/stabilityProbe';
 import { classifyDefenseMode } from '../../lib/scanner/classifyDefenseMode';
 import { detectBrowser } from '../../lib/scanner/detectBrowser';
+import { detectLies } from '../../lib/scanner/liesDetection';
+import { recommendFixes } from '../../lib/scanner/fixesRecommendation';
 import type {
   BrowserFamily,
   DefenseMode,
@@ -38,6 +40,8 @@ import { collectSignals } from './signals';
 import { ScannerHero } from './ScannerHero';
 import { ScannerCategoryBar } from './ScannerCategoryBar';
 import { ScannerCard, type CardState, type CardDefenseMode } from './ScannerCard';
+import { LiesPanel } from './LiesPanel';
+import { TopFixesPanel } from './TopFixesPanel';
 import { FAMILY_META } from './familyMeta';
 import type { BadgeKey } from './badgeConfig';
 
@@ -146,6 +150,34 @@ export function ScannerApp() {
         .length,
     [cards]
   );
+  const scanDone = completed >= VECTOR_CATALOG.length;
+
+  // Lies detection runs over the raw probe values as they stream in. We
+  // only care about completed cards so half-settled results don't trigger
+  // false positives.
+  const lies = useMemo(() => {
+    const rawValues: Record<string, unknown> = {};
+    for (const [id, card] of Object.entries(cards)) {
+      if (card.state === 'done' && card.rawValue !== undefined) {
+        rawValues[id] = card.rawValue;
+      }
+    }
+    return detectLies({ browserFamily: browser.family, rawValues });
+  }, [cards, browser.family]);
+
+  // Top-3 fix recommendations — keyed off the UNCHANGED set.
+  const fixes = useMemo(() => {
+    const unchanged: string[] = [];
+    for (const [id, card] of Object.entries(cards)) {
+      if (card.state === 'done' && card.defenseMode === 'UNCHANGED') {
+        unchanged.push(id);
+      }
+    }
+    return recommendFixes({
+      browserFamily: browser.family,
+      unchangedVectorIds: unchanged,
+    });
+  }, [cards, browser.family]);
 
   const grouped = useMemo(() => groupByFamily(VECTOR_CATALOG), []);
   const familyCounts = useMemo(() => {
@@ -170,6 +202,8 @@ export function ScannerApp() {
         completed={completed}
         total={VECTOR_CATALOG.length}
       />
+      <TopFixesPanel fixes={fixes} scanDone={scanDone} />
+      <LiesPanel lies={lies} />
       <ScannerCategoryBar familyCounts={familyCounts} />
       <div className="space-y-10">
         {FAMILY_META.map((family) => {

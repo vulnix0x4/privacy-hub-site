@@ -1,13 +1,13 @@
 ---
 /**
- * Founder note + warrant canary + PGP fingerprint. Pseudonym is
- * vulnix0x4 per design doc §13.5 publisher-identity lock. The warrant
- * canary rotates monthly; today's stake is 2026-04-18, subsequent
- * rotations are captured in the changelog.
+ * Founder note + warrant canary + PGP contact. Pseudonym is vulnix0x4 per
+ * design doc §13.5 publisher-identity lock. The warrant canary rotates
+ * monthly; today's stake is 2026-04-18, subsequent rotations are captured
+ * in the changelog.
  *
- * PGP fingerprint placeholder is flagged TODO(pre-launch) — the owner
- * fills in the 40-char fingerprint before launch. Putting a garbage
- * fingerprint here would be worse than none.
+ * The PGP key generation is done on the owner's local machine — when the
+ * key is ready it replaces the "interim contact" copy below with a
+ * fingerprint + /pgp.asc download + keys.openpgp.org upload.
  */
 import Layout from '../../../layouts/Layout.astro';
 
@@ -75,38 +75,33 @@ const canaryDate = '2026-04-18';
     </section>
 
     <section class="space-y-3 text-text leading-relaxed">
-      <h2 class="text-xl font-semibold text-text">PGP contact</h2>
+      <h2 class="text-xl font-semibold text-text">Secure contact</h2>
       <p>
-        For anything sensitive — especially security reports and journalism sourcing — use PGP.
+        For anything sensitive — especially security reports and journalism sourcing — use the
+        encrypted email address below. A long-term PGP key is being generated; once published it
+        will be downloadable from <code>/pgp.asc</code> on this site and searchable on{' '}
+        <code>keys.openpgp.org</code> by the same address. Until then, Proton's native end-to-end
+        encryption between Proton Mail users covers the confidentiality gap.
       </p>
       <dl class="space-y-2 text-sm">
-        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
-          <dt class="w-40 shrink-0 text-text-muted">Key fingerprint</dt>
-          <dd class="font-mono text-text">
-            <span
-              class="inline-flex items-center rounded border border-state-unchanged/40 bg-state-unchanged/10 px-2 py-0.5 text-xs font-medium text-state-unchanged-text"
-            >TODO(pre-launch)</span>{' '}
-            <code>XXXX XXXX XXXX XXXX XXXX  XXXX XXXX XXXX XXXX XXXX</code>
-          </dd>
-        </div>
-        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
-          <dt class="w-40 shrink-0 text-text-muted">Key download</dt>
-          <dd class="text-text">
-            To be published at <code>/pgp.asc</code> before launch; also uploaded to{' '}
-            <code>keys.openpgp.org</code> and searchable by the email below once the key is
-            generated.
-          </dd>
-        </div>
         <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
           <dt class="w-40 shrink-0 text-text-muted">Email</dt>
           <dd class="text-text">
             <a href="mailto:claude.aiactuallall.disregard729@passmail.com" class="underline">claude.aiactuallall.disregard729@passmail.com</a>
           </dd>
         </div>
+        <div class="flex flex-col gap-1 sm:flex-row sm:gap-4">
+          <dt class="w-40 shrink-0 text-text-muted">Signal / SimpleX</dt>
+          <dd class="text-text-muted">
+            Available on request — message first by email, reply will include a one-time
+            introduction code.
+          </dd>
+        </div>
       </dl>
       <p class="text-sm text-text-muted">
-        Verify the fingerprint against at least two independent sources (this page, the key
-        server, and a Tor hidden service copy once published). Do not skip this step.
+        When the PGP key is published, verify the fingerprint against at least two independent
+        sources (this page, the key server, and the future Tor hidden-service mirror). Do not skip
+        that step.
       </p>
     </section>
 
