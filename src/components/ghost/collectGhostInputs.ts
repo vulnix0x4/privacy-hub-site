@@ -10,7 +10,7 @@
  * private mode) should yield an empty-string placeholder rather than an
  * unhandled rejection. The hash just reflects whatever we could read.
  */
-import type { GhostHashInputs } from './computeGhostHash';
+import type { GhostHashInputs, ResilientHashInputs } from './computeGhostHash';
 import type { DetectionSignals } from '../../lib/scanner/detectBrowser';
 
 interface NavigatorWithBrave {
@@ -189,6 +189,24 @@ export async function collectGhostInputs(): Promise<GhostHashInputs> {
     ] as [number, number, number],
     timezone: timezone(),
     fonts,
+  };
+}
+
+/**
+ * Gather the four resilient signals that survive Brave's per-session farbling:
+ * timezone, primary language, OS platform, and screen dimensions. No network
+ * fetch — all pure client-side reads.
+ */
+export function collectResilientInputs(): ResilientHashInputs {
+  const nav = typeof navigator !== 'undefined' ? navigator : ({} as Navigator);
+  return {
+    timezone: timezone(),
+    language: typeof nav.language === 'string' ? nav.language : '',
+    platform: typeof nav.platform === 'string' ? nav.platform : '',
+    screen: [
+      typeof screen !== 'undefined' ? screen.width : 0,
+      typeof screen !== 'undefined' ? screen.height : 0,
+    ] as [number, number],
   };
 }
 

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildGhostVector, computeGhostHash } from './computeGhostHash';
-import type { GhostHashInputs } from './computeGhostHash';
+import {
+  buildGhostVector,
+  buildResilientVector,
+  computeGhostHash,
+  computeResilientHash,
+} from './computeGhostHash';
+import type { GhostHashInputs, ResilientHashInputs } from './computeGhostHash';
 
 /** Stable baseline inputs used across tests. */
 function base(overrides: Partial<GhostHashInputs> = {}): GhostHashInputs {
@@ -92,6 +97,63 @@ describe('computeGhostHash', () => {
 
   it('exposes a 6-char display form matching the tail of the full hash', async () => {
     const r = await computeGhostHash(base());
+    expect(r.short).toBe(r.hash.slice(-6));
+    expect(r.short.length).toBe(6);
+  });
+});
+
+function resilientBase(
+  overrides: Partial<ResilientHashInputs> = {}
+): ResilientHashInputs {
+  return {
+    timezone: 'America/Los_Angeles',
+    language: 'en-US',
+    platform: 'MacIntel',
+    screen: [1920, 1080],
+    ...overrides,
+  };
+}
+
+describe('buildResilientVector / computeResilientHash', () => {
+  it('serialises the four resilient fields in a fixed order', () => {
+    const v = buildResilientVector(resilientBase());
+    const keys = Object.keys(v);
+    expect(keys).toEqual(['timezone', 'language', 'platform', 'screen']);
+  });
+
+  it('is deterministic for identical inputs', async () => {
+    const a = await computeResilientHash(resilientBase());
+    const b = await computeResilientHash(resilientBase());
+    expect(a.hash).toBe(b.hash);
+  });
+
+  it('matches across a Brave-incognito-style pair (same locale, different canvas/audio)', async () => {
+    // The user's scenario: same device, same incognito locale, canvas/audio
+    // farbled per-session. Strict hash differs; resilient hash matches.
+    const normal = await computeResilientHash(resilientBase());
+    const incognito = await computeResilientHash(resilientBase());
+    expect(normal.hash).toBe(incognito.hash);
+  });
+
+  it('changes when any of the four inputs shifts', async () => {
+    const anchor = await computeResilientHash(resilientBase());
+    const tz = await computeResilientHash(
+      resilientBase({ timezone: 'Europe/Berlin' })
+    );
+    const lang = await computeResilientHash(resilientBase({ language: 'de-DE' }));
+    const platform = await computeResilientHash(
+      resilientBase({ platform: 'Win32' })
+    );
+    const screen = await computeResilientHash(
+      resilientBase({ screen: [2560, 1440] })
+    );
+    for (const r of [tz, lang, platform, screen]) {
+      expect(r.hash).not.toBe(anchor.hash);
+    }
+  });
+
+  it('exposes a 6-char display form matching the tail of the full hash', async () => {
+    const r = await computeResilientHash(resilientBase());
     expect(r.short).toBe(r.hash.slice(-6));
     expect(r.short.length).toBe(6);
   });

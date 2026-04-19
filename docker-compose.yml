@@ -27,6 +27,12 @@
 #                        containers see the same view. scanner-nsd's own
 #                        entrypoint watches the zone file mtime and reloads
 #                        on change — no cross-container nsd-control needed.
+#   nsd-dnstap-vol     — tmpfs-backed volume for NSD's dnstap Unix socket
+#                        (/var/run/nsd/dnstap.sock). scanner-nsd writes it;
+#                        scanner-nonce reads Frame Streams from it to
+#                        observe which resolver IP queried a given nonce.
+#                        Nothing persists — the socket is a kernel object
+#                        whose only on-disk footprint is its inode.
 
 services:
   web:
@@ -46,6 +52,10 @@ services:
       PUBLIC_SCAN_JA4_URL: ${PUBLIC_SCAN_JA4_URL:-https://ja4.scan.privacy.whattheflip.lol}
       PUBLIC_SCAN_DNS_DOMAIN: ${PUBLIC_SCAN_DNS_DOMAIN:-scan.privacy.whattheflip.lol}
       SCAN_NONCE_DB: /tmp/scan-nonces.db
+      # Shared secret used by scanner-nonce when POSTing
+      # /api/scan/record-resolver. Must match the value given to
+      # scanner-nonce below; in production set to a ≥32-byte random string.
+      SCAN_SIDECAR_TOKEN: ${SCAN_SIDECAR_TOKEN:?SCAN_SIDECAR_TOKEN must be set in .env}
     read_only: true
     tmpfs:
       - /tmp:size=64m
@@ -109,10 +119,14 @@ services:
       - "${DNS_PORT:-5353}:53/tcp"
     volumes:
       - nsd-zones-vol:/etc/nsd/zones
+      # Shared tmpfs volume for dnstap.sock. scanner-nsd writes (daemon
+      # creates the socket); scanner-nonce reads (consumer). The volume's
+      # tmpfs driver keeps the socket's inode off disk — only kernel
+      # memory.
+      - nsd-dnstap-vol:/var/run/nsd
     read_only: true
     tmpfs:
       - /var/db/nsd:size=8m
-      - /var/run/nsd:size=4m
       - /tmp:size=8m
     # NSD does NOT need NET_BIND_SERVICE here — port 53 is bound inside the
     # container's own netns to :53, and Docker's port publishing forwards
@@ -136,13 +150,28 @@ services:
     depends_on:
       - web
       - scanner-nsd
+    # Primary (uid 10002) stays root-less; supplementary gid 10054
+    # (nsd-nonce) lets us connect to NSD's dnstap.sock which is chmod'd
+    # 0660 by the nsd entrypoint. The nsd image has the matching
+    # groupadd so the shared volume's ACLs line up.
+    user: "10002:10002"
+    group_add:
+      - "10054"
     environment:
       WEB_NONCES_URL: http://web:4321/api/scan/nonces-active
+      WEB_RECORD_RESOLVER_URL: http://web:4321/api/scan/record-resolver
+      DNSTAP_SOCKET: /var/run/nsd/dnstap.sock
       ZONE_FILE: /etc/nsd/zones/scan.zone
       ZONE_TEMPLATE: /etc/nsd/zone-template.txt
       POLL_INTERVAL: 2s
+      SCAN_SIDECAR_TOKEN: ${SCAN_SIDECAR_TOKEN:?SCAN_SIDECAR_TOKEN must be set in .env}
+      # Scanner public DNS zone; used to strip the suffix from QNAMEs so the
+      # leftmost label (= nonce) can be matched against the active set.
+      SCAN_DNS_DOMAIN: ${PUBLIC_SCAN_DNS_DOMAIN:-scan.privacy.whattheflip.lol}
     volumes:
       - nsd-zones-vol:/etc/nsd/zones
+      # Read-only mount of the dnstap volume — sidecar is a consumer only.
+      - nsd-dnstap-vol:/var/run/nsd:ro
       # Bind-mount the template so the sidecar reads the same file the nsd
       # container ships (same source, two readers).
       - ./scanner/nsd/zone-template.txt:/etc/nsd/zone-template.txt:ro
@@ -161,6 +190,15 @@ services:
 volumes:
   nsd-zones-vol:
     driver: local
+  # tmpfs-backed volume. Putting the socket behind `tmpfs:` directly would
+  # scope it to a single container; a named volume with driver_opts `tmpfs`
+  # lets both scanner-nsd and scanner-nonce see the same socket inode.
+  nsd-dnstap-vol:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=4m,mode=0775"
 
 networks:
   default:

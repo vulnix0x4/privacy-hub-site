@@ -16,8 +16,16 @@
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { collectGhostInputs, collectDetectionSignals } from './collectGhostInputs';
-import { computeGhostHash, type GhostHashResult } from './computeGhostHash';
+import {
+  collectGhostInputs,
+  collectResilientInputs,
+  collectDetectionSignals,
+} from './collectGhostInputs';
+import {
+  computeGhostHash,
+  computeResilientHash,
+  type GhostHashResult,
+} from './computeGhostHash';
 import { loadMask, saveMask, clearMask } from './maskStore';
 import {
   clearSiteData,
@@ -51,7 +59,9 @@ interface State {
   phase: PhaseKey;
   browser: BrowserFamily;
   firstHash: GhostHashResult | null;
+  firstResilient: GhostHashResult | null;
   secondHash: GhostHashResult | null;
+  secondResilient: GhostHashResult | null;
   stored: MaskRecord | null;
   storedBefore: MaskRecord | null;
   lastAction: ActionLog | null;
@@ -64,6 +74,7 @@ type Action =
   | {
       type: 'complete-initial';
       hash: GhostHashResult;
+      resilient: GhostHashResult;
       stored: MaskRecord | null;
       storedBefore: MaskRecord | null;
     }
@@ -71,6 +82,7 @@ type Action =
   | {
       type: 'complete-action';
       hash: GhostHashResult;
+      resilient: GhostHashResult;
       stored: MaskRecord | null;
       log: ActionLog;
     }
@@ -81,7 +93,9 @@ const INITIAL_STATE: State = {
   phase: 'idle',
   browser: 'unknown',
   firstHash: null,
+  firstResilient: null,
   secondHash: null,
+  secondResilient: null,
   stored: null,
   storedBefore: null,
   lastAction: null,
@@ -99,6 +113,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         phase: 'ready',
         firstHash: action.hash,
+        firstResilient: action.resilient,
         stored: action.stored,
         storedBefore: action.storedBefore,
       };
@@ -114,6 +129,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         phase: 'verdict',
         secondHash: action.hash,
+        secondResilient: action.resilient,
         stored: action.stored,
         lastAction: action.log,
       };
@@ -159,11 +175,16 @@ export function GhostDemo() {
       // ends up matching.
       const priorRecord = await loadMask();
       const inputs = await collectGhostInputs();
-      const hash = await computeGhostHash(inputs);
-      const nextRecord = await saveMask(hash.hash);
+      const resilientInputs = collectResilientInputs();
+      const [hash, resilient] = await Promise.all([
+        computeGhostHash(inputs),
+        computeResilientHash(resilientInputs),
+      ]);
+      const nextRecord = await saveMask(hash.hash, resilient.hash);
       dispatch({
         type: 'complete-initial',
         hash,
+        resilient,
         stored: nextRecord,
         storedBefore: priorRecord,
       });
@@ -207,11 +228,16 @@ export function GhostDemo() {
     async (label: string, summary: string) => {
       try {
         const inputs = await collectGhostInputs();
-        const hash = await computeGhostHash(inputs);
-        const nextRecord = await saveMask(hash.hash);
+        const resilientInputs = collectResilientInputs();
+        const [hash, resilient] = await Promise.all([
+          computeGhostHash(inputs),
+          computeResilientHash(resilientInputs),
+        ]);
+        const nextRecord = await saveMask(hash.hash, resilient.hash);
         dispatch({
           type: 'complete-action',
           hash,
+          resilient,
           stored: nextRecord,
           log: { label, summary },
         });
@@ -268,17 +294,38 @@ export function GhostDemo() {
   // --- Derived verdict ------------------------------------------------------
 
   const outcome: VerdictOutcome = useMemo(() => {
-    if (state.phase === 'verdict' && state.firstHash && state.secondHash) {
-      if (state.firstHash.hash === state.secondHash.hash) {
+    if (
+      state.phase === 'verdict' &&
+      state.firstHash &&
+      state.secondHash &&
+      state.firstResilient &&
+      state.secondResilient
+    ) {
+      const strictMatch = state.firstHash.hash === state.secondHash.hash;
+      const resilientMatch =
+        state.firstResilient.hash === state.secondResilient.hash;
+      if (strictMatch) {
         return 'persistent';
       }
       if (isAnonymityBucket(state.browser)) {
         return 'anonymity-set';
       }
+      if (resilientMatch) {
+        // Strict hash drifted (farbling worked) but the resilient signals
+        // held — a sophisticated tracker could still link the sessions.
+        return 'resilient-persistent';
+      }
       return 'drift';
     }
     return 'first-visit';
-  }, [state.phase, state.firstHash, state.secondHash, state.browser]);
+  }, [
+    state.phase,
+    state.firstHash,
+    state.secondHash,
+    state.firstResilient,
+    state.secondResilient,
+    state.browser,
+  ]);
 
   const verdict: Verdict | null = useMemo(() => {
     if (state.phase !== 'verdict') return null;
@@ -312,6 +359,16 @@ export function GhostDemo() {
       ? state.secondHash.hash
       : state.firstHash?.hash ?? null;
 
+  const shortResilient =
+    state.phase === 'verdict' && state.secondResilient
+      ? state.secondResilient.short
+      : state.firstResilient?.short ?? null;
+
+  const fullResilient =
+    state.phase === 'verdict' && state.secondResilient
+      ? state.secondResilient.hash
+      : state.firstResilient?.hash ?? null;
+
   return (
     <section
       ref={rootRef}
@@ -342,6 +399,8 @@ export function GhostDemo() {
           phase={state.phase}
           short={shortHash}
           full={fullHash}
+          shortResilient={shortResilient}
+          fullResilient={fullResilient}
           error={state.errorMessage}
           prefersReducedMotion={prefersReducedMotion === true}
           onManualCompute={runInitialCompute}
@@ -398,6 +457,8 @@ interface HashPanelProps {
   phase: PhaseKey;
   short: string | null;
   full: string | null;
+  shortResilient: string | null;
+  fullResilient: string | null;
   error: string | null;
   prefersReducedMotion: boolean;
   onManualCompute: () => void;
@@ -407,6 +468,8 @@ function HashPanel({
   phase,
   short,
   full,
+  shortResilient,
+  fullResilient,
   error,
   prefersReducedMotion,
   onManualCompute,
@@ -450,18 +513,47 @@ function HashPanel({
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs uppercase tracking-wider text-text-muted">
-        Your fingerprint
-      </p>
-      <p className="font-mono text-3xl text-text" aria-live="polite">
-        …{short ?? '------'}
-      </p>
-      {full ? (
-        <p className="font-mono text-xs text-text-muted break-all" aria-label="Full SHA-256 hash">
-          {full}
+    <div className="grid gap-4 sm:grid-cols-2" aria-live="polite">
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-wider text-text-muted">
+          Strict hash
         </p>
-      ) : null}
+        <p className="font-mono text-3xl text-text">
+          …{short ?? '------'}
+        </p>
+        <p className="text-xs text-text-muted">
+          Canvas · audio · UA · screen · timezone · fonts. Brave farbles most of
+          these on every session.
+        </p>
+        {full ? (
+          <p
+            className="font-mono text-[11px] text-text-muted break-all"
+            aria-label="Full SHA-256 of strict hash"
+          >
+            {full}
+          </p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-wider text-text-muted">
+          Resilient hash
+        </p>
+        <p className="font-mono text-3xl text-text">
+          …{shortResilient ?? '------'}
+        </p>
+        <p className="text-xs text-text-muted">
+          Timezone · language · platform · screen size. Brave and incognito
+          don't change any of these.
+        </p>
+        {fullResilient ? (
+          <p
+            className="font-mono text-[11px] text-text-muted break-all"
+            aria-label="Full SHA-256 of resilient hash"
+          >
+            {fullResilient}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

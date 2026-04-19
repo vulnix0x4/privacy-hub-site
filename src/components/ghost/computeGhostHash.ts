@@ -11,7 +11,7 @@
  * Nothing in this module touches a network, a server, or any storage. Tests
  * can call it directly with synthetic vectors — the shape is deterministic.
  */
-import type { GhostVector } from './types';
+import type { GhostVector, ResilientVector } from './types';
 
 /**
  * The six-field vector that feeds the Ghost hash. Every field is either a
@@ -74,6 +74,53 @@ export function buildGhostVector(inputs: GhostHashInputs): GhostVector {
  */
 export async function computeGhostHash(inputs: GhostHashInputs): Promise<GhostHashResult> {
   const vector = buildGhostVector(inputs);
+  const serialized = JSON.stringify(vector);
+  const hash = await sha256Hex(serialized);
+  return {
+    hash,
+    short: hash.slice(-6),
+    vector: serialized,
+  };
+}
+
+/**
+ * Resilient hash inputs — only signals Brave's farbling (and most browser
+ * anti-fingerprinting modes) leave intact across sessions on the same device.
+ * Fed to {@link computeResilientHash}.
+ */
+export interface ResilientHashInputs {
+  /** IANA timezone, e.g. `America/Los_Angeles`. Stable across incognito. */
+  timezone: string;
+  /** Primary `navigator.language`. Brave does not farble the primary lang. */
+  language: string;
+  /** `navigator.platform`, e.g. `MacIntel`, `Win32`, `Linux x86_64`. */
+  platform: string;
+  /** `[screen.width, screen.height]`. DPR omitted because Brave farbles it. */
+  screen: readonly [number, number];
+}
+
+/** Build the canonical {@link ResilientVector} with keys in a fixed order. */
+export function buildResilientVector(inputs: ResilientHashInputs): ResilientVector {
+  return {
+    timezone: inputs.timezone,
+    language: inputs.language,
+    platform: inputs.platform,
+    screen: [inputs.screen[0], inputs.screen[1]],
+  };
+}
+
+/**
+ * Compute the resilient Ghost hash — the "farbling isn't enough" counterpart
+ * to {@link computeGhostHash}. Uses only timezone + language + platform +
+ * screen dimensions, all of which Brave's per-session farbling leaves
+ * untouched. A tracker correlating these signals with the user's IP (which
+ * we don't include here to keep the demo server-free) could still link
+ * Brave-incognito sessions to the non-incognito origin.
+ */
+export async function computeResilientHash(
+  inputs: ResilientHashInputs
+): Promise<GhostHashResult> {
+  const vector = buildResilientVector(inputs);
   const serialized = JSON.stringify(vector);
   const hash = await sha256Hex(serialized);
   return {

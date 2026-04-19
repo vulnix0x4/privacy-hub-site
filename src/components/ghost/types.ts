@@ -21,14 +21,33 @@ export interface GhostVector {
 }
 
 /**
+ * A coarser "resilient" fingerprint vector built from signals Brave's farbling
+ * can't touch: timezone, primary language, OS platform string, and screen
+ * dimensions. Used alongside the main {@link GhostVector} to demonstrate that
+ * a sophisticated tracker can still link sessions across Brave-incognito even
+ * when the strict hash drifts.
+ */
+export interface ResilientVector {
+  timezone: string;
+  language: string;
+  platform: string;
+  screen: [number, number];
+}
+
+/**
  * IndexedDB record shape. Stored as the single entry with id `'current'`
  * in the `mask` object store of the `privacy-hub-ghost` database. `firstSeen`
  * is the unix-ms timestamp of the first ever observation, `lastSeen` updates
  * on every visit.
+ *
+ * `resilientHash` is optional for back-compat with records saved before the
+ * resilient-hash feature landed. Loader treats missing `resilientHash` as
+ * "no prior observation of the resilient signals."
  */
 export interface MaskRecord {
   id: 'current';
   hash: string;
+  resilientHash?: string;
   firstSeen: number;
   lastSeen: number;
 }
@@ -37,13 +56,21 @@ export interface MaskRecord {
  * Verdict categories emitted by the Ghost Demo after a user runs a "Try to
  * hide" action and we re-hash their environment. Shown in the result panel.
  *
- *  - `persistent` — hash unchanged; the defense didn't work.
- *  - `drift` — hash changed; the defense worked.
+ *  - `persistent` — both hashes unchanged; the defense didn't work.
+ *  - `drift` — both hashes changed; the defense worked across the board.
+ *  - `resilient-persistent` — strict hash drifted (farbling defeated naive
+ *    fingerprinting) but the resilient hash held, so network + locale signals
+ *    would still link the session. This is the "farbling isn't enough" moment.
  *  - `anonymity-set` — Tor/Mullvad/Brave-strict branch: framed as "you joined
  *    a crowd" rather than "you escaped the crowd."
  *  - `first-visit` — no stored hash existed before this scan.
  */
-export type VerdictOutcome = 'persistent' | 'drift' | 'anonymity-set' | 'first-visit';
+export type VerdictOutcome =
+  | 'persistent'
+  | 'drift'
+  | 'resilient-persistent'
+  | 'anonymity-set'
+  | 'first-visit';
 
 /** Re-export so the components file only needs to import from `./types`. */
 export type { BrowserFamily };

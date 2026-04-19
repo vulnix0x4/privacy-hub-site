@@ -8,6 +8,10 @@
 #    locally can call reload.
 # 4. Launch NSD in foreground + a zone-file watcher that calls
 #    `nsd-control reload` when scan.zone's mtime changes.
+# 5. A background chmod loop makes /var/run/nsd/dnstap.sock group-readable
+#    once NSD creates it, so the scanner-nonce sidecar (gid `nsd-nonce`)
+#    can connect. NSD itself does not set group perms on the socket on
+#    create; we fix them up after the fact.
 #
 # Cross-container control (sidecar → nsd) is deliberately avoided: the
 # sidecar only writes the zone file, and THIS container detects the change
@@ -22,9 +26,13 @@ ZONES_DIR="/etc/nsd/zones"
 ZONE_FILE="${ZONES_DIR}/scan.zone"
 TEMPLATE="/etc/nsd/zone-template.txt"
 NSD_RUN_DIR="/var/run/nsd"
+DNSTAP_SOCK="${NSD_RUN_DIR}/dnstap.sock"
 
 mkdir -p "${ZONES_DIR}" "${NSD_RUN_DIR}"
 chown nsd:nsd "${ZONES_DIR}" "${NSD_RUN_DIR}" 2>/dev/null || true
+# /var/run/nsd must be group-accessible so the sidecar (joined to group
+# nsd-nonce, which is a supplementary group of nsd) can reach dnstap.sock.
+chmod 0775 "${NSD_RUN_DIR}" 2>/dev/null || true
 
 # Bootstrap zone if the sidecar hasn't written one yet. Idempotent — the
 # sidecar's next rewrite will overwrite with the live serial.
@@ -63,8 +71,27 @@ nsd-checkconf /etc/nsd/nsd.conf
 ) &
 WATCHER_PID=$!
 
+# Launch the dnstap socket chmod loop. NSD creates dnstap.sock with 0600
+# on startup (owned by nsd:nsd); relax to 0660 so supplementary-group
+# members (the sidecar) can connect. Loop forever: NSD may re-create the
+# socket on reload.
+(
+    last_perm=""
+    while true; do
+        if [ -S "${DNSTAP_SOCK}" ]; then
+            cur_perm="$(stat -c %a "${DNSTAP_SOCK}" 2>/dev/null || echo "")"
+            if [ -n "${cur_perm}" ] && [ "${cur_perm}" != "660" ] && [ "${cur_perm}" != "${last_perm}" ]; then
+                chmod 0660 "${DNSTAP_SOCK}" 2>/dev/null || true
+                last_perm="${cur_perm}"
+            fi
+        fi
+        sleep 1
+    done
+) &
+CHMOD_PID=$!
+
 # Forward SIGTERM to children on shutdown.
-trap 'kill -TERM "${WATCHER_PID}" 2>/dev/null; kill -TERM $! 2>/dev/null; wait' TERM INT
+trap 'kill -TERM "${WATCHER_PID}" "${CHMOD_PID}" 2>/dev/null; kill -TERM $! 2>/dev/null; wait' TERM INT
 
 # Foreground NSD. Must be exec-less so we can keep the shell trap alive
 # and continue reaping the watcher.

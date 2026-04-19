@@ -217,6 +217,93 @@ const DRIFT_BY_FAMILY: Record<BrowserFamily, Verdict> = {
   },
 };
 
+/**
+ * Resilient-persistent verdict — the strict hash drifted (farbling worked!)
+ * but the resilient hash (timezone + language + platform + screen) held, so a
+ * sophisticated tracker combining those would still link the sessions. This
+ * is the "farbling is not enough" moment on Brave incognito specifically.
+ */
+const RESILIENT_PERSISTENT_BY_FAMILY: Record<BrowserFamily, Verdict> = {
+  'vanilla-chrome': {
+    tone: 'red',
+    headline: 'Some signals drifted, some didn\u2019t.',
+    detail:
+      'Canvas, audio, or UA moved — but timezone, language, platform, and screen dimensions are identical. A tracker using those would still link you.',
+  },
+  edge: {
+    tone: 'red',
+    headline: 'Some signals drifted, some didn\u2019t.',
+    detail:
+      'Whatever you did shifted the rendering-level signals, but the OS + locale surface is unchanged. A tracker using those still has you.',
+  },
+  'brave-standard': {
+    tone: 'red',
+    headline: 'Brave farbling worked \u2014 and the fall-back still linked you.',
+    detail:
+      'Canvas/audio/UA shifted (good). But timezone, language, platform, and screen size are identical across sessions. A tracker combining those would still re-identify you.',
+  },
+  'brave-strict': {
+    tone: 'red',
+    headline: 'Brave farbling worked \u2014 network + locale signals still linked you.',
+    detail:
+      "Strict mode did its job on canvas, audio, and UA. The catch: timezone, language, platform, and screen dimensions don't change between your normal and incognito windows. A patient tracker combining those would still link the two sessions back together.",
+  },
+  'firefox-etp-standard': {
+    tone: 'red',
+    headline: 'The rendering surface moved, the rest didn\u2019t.',
+    detail:
+      'Canvas or audio shifted (probably environmental) but the stable signals \u2014 timezone, language, platform, screen \u2014 match. A sophisticated tracker would still link you.',
+  },
+  'firefox-etp-strict': {
+    tone: 'red',
+    headline: 'Part of your fingerprint drifted, part held.',
+    detail:
+      "Whatever shifted moved the canvas/audio/UA inputs but left the OS + locale surface alone. That surface is enough for correlation if a tracker is looking for it.",
+  },
+  'firefox-rfp': {
+    tone: 'red',
+    headline: 'RFP did its job on rendering \u2014 locale signals still match.',
+    detail:
+      "RFP canonicalises canvas, audio, fonts, and UA. Timezone, language, platform, and screen remain your real ones. Combining those, a tracker can still link your sessions.",
+  },
+  librewolf: {
+    tone: 'red',
+    headline: 'LibreWolf RFP canonicalised the rendering \u2014 but not the locale.',
+    detail:
+      'Canvas/audio/UA are now the LibreWolf-RFP canonical. Your timezone, language, platform, and screen are still yours, and they match across sessions.',
+  },
+  safari: {
+    tone: 'red',
+    headline: 'Safari shifted some inputs \u2014 the rest still link you.',
+    detail:
+      "Safari's fingerprint defences narrowed the rendering surface, but timezone/language/platform/screen are identical across normal and private windows.",
+  },
+  'safari-lockdown': {
+    tone: 'red',
+    headline: 'Even Lockdown Mode leaves the locale surface intact.',
+    detail:
+      "Lockdown Mode blocks a lot of fingerprint-surface scripts, but it doesn't reset your timezone, language, platform, or screen dimensions. Those still match across sessions.",
+  },
+  'tor-browser': {
+    tone: 'green',
+    headline: 'You joined the Tor anonymity set.',
+    detail:
+      "On Tor the resilient signals are canonicalised too (timezone \u2192 UTC, language \u2192 en-US, platform \u2192 Win32). The hash matches because every Tor user has the same one.",
+  },
+  'mullvad-browser': {
+    tone: 'green',
+    headline: 'You joined the Mullvad Browser anonymity set.',
+    detail:
+      'Mullvad canonicalises the locale surface like Tor. Your resilient hash matches the other Mullvad users on this build.',
+  },
+  unknown: {
+    tone: 'red',
+    headline: 'Part of your fingerprint moved, part held.',
+    detail:
+      "Rendering-level signals shifted. Timezone, language, platform, and screen are still the same — a tracker correlating those would still link you.",
+  },
+};
+
 /** Anonymity-set framing — used when the family is Tor, Mullvad, or Brave-strict. */
 const ANONYMITY_BY_FAMILY: Partial<Record<BrowserFamily, Verdict>> = {
   'tor-browser': {
@@ -260,6 +347,8 @@ export function getVerdict(family: BrowserFamily, outcome: VerdictOutcome): Verd
       return PERSISTENT_BY_FAMILY[family];
     case 'drift':
       return DRIFT_BY_FAMILY[family];
+    case 'resilient-persistent':
+      return RESILIENT_PERSISTENT_BY_FAMILY[family];
     case 'anonymity-set': {
       if (!ANONYMITY_FAMILIES.has(family)) {
         // Asking for anonymity framing outside the valid families is a
@@ -295,6 +384,7 @@ export const ALL_OUTCOMES: readonly VerdictOutcome[] = [
   'first-visit',
   'persistent',
   'drift',
+  'resilient-persistent',
   'anonymity-set',
 ] as const;
 

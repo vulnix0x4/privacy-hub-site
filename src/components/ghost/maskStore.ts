@@ -59,14 +59,25 @@ export async function loadMask(): Promise<MaskRecord | null> {
 /**
  * Persist a new or updated mask record. If a record already exists, its
  * `firstSeen` is preserved; otherwise it's set to `lastSeen`.
+ *
+ * `resilientHash` is optional (for back-compat with the single-hash era).
+ * Callers post-Wave-3+ always pass it so the resilient-persistent verdict
+ * can fire on the next rescan.
  */
-export async function saveMask(hash: string, now: number = Date.now()): Promise<MaskRecord> {
+export async function saveMask(
+  hash: string,
+  resilientHash?: string,
+  now: number = Date.now()
+): Promise<MaskRecord> {
   const record: MaskRecord = {
     id: GHOST_RECORD_ID,
     hash,
     firstSeen: now,
     lastSeen: now,
   };
+  if (resilientHash !== undefined) {
+    record.resilientHash = resilientHash;
+  }
   if (typeof indexedDB === 'undefined') return record;
   try {
     const db = await open();
