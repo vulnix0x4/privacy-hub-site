@@ -69,7 +69,14 @@ export const BADGE_CONFIG: Record<BadgeKey, BadgeConfig> = {
     glyph: 'i',
   },
   'pending-backend': {
-    label: 'Pending — backend',
+    // Three vectors (tls-ja4, dns-leaks, supercookies-hsts-etag-favicon)
+    // require server-side measurement that the Phase-3 infrastructure
+    // ships — raw-TLS JA4 passthrough, authoritative DNS observation,
+    // and same-origin cache-echo endpoints. The card is intentionally
+    // visible so visitors understand what a full tracker would measure,
+    // but it does not look "broken" because the backend is by-design
+    // deferred, not missing.
+    label: 'Roadmap · Phase 3',
     className:
       'bg-state-info/10 text-state-info-text border border-state-info/30',
     glyph: '…',
